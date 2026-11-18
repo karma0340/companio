@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Lock, Star, ShieldCheck, MapPin, Check } from "lucide-react";
 import { CompanionSummary } from "@/types";
 
@@ -16,9 +17,13 @@ export function CompanionCard({
   isUnlocked = false,
   onUnlockClick,
 }: CompanionCardProps) {
+  const router = useRouter();
+  const isPreview = Boolean(companion.isPreview);
+  const canViewClear = isUnlocked || isPreview;
+
   return (
     <div
-      onClick={() => onUnlockClick(companion)}
+      onClick={() => router.push(`/companion/${companion.id}`)}
       className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3.5 transition duration-200 hover:shadow-lg hover:border-slate-300 cursor-pointer text-slate-900"
     >
       <div>
@@ -26,18 +31,20 @@ export function CompanionCard({
         <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-slate-100">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={isUnlocked ? companion.avatarUrl : (companion.blurredAvatarUrl || companion.avatarUrl)}
+            src={canViewClear ? companion.avatarUrl : (companion.blurredAvatarUrl || companion.avatarUrl)}
             alt={companion.displayName}
             className={`h-full w-full object-cover transition duration-300 group-hover:scale-105 ${
-              isUnlocked ? "" : "blur-[2px] opacity-90"
+              canViewClear ? "" : "blur-[2px] opacity-90"
             }`}
           />
 
           {/* Top Floating Badges (Image 3 Parity) */}
           <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/90 text-white px-2.5 py-0.5 text-[10px] font-bold shadow-sm backdrop-blur-sm">
-              ★ Free preview
-            </span>
+            {isPreview && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/90 text-white px-2.5 py-0.5 text-[10px] font-bold shadow-sm backdrop-blur-sm">
+                ★ Free preview
+              </span>
+            )}
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-900/80 text-white px-2 py-0.5 text-[10px] font-medium shadow-sm backdrop-blur-sm">
               <Check className="h-2.5 w-2.5 text-blue-400" />
               ID-checked

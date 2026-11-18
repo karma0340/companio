@@ -31,6 +31,7 @@ export interface CompanionSummary {
   spokenLanguages: string[];
   acceptedActivities: string[];
   isAvailable: boolean;
+  isPreview?: boolean;
 }
 
 export interface CitySummary {

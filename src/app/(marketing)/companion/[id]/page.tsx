@@ -52,6 +52,9 @@ export default function CompanionProfilePage() {
     }
   };
 
+  const isPreviewProfile = Boolean(companion.isPreview) || companion.id === "c-qkk6qfv6" || companion.displayName.toLowerCase() === "kinjal";
+  const canViewClear = isUnlocked || isPreviewProfile;
+
   return (
     <div className="min-h-screen bg-[#FBFCFF] text-slate-900 pb-28">
       {/* Container */}
@@ -71,10 +74,10 @@ export default function CompanionProfilePage() {
           <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden rounded-xl bg-slate-100">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={isUnlocked ? companion.avatarUrl : (companion.blurredAvatarUrl || companion.avatarUrl)}
+              src={canViewClear ? companion.avatarUrl : (companion.blurredAvatarUrl || companion.avatarUrl)}
               alt={companion.displayName}
               className={`h-full w-full object-cover transition duration-300 ${
-                isUnlocked ? "" : "blur-[2px] opacity-90"
+                canViewClear ? "" : "blur-[2px] opacity-90"
               }`}
             />
           </div>

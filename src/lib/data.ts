@@ -90,6 +90,7 @@ export const MOCK_COMPANIONS: CompanionSummary[] = [
     bio: "Lover of quiet coastal coffee corners, live music gigs, and deep conversations over evening walks.",
     shortBio: "Bandra West coastal coffee & evening walks.",
     isAvailable: true,
+    isPreview: true,
   },
   {
     id: "comp_01",
