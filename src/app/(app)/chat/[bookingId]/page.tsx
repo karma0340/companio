@@ -78,50 +78,89 @@ export default function ChatRoomPage() {
       .catch(() => {});
   }, [bookingId]);
 
-  // 2. Establish WebSocket connection
+  // 2. Establish WebSocket connection with HTTPS & Vercel polling fallback
   useEffect(() => {
-    // Connect to WebSocket Gateway
-    const wsUrl = `ws://${window.location.hostname}:3001?bookingId=${bookingId}&token=demo_token_bypass_${currentUserId}`;
-    const ws = new WebSocket(wsUrl);
-    socketRef.current = ws;
+    let pollingInterval: NodeJS.Timeout | null = null;
 
-    ws.onopen = () => {
-      console.log("[WS Client] Connected to chat gateway for booking:", bookingId);
-      setIsConnected(true);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-
-        if (payload.type === "HISTORY_PAYLOAD" && Array.isArray(payload.messages)) {
-          setMessages(payload.messages);
-        } else if (payload.type === "MESSAGE_RECEIVED" && payload.message) {
-          setMessages((prev) => {
-            // Avoid duplicate message appending
-            if (prev.some((m) => m.id === payload.message.id)) {
+    // Helper to poll REST endpoint
+    const pollMessages = () => {
+      fetch(`/api/chat/${bookingId}/messages`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.messages)) {
+            setMessages((prev) => {
+              if (data.messages.length !== prev.length) {
+                return data.messages;
+              }
               return prev;
-            }
-            return [...prev, payload.message];
-          });
+            });
+          }
+        })
+        .catch(() => {});
+    };
+
+    // Determine target WebSocket URL dynamically
+    const customWs = process.env.NEXT_PUBLIC_WS_URL;
+    let wsUrl = "";
+    if (customWs) {
+      wsUrl = `${customWs}?bookingId=${bookingId}&token=demo_token_bypass_${currentUserId}`;
+    } else {
+      const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+      const protocol = isHttps ? "wss:" : "ws:";
+      const port = isHttps ? "" : ":3001";
+      wsUrl = `${protocol}//${window.location.hostname}${port}?bookingId=${bookingId}&token=demo_token_bypass_${currentUserId}`;
+    }
+
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(wsUrl);
+      socketRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("[WS Client] Connected to chat gateway for booking:", bookingId);
+        setIsConnected(true);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+
+          if (payload.type === "HISTORY_PAYLOAD" && Array.isArray(payload.messages)) {
+            setMessages(payload.messages);
+          } else if (payload.type === "MESSAGE_RECEIVED" && payload.message) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === payload.message.id)) {
+                return prev;
+              }
+              return [...prev, payload.message];
+            });
+          }
+        } catch (err) {
+          console.error("[WS Client] Error parsing packet:", err);
         }
-      } catch (err) {
-        console.error("[WS Client] Error parsing packet:", err);
-      }
-    };
+      };
 
-    ws.onclose = () => {
-      console.log("[WS Client] Disconnected from chat gateway");
-      setIsConnected(false);
-    };
+      ws.onclose = () => {
+        setIsConnected(false);
+        if (!pollingInterval) {
+          pollingInterval = setInterval(pollMessages, 2500);
+        }
+      };
 
-    ws.onerror = (err) => {
-      console.warn("[WS Client] Connection error, using REST fallback:", err);
+      ws.onerror = () => {
+        setIsConnected(false);
+        if (!pollingInterval) {
+          pollingInterval = setInterval(pollMessages, 2500);
+        }
+      };
+    } catch (e) {
       setIsConnected(false);
-    };
+      pollingInterval = setInterval(pollMessages, 2500);
+    }
 
     return () => {
-      ws.close();
+      if (ws) ws.close();
+      if (pollingInterval) clearInterval(pollingInterval);
     };
   }, [bookingId, currentUserId]);
 

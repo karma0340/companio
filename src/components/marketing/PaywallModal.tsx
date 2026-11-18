@@ -12,6 +12,20 @@ interface PaywallModalProps {
   onUnlockedSuccess?: () => void;
 }
 
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if ((window as any).Razorpay) return resolve(true);
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export function PaywallModal({
   isOpen,
   onClose,
@@ -42,7 +56,62 @@ export function PaywallModal({
         throw new Error(orderData.error || "Failed to create order");
       }
 
-      // 2. Simulate Razorpay payment capture in sandbox mode
+      // 2. If real Razorpay key is active, open native Razorpay checkout modal
+      if (orderData.order?.isLive) {
+        const loaded = await loadRazorpayScript();
+        if (loaded && (window as any).Razorpay) {
+          const options = {
+            key: orderData.order.keyId,
+            amount: orderData.order.amount,
+            currency: orderData.order.currency,
+            name: "Companio",
+            description: `${orderData.order.tierName} Access Pass`,
+            order_id: orderData.order.orderId,
+            handler: async function (response: any) {
+              try {
+                const verifyRes = await fetch("/api/passes/verify-payment", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    orderId: response.razorpay_order_id || orderData.order.orderId,
+                    paymentId: response.razorpay_payment_id,
+                    signature: response.razorpay_signature,
+                    tier,
+                    phone: phone || undefined,
+                  }),
+                });
+                const verifyData = await verifyRes.json();
+                if (!verifyRes.ok || !verifyData.success) {
+                  throw new Error(verifyData.error || "Payment verification failed");
+                }
+                setUnlockedSuccess(true);
+                if (onUnlockedSuccess) onUnlockedSuccess();
+              } catch (verifyErr) {
+                alert((verifyErr as Error).message || "Verification failed");
+              } finally {
+                setIsProcessing(false);
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                setIsProcessing(false);
+              },
+            },
+            prefill: {
+              contact: phone || "",
+            },
+            theme: {
+              color: "#D4AF37",
+            },
+          };
+
+          const rzp = new (window as any).Razorpay(options);
+          rzp.open();
+          return;
+        }
+      }
+
+      // 3. Zero-config Sandbox Fallback Simulation (instant test mode)
       const paymentId = `pay_rzp_mock_${Date.now()}`;
       const verifyRes = await fetch("/api/passes/verify-payment", {
         method: "POST",

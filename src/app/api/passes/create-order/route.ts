@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { PASS_TIER_OPTIONS } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { PassTier } from "@/types";
+import { createRazorpayOrder, getRazorpayKeyId, isRazorpayConfigured } from "@/lib/razorpay";
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,8 +35,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const orderId = `order_rzp_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
     const amountInPaise = Math.round(tierOption.price * 100);
+    const rzpResult = await createRazorpayOrder(
+      amountInPaise,
+      "INR",
+      `pass_${Date.now()}`,
+      { tier, userId: userId || "guest" }
+    );
+
+    const orderId = rzpResult.orderId;
 
     // Create pending AccessPass record in DB if user is identified
     if (userId) {
@@ -66,7 +74,8 @@ export async function POST(req: NextRequest) {
         tier: tierOption.tier,
         tierName: tierOption.name,
         priceInr: tierOption.price,
-        keyId: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
+        keyId: getRazorpayKeyId(),
+        isLive: isRazorpayConfigured(),
       },
     });
   } catch (error) {

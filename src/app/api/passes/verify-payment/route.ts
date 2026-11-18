@@ -3,14 +3,25 @@ import { getSession, setSessionCookie } from "@/lib/session";
 import { PASS_TIER_OPTIONS } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { PassTier } from "@/types";
+import { verifyRazorpaySignature } from "@/lib/razorpay";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const orderId = String(body.orderId || "");
     const paymentId = String(body.paymentId || `pay_${Date.now().toString(36)}`);
+    const signature = body.signature ? String(body.signature).trim() : undefined;
     const tier = (body.tier as PassTier) || "ONE_MONTH";
     const phoneInput = body.phone ? String(body.phone).trim() : null;
+
+    // Cryptographic signature check
+    const verification = verifyRazorpaySignature(orderId, paymentId, signature);
+    if (!verification.isValid) {
+      return NextResponse.json(
+        { success: false, error: verification.reason || "Payment signature verification failed." },
+        { status: 400 }
+      );
+    }
 
     const tierOption = PASS_TIER_OPTIONS.find((p) => p.tier === tier);
     if (!tierOption) {
