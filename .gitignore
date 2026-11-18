@@ -39,3 +39,6 @@ LIVE_SCRAPE_AUDIT/
 *.html
 *.pdf
 text_*.txt
+companioassets/
+*.whtt
+text_*.txt

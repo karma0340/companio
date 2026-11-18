@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, ShieldCheck, Check, Sparkles, CheckCircle2 } from "lucide-react";
+import { X, ShieldCheck, Check, Sparkles, CheckCircle2, Lock } from "lucide-react";
 import { PASS_TIER_OPTIONS } from "@/lib/data";
 import { PassTier } from "@/types";
 
@@ -35,12 +35,20 @@ export function PaywallModal({
   const [selectedTier, setSelectedTier] = useState<PassTier>("THREE_MONTH");
   const [isProcessing, setIsProcessing] = useState(false);
   const [unlockedSuccess, setUnlockedSuccess] = useState(false);
+  const [agreedPlatonic, setAgreedPlatonic] = useState(true);
   const [phone, setPhone] = useState("");
-  const [needsPhone, setNeedsPhone] = useState(false);
 
   if (!isOpen) return null;
 
+  const currentOption =
+    PASS_TIER_OPTIONS.find((p) => p.tier === selectedTier) || PASS_TIER_OPTIONS[1];
+
   const handlePurchase = async (tier: PassTier, price: number) => {
+    if (!agreedPlatonic) {
+      alert("Please agree to meet in public and keep it strictly platonic to continue.");
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -101,7 +109,7 @@ export function PaywallModal({
               contact: phone || "",
             },
             theme: {
-              color: "#D4AF37",
+              color: "#101828",
             },
           };
 
@@ -140,143 +148,231 @@ export function PaywallModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[#333] bg-[#121212] p-6 text-white shadow-2xl md:p-8">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-[#8E8E93] hover:bg-[#202020] hover:text-white"
-        >
-          <X className="h-5 w-5" />
-        </button>
+    <div
+      className="fixed inset-0 z-[120] flex items-end md:items-center md:justify-center"
+      style={{ backgroundColor: "rgba(20, 18, 42, 0.55)" }}
+    >
+      {/* Click outside backdrop to close */}
+      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
+
+      {/* Modal / Bottom Sheet Container */}
+      <div className="relative z-10 w-full max-h-[92dvh] md:max-w-md bg-[#FFFFFF] text-slate-900 rounded-t-[28px] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
+        {/* Top Drag Handle on Mobile */}
+        <div className="pt-3 pb-1 flex justify-center md:hidden">
+          <span className="w-10 h-1 rounded-full bg-slate-300" />
+        </div>
+
+        {/* Close Button Header */}
+        <div className="flex items-center justify-between px-5 py-2">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-700">
+            <ShieldCheck className="h-3.5 w-3.5 text-slate-600" />
+            <span>Passes from ₹99.50</span>
+          </div>
+
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
         {unlockedSuccess ? (
-          <div className="py-8 text-center">
-            <CheckCircle2 className="mx-auto h-16 w-16 text-green-500 animate-in zoom-in-50" />
-            <h2 className="mt-4 font-serif text-3xl font-extrabold text-white">
-              Companio Club Unlocked!
+          <div className="px-6 py-10 text-center">
+            <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-600 animate-in zoom-in-50" />
+            <h2 className="mt-4 text-2xl font-bold text-slate-900">
+              Profiles Unlocked!
             </h2>
-            <p className="mt-2 text-sm text-[#A1A1A6] max-w-md mx-auto">
-              Your pass has been activated successfully. All companion profile photos are unblurred and booking privileges are active.
+            <p className="mt-2 text-xs text-slate-600 max-w-sm mx-auto">
+              Your pass has been activated. All companion portrait photos are unblurred and chat requests are ready to send.
             </p>
-            <div className="mt-8 flex justify-center gap-4">
+            <div className="mt-6 flex justify-center">
               <button
                 onClick={() => {
                   onClose();
                   window.location.reload();
                 }}
-                className="rounded-full bg-[#D4AF37] px-8 py-3 text-xs font-bold text-black hover:bg-[#E5C158] transition"
+                className="w-full rounded-xl bg-slate-900 py-3 text-xs font-bold text-white hover:bg-black transition"
               >
-                Browse Unmasked Profiles
+                Start Exploring Profiles
               </button>
             </div>
           </div>
         ) : (
-          <>
-            {/* Header */}
-            <div className="text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-xs font-semibold text-[#D4AF37]">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Unlock Full Profiles & Direct Booking</span>
-              </div>
-              <h2 className="mt-3 font-serif text-2xl font-bold sm:text-3xl text-white">
-                {companionName ? `Meet ${companionName} & Other Verified Hosts` : "Join Companio Club"}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 flex flex-col gap-4">
+            {/* Title & Subtitle */}
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                {companionName
+                  ? `Unlock ${companionName}'s profile and every profile on Companio.`
+                  : "Unlock all profiles on Companio."}
               </h2>
-              <p className="mt-2 text-xs text-[#8E8E93] sm:text-sm max-w-lg mx-auto">
-                Choose an Access Pass to remove photo blurs, read full verified bios, and send instant booking requests.
+              <p className="mt-1 text-xs text-slate-500">
+                One payment. No auto-renewal, no auto-debit.
               </p>
             </div>
 
-            {/* Pricing Tier Grid */}
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {PASS_TIER_OPTIONS.slice(0, 3).map((option) => {
-                const isSelected = selectedTier === option.tier;
+            {/* Pass Selection Options */}
+            <div className="space-y-2.5">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Choose your pass
+              </div>
+
+              {PASS_TIER_OPTIONS.map((opt) => {
+                const isSelected = selectedTier === opt.tier;
                 return (
                   <div
-                    key={option.tier}
-                    onClick={() => setSelectedTier(option.tier)}
-                    className={`relative cursor-pointer rounded-xl border p-4 text-left transition ${
+                    key={opt.tier}
+                    onClick={() => setSelectedTier(opt.tier)}
+                    className={`relative cursor-pointer rounded-xl p-3.5 border transition ${
                       isSelected
-                        ? "border-[#D4AF37] bg-[#1A1A1A] shadow-lg shadow-[#D4AF37]/10"
-                        : "border-[#262626] bg-[#141414] hover:border-[#383838]"
+                        ? "bg-[#101828] text-white border-[#101828] shadow-md"
+                        : "bg-white text-slate-900 border-slate-200 hover:border-slate-300"
                     }`}
                   >
-                    {option.isPopular && (
-                      <span className="absolute -top-2.5 right-3 rounded-full bg-[#D4AF37] px-2 py-0.5 text-[9px] font-black uppercase text-black">
-                        Popular
-                      </span>
-                    )}
-                    <div className="text-xs font-semibold text-[#8E8E93]">{option.name}</div>
-                    <div className="mt-1 flex items-baseline gap-1">
-                      <span className="font-serif text-2xl font-extrabold text-white">₹{option.price}</span>
-                      {option.durationDays && (
-                        <span className="text-[10px] text-[#666]">/{option.durationDays}d</span>
-                      )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {/* Radio Indicator */}
+                        <div
+                          className={`h-4 w-4 rounded-full flex items-center justify-center border transition ${
+                            isSelected
+                              ? "border-white bg-white"
+                              : "border-slate-400 bg-transparent"
+                          }`}
+                        >
+                          {isSelected && <div className="h-2 w-2 rounded-full bg-[#101828]" />}
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm">{opt.name}</span>
+                            {opt.tier === "THREE_MONTH" && (
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                  isSelected
+                                    ? "bg-amber-400 text-black"
+                                    : "bg-amber-100 text-amber-900"
+                                }`}
+                              >
+                                Save 16% vs monthly
+                              </span>
+                            )}
+                            {opt.tier === "ONE_YEAR" && (
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                  isSelected
+                                    ? "bg-slate-700 text-white"
+                                    : "bg-slate-100 text-slate-800"
+                                }`}
+                              >
+                                Best value
+                              </span>
+                            )}
+                          </div>
+                          <p
+                            className={`text-[11px] mt-0.5 ${
+                              isSelected ? "text-slate-300" : "text-slate-500"
+                            }`}
+                          >
+                            {opt.tagline}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="font-bold text-base">₹{opt.price.toFixed(2)}</span>
+                      </div>
                     </div>
-                    <p className="mt-2 text-[11px] text-[#A1A1A6] leading-tight">{option.tagline}</p>
                   </div>
                 );
               })}
             </div>
 
-            {/* Lifetime Bar */}
-            <div className="mt-3 flex items-center justify-between rounded-xl border border-[#262626] bg-[#141414] px-4 py-2.5 text-xs">
-              <div>
-                <span className="font-bold text-white">Lifetime Pass (₹999.50)</span>
-                <span className="text-[#8E8E93] ml-2 text-[11px]">— Never expires. Founding member badge.</span>
+            {/* Feature Bullets */}
+            <div className="space-y-2 text-xs text-slate-600 bg-slate-50 rounded-xl p-3 border border-slate-100">
+              <div className="flex items-start gap-2">
+                <span className="text-slate-400 font-bold">•</span>
+                <span>Send a meetup request to anyone you like. Chat opens once they accept.</span>
               </div>
-              <button
-                onClick={() => handlePurchase("LIFETIME", 999.50)}
-                className="rounded-full border border-[#D4AF37]/40 px-3 py-1 font-bold text-[#D4AF37] hover:bg-[#D4AF37]/10"
-              >
-                Get Lifetime
-              </button>
-            </div>
-
-            {/* Selected Tier Features Checklist */}
-            <div className="mt-5 rounded-xl bg-[#0A0A0A] border border-[#222] p-4 text-xs">
-              <div className="font-semibold text-white mb-2">What this pass unlocks:</div>
-              <div className="grid grid-cols-2 gap-2 text-[#A1A1A6]">
-                <div className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-green-500" />
-                  <span>Crystal clear unblurred portraits</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-green-500" />
-                  <span>Full host bio, hobbies & reviews</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-green-500" />
-                  <span>Direct session booking button</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-green-500" />
-                  <span>Real-time WebSocket chat access</span>
-                </div>
+              <div className="flex items-start gap-2">
+                <span className="text-slate-400 font-bold">•</span>
+                <span>Eligible members can spin once a week. About 1 in 20 spins wins a discount, up to 20% off.</span>
               </div>
             </div>
 
-            {/* Notice on Companion Hourly Rate */}
-            <p className="mt-3 text-center text-[10px] text-[#666]">
-              Note: Access Pass provides profile & booking privileges. Companion hourly rates (e.g. ₹499/hr) are paid upon booking into escrow.
-            </p>
+            {/* Price Breakdown Box */}
+            <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 text-xs space-y-1.5">
+              <div className="font-bold text-slate-900 mb-1">Price breakdown</div>
+              <div className="flex justify-between text-slate-600">
+                <span>Pass: {currentOption.name}</span>
+                <span className="font-semibold text-slate-900">₹{currentOption.price.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Taxes and processing</span>
+                <span className="text-emerald-700 font-medium">Included</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>Meetups</span>
+                <span>Paid separately when you book</span>
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex justify-between font-bold text-sm text-slate-900">
+                <span>Total today</span>
+                <span>₹{currentOption.price.toFixed(2)}</span>
+              </div>
+            </div>
 
-            {/* Checkout Action Button */}
-            <div className="mt-5">
+            {/* Safety & Trust Checkmarks */}
+            <div className="space-y-1.5 text-xs text-slate-700">
+              <div className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                <span>Look for the ID-checked badge on a profile</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                <span>Strictly platonic, public places only</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                <span>Unlimited profile views while your pass lasts</span>
+              </div>
+            </div>
+
+            {/* Platonic Agreement Checkbox */}
+            <label className="flex items-start gap-2.5 pt-2 text-xs text-slate-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={agreedPlatonic}
+                onChange={(e) => setAgreedPlatonic(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <span className="leading-tight">
+                I agree to meet in a public place and keep it strictly platonic. I understand this is enforced strictly.
+              </span>
+            </label>
+
+            {/* CTA Button */}
+            <div className="pt-2">
               <button
-                disabled={isProcessing}
-                onClick={() => {
-                  const opt = PASS_TIER_OPTIONS.find((p) => p.tier === selectedTier);
-                  if (opt) handlePurchase(opt.tier, opt.price);
-                }}
-                className="w-full rounded-full bg-[#D4AF37] py-3.5 text-center text-sm font-bold text-black transition hover:bg-[#E5C158] disabled:opacity-50 shadow-md"
+                disabled={isProcessing || !agreedPlatonic}
+                onClick={() => handlePurchase(currentOption.tier, currentOption.price)}
+                className="w-full rounded-xl bg-[#101828] py-3.5 text-center text-sm font-bold text-white transition hover:bg-black disabled:opacity-50 shadow-md active:scale-[0.99]"
               >
                 {isProcessing
-                  ? "Processing Razorpay Sandbox Order..."
-                  : `Unlock Profile Access Now (₹${PASS_TIER_OPTIONS.find((p) => p.tier === selectedTier)?.price})`}
+                  ? "Processing Payment..."
+                  : `Unlock all profiles · ₹${currentOption.price.toFixed(2)}`}
               </button>
+
+              <div className="mt-2 text-center text-[11px] text-slate-500">
+                Step 1: Email code · Step 2: Pay by UPI
+              </div>
+
+              <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-emerald-700 font-medium">
+                <Lock className="h-3 w-3" />
+                <span>Secured by Razorpay</span>
+              </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

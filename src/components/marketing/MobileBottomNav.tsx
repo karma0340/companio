@@ -22,6 +22,11 @@ export function MobileBottomNav() {
       .catch(() => {});
   }, []);
 
+  // Do not render bottom tab nav on companion profile pages because they have their own sticky action bar (Unlock pass)
+  if (pathname.startsWith("/companion/")) {
+    return null;
+  }
+
   const navItems = [
     {
       label: "Home",
@@ -33,7 +38,7 @@ export function MobileBottomNav() {
       label: "Explore",
       href: "/explore",
       icon: Compass,
-      isActive: pathname.startsWith("/explore") || pathname.startsWith("/companion"),
+      isActive: pathname.startsWith("/explore"),
     },
     {
       label: "Guide",
@@ -47,7 +52,7 @@ export function MobileBottomNav() {
     <>
       <nav
         aria-label="Mobile navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[#262626] bg-[#0A0A0A]/95 backdrop-blur-md shadow-[0_-4px_16px_rgba(0,0,0,0.5)]"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0.25rem)" }}
       >
         <div className="flex h-14 items-center justify-around px-2">
@@ -58,47 +63,36 @@ export function MobileBottomNav() {
                 key={item.label}
                 href={item.href}
                 className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors ${
-                  item.isActive ? "text-[#D4AF37]" : "text-[#8E8E93] hover:text-white"
+                  item.isActive
+                    ? "font-bold text-slate-900"
+                    : "font-medium text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Icon className={`h-5 w-5 ${item.isActive ? "stroke-[2.2]" : "stroke-[1.6]"}`} />
-                <span className="text-[10px] font-semibold tracking-tight">{item.label}</span>
+                <Icon className={`h-4 w-4 ${item.isActive ? "text-slate-900" : "text-slate-400"}`} />
+                <span className="text-[10px]">{item.label}</span>
               </Link>
             );
           })}
 
-          {/* Account / Sign-in Item */}
-          {user ? (
-            <Link
-              href="/app/dashboard"
-              className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors ${
-                pathname.startsWith("/app") ? "text-[#D4AF37]" : "text-[#8E8E93] hover:text-white"
-              }`}
-            >
-              <div className="relative">
-                <User className="h-5 w-5 stroke-[1.6]" />
-                {user.isUnlocked && (
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#D4AF37]"></span>
-                )}
-              </div>
-              <span className="text-[10px] font-semibold tracking-tight">App Portal</span>
-            </Link>
-          ) : (
-            <button
-              onClick={() => setAuthModalOpen(true)}
-              className="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center text-[#8E8E93] hover:text-white transition-colors"
-            >
-              <User className="h-5 w-5 stroke-[1.6]" />
-              <span className="text-[10px] font-semibold tracking-tight">Sign In</span>
-            </button>
-          )}
+          {/* User Sign In / Profile Tab */}
+          <button
+            onClick={() => setAuthModalOpen(true)}
+            className="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center font-medium text-slate-500 hover:text-slate-800"
+          >
+            <User className="h-4 w-4 text-slate-400" />
+            <span className="text-[10px]">{user ? "Account" : "Sign In"}</span>
+          </button>
         </div>
       </nav>
 
+      {/* Auth Modal Trigger */}
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
-        onSuccess={(loggedUser) => setUser(loggedUser)}
+        onSuccess={() => {
+          setAuthModalOpen(false);
+          window.location.reload();
+        }}
       />
     </>
   );

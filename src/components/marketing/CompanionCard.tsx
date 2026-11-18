@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Lock, Star, ShieldCheck, MapPin } from "lucide-react";
+import { Lock, Star, ShieldCheck, MapPin, Check } from "lucide-react";
 import { CompanionSummary } from "@/types";
 
 interface CompanionCardProps {
@@ -19,36 +19,35 @@ export function CompanionCard({
   return (
     <div
       onClick={() => onUnlockClick(companion)}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#262626] bg-[#121212] p-4 transition hover:border-[#D4AF37]/50 hover:bg-[#161616] cursor-pointer"
+      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3.5 transition duration-200 hover:shadow-lg hover:border-slate-300 cursor-pointer text-slate-900"
     >
       <div>
-        {/* Photo Container with Blur Filter */}
-        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#080808]">
+        {/* Photo Container with Dual Badges */}
+        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-slate-100">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={companion.avatarUrl}
+            src={isUnlocked ? companion.avatarUrl : (companion.blurredAvatarUrl || companion.avatarUrl)}
             alt={companion.displayName}
-            className={`h-full w-full object-cover transition duration-300 ${
-              isUnlocked ? "" : "blur-md scale-105 opacity-80"
+            className={`h-full w-full object-cover transition duration-300 group-hover:scale-105 ${
+              isUnlocked ? "" : "blur-[2px] opacity-90"
             }`}
           />
 
-          {/* Rate Badge */}
-          <div className="absolute top-2.5 left-2.5 rounded-full border border-black/40 bg-black/70 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
-            ₹{companion.hourlyRate}/hr
+          {/* Top Floating Badges (Image 3 Parity) */}
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/90 text-white px-2.5 py-0.5 text-[10px] font-bold shadow-sm backdrop-blur-sm">
+              ★ Free preview
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-900/80 text-white px-2 py-0.5 text-[10px] font-medium shadow-sm backdrop-blur-sm">
+              <Check className="h-2.5 w-2.5 text-blue-400" />
+              ID-checked
+            </span>
           </div>
 
-          {/* Locked Badge Overlay */}
-          {!isUnlocked && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 p-4 text-center">
-              <div className="rounded-full bg-[#1A1A1A]/90 p-2.5 border border-[#333] shadow-md group-hover:scale-110 transition">
-                <Lock className="h-5 w-5 text-[#D4AF37]" />
-              </div>
-              <span className="mt-2 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-bold text-white uppercase tracking-wider backdrop-blur-sm">
-                Unlock Profile
-              </span>
-            </div>
-          )}
+          {/* Rate Badge on Bottom Right of Photo */}
+          <div className="absolute bottom-2.5 right-2.5 rounded-full bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm shadow-sm">
+            ₹{companion.hourlyRate}/meetup
+          </div>
         </div>
 
         {/* Name and Rating */}
@@ -56,37 +55,34 @@ export function CompanionCard({
           <Link
             href={`/companion/${companion.id}`}
             onClick={(e) => e.stopPropagation()}
-            className="font-serif text-base font-bold text-white hover:text-[#D4AF37] transition hover:underline"
+            className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition"
           >
-            {isUnlocked ? companion.name : companion.maskedName}
+            {companion.displayName}
           </Link>
-          <div className="flex items-center gap-1 text-xs font-bold text-[#D4AF37]">
-            <Star className="h-3.5 w-3.5 fill-[#D4AF37]" />
+          <div className="flex items-center gap-1 text-xs font-bold text-slate-900">
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
             <span>{companion.ratingAverage}</span>
-            <span className="text-[#666]">({companion.totalReviews})</span>
+            <span className="text-slate-400 text-[11px]">({companion.totalReviews})</span>
           </div>
         </div>
 
-        {/* City & Verification */}
-        <div className="mt-1 flex items-center gap-1.5 text-xs text-[#8E8E93]">
-          <MapPin className="h-3 w-3 text-[#D4AF37]" />
+        {/* City / Location */}
+        <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+          <MapPin className="h-3 w-3 text-slate-400" />
           <span>{companion.city}</span>
-          <span>•</span>
-          <ShieldCheck className="h-3 w-3 text-green-500" />
-          <span className="text-green-500">ID Verified</span>
         </div>
 
-        {/* Short Bio */}
-        <p className="mt-2 text-xs text-[#A1A1A6] line-clamp-2 leading-relaxed">
-          {companion.shortBio}
+        {/* Bio */}
+        <p className="mt-2 text-xs text-slate-600 line-clamp-2 leading-relaxed">
+          {companion.bio}
         </p>
 
-        {/* Accepted Activities */}
-        <div className="mt-3 flex flex-wrap gap-1">
+        {/* Activity Pills */}
+        <div className="mt-3 flex flex-wrap gap-1.5">
           {companion.acceptedActivities.slice(0, 2).map((act) => (
             <span
               key={act}
-              className="rounded-full bg-[#1A1A1A] border border-[#2B2B2B] px-2 py-0.5 text-[10px] text-[#A1A1A6]"
+              className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-medium text-slate-600"
             >
               {act}
             </span>
@@ -94,10 +90,23 @@ export function CompanionCard({
         </div>
       </div>
 
-      {/* Action CTA Button */}
-      <div className="mt-4 border-t border-[#222] pt-3">
-        <button className="w-full rounded-full bg-[#1A1A1A] border border-[#333] py-2 text-center text-xs font-bold text-white transition hover:bg-[#D4AF37] hover:text-black hover:border-[#D4AF37]">
-          {isUnlocked ? "Book Session" : "Unlock Profile (From ₹99.50)"}
+      {/* Card Action Button */}
+      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+        <span className="text-[11px] font-medium text-slate-500">
+          {isUnlocked ? "Ready to book" : "Pass required"}
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onUnlockClick(companion);
+          }}
+          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+            isUnlocked
+              ? "bg-blue-600 text-white hover:bg-blue-700"
+              : "bg-slate-900 text-white hover:bg-black"
+          }`}
+        >
+          {isUnlocked ? "Request Meetup" : "Unlock Profile"}
         </button>
       </div>
     </div>
