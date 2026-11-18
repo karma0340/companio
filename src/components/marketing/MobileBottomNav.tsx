@@ -64,23 +64,23 @@ export function MobileBottomNav() {
                 href={item.href}
                 className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors ${
                   item.isActive
-                    ? "font-bold text-slate-900"
+                    ? "font-semibold text-blue-600"
                     : "font-medium text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Icon className={`h-4 w-4 ${item.isActive ? "text-slate-900" : "text-slate-400"}`} />
+                <Icon className={`h-4 w-4 ${item.isActive ? "text-blue-600" : "text-slate-500"}`} strokeWidth={1.75} />
                 <span className="text-[10px]">{item.label}</span>
               </Link>
             );
           })}
 
-          {/* User Sign In / Profile Tab */}
+          {/* User Sign in / Profile Tab (Image 2 Parity) */}
           <button
             onClick={() => setAuthModalOpen(true)}
             className="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center font-medium text-slate-500 hover:text-slate-800"
           >
-            <User className="h-4 w-4 text-slate-400" />
-            <span className="text-[10px]">{user ? "Account" : "Sign In"}</span>
+            <User className="h-4 w-4 text-slate-500" strokeWidth={1.75} />
+            <span className="text-[10px]">{user ? "Account" : "Sign in"}</span>
           </button>
         </div>
       </nav>
