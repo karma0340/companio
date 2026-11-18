@@ -1,0 +1,352 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ----------------------------------------------------
+// ENUMS
+// ----------------------------------------------------
+
+enum UserRole {
+  MEMBER
+  COMPANION
+  ADMIN
+}
+
+enum PassTier {
+  ONE_MONTH
+  THREE_MONTH
+  SIX_MONTH
+  ONE_YEAR
+  LIFETIME
+}
+
+enum PassStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REFUNDED
+}
+
+enum BookingStatus {
+  PENDING_ACCEPTANCE
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum EscrowStatus {
+  HELD_IN_ESCROW
+  RELEASED_TO_HOST
+  REFUNDED_TO_MEMBER
+  DISPUTED
+}
+
+enum TransactionType {
+  PASS_PURCHASE
+  ESCROW_DEPOSIT
+  HOST_PAYOUT
+  PLATFORM_FEE
+  WALLET_CASHOUT
+  CANCELLATION_PENALTY
+}
+
+enum PaymentGateway {
+  RAZORPAY
+  CASHFREE
+  WALLET
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum ScreeningStatus {
+  SUBMITTED
+  FEE_PAID
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum SafetyAlertStatus {
+  ACTIVE
+  INVESTIGATING
+  RESOLVED
+  FALSE_ALARM
+}
+
+enum TicketCategory {
+  SAFETY_INCIDENT
+  TECHNICAL_FAILURE
+  PAYMENT_ISSUE
+  GENERAL_HELP
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+// ----------------------------------------------------
+// CORE ENTITIES
+// ----------------------------------------------------
+
+model User {
+  id              String      @id @default(uuid())
+  phone           String      @unique
+  name            String?
+  email           String?     @unique
+  role            UserRole    @default(MEMBER)
+  walletBalance   Decimal     @default(0.00) @db.Decimal(10, 2)
+  isUnlocked      Boolean     @default(false)
+  activePassTier  PassTier?
+  passExpiresAt   DateTime?
+  isKycVerified   Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  companion       Companion?
+  passes          AccessPass[]
+  memberBookings  Booking[]       @relation("MemberBookings")
+  chatMessages    ChatMessage[]
+  transactions    Transaction[]
+  reviewsWritten  ReviewRating[]  @relation("MemberReviews")
+  safetyAlerts    SafetyAlert[]   @relation("TriggeredAlerts")
+  tickets         GrievanceTicket[]
+
+  @@index([phone])
+  @@index([role])
+}
+
+model Companion {
+  id                  String      @id @default(uuid())
+  userId              String      @unique
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName         String
+  maskedName          String      // e.g. "Vanshika S***"
+  avatarUrl           String
+  blurredAvatarUrl    String
+  cityId              String
+  city                City        @relation(fields: [cityId], references: [id])
+  bio                 String      @db.Text
+  shortBio            String      @db.VarChar(120)
+  hourlyRate          Decimal     @default(499.00) @db.Decimal(10, 2)
+  spokenLanguages     String[]
+  acceptedActivities  String[]
+  ratingAverage       Float       @default(5.0)
+  totalReviews        Int         @default(0)
+  isAvailable         Boolean     @default(true)
+  upiId               String?
+  bankAccountNumber   String?
+  bankIfsc            String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  bookings            Booking[]   @relation("CompanionBookings")
+  reviewsReceived     ReviewRating[] @relation("CompanionReviews")
+
+  @@index([cityId])
+  @@index([isAvailable])
+  @@index([ratingAverage])
+}
+
+model City {
+  id              String      @id @default(uuid())
+  name            String
+  slug            String      @unique
+  state           String
+  isActive        Boolean     @default(true)
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime    @default(now())
+
+  companions      Companion[]
+  bookings        Booking[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model Activity {
+  id                String      @id @default(uuid())
+  title             String
+  slug              String      @unique
+  description       String      @db.Text
+  suggestedDuration Int         @default(1) // Hours
+  icon              String      // Icon identifier
+  createdAt         DateTime    @default(now())
+
+  bookings          Booking[]
+
+  @@index([slug])
+}
+
+model AccessPass {
+  id                  String      @id @default(uuid())
+  userId              String
+  user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier                PassTier
+  pricePaid           Decimal     @db.Decimal(10, 2)
+  razorpayPaymentId   String?
+  razorpayOrderId     String?
+  status              PassStatus  @default(ACTIVE)
+  validFrom           DateTime    @default(now())
+  validUntil          DateTime?   // NULL for Lifetime Pass
+  createdAt           DateTime    @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Booking {
+  id                      String          @id @default(uuid())
+  bookingNumber           String          @unique // e.g. CMP-2026-8941
+  memberId                String
+  member                  User            @relation("MemberBookings", fields: [memberId], references: [id])
+  companionId             String
+  companion               Companion       @relation("CompanionBookings", fields: [companionId], references: [id])
+  cityId                  String
+  city                    City            @relation(fields: [cityId], references: [id])
+  activityId              String
+  activity                Activity        @relation(fields: [activityId], references: [id])
+  scheduledDate           DateTime
+  durationHours           Int             @default(1)
+  venueName               String
+  venueAddress            String
+  totalAmount             Decimal         @db.Decimal(10, 2) // e.g. 706.00
+  companionFee            Decimal         @db.Decimal(10, 2) // e.g. 499.00
+  platformFee             Decimal         @db.Decimal(10, 2) // e.g. 175.42
+  gstAmount               Decimal         @db.Decimal(10, 2) // e.g. 31.58
+  escrowStatus            EscrowStatus    @default(HELD_IN_ESCROW)
+  status                  BookingStatus   @default(PENDING_ACCEPTANCE)
+  verificationPin         String          @db.VarChar(6) // 4-digit code e.g. "8429"
+  pinVerifiedAt           DateTime?
+  sessionStartedAt        DateTime?
+  sessionEndedAt          DateTime?
+  hostAcceptanceDeadline  DateTime        // Current + 12 hours SLA
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  chatMessages            ChatMessage[]
+  transactions            Transaction[]
+  review                  ReviewRating?
+  safetyAlerts            SafetyAlert[]
+
+  @@index([bookingNumber])
+  @@index([memberId])
+  @@index([companionId])
+  @@index([status])
+  @@index([escrowStatus])
+}
+
+model ChatMessage {
+  id              String      @id @default(uuid())
+  bookingId       String
+  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User        @relation(fields: [senderId], references: [id])
+  content         String      @db.Text
+  isRedacted      Boolean     @default(false)
+  redactionReason String?     // e.g. "PHONE_NUMBER_INTERCEPTED"
+  sentAt          DateTime    @default(now())
+  readAt          DateTime?
+
+  @@index([bookingId])
+  @@index([senderId])
+  @@index([sentAt])
+}
+
+model Transaction {
+  id                    String            @id @default(uuid())
+  userId                String
+  user                  User              @relation(fields: [userId], references: [id])
+  bookingId             String?
+  booking               Booking?          @relation(fields: [bookingId], references: [id])
+  type                  TransactionType
+  amount                Decimal           @db.Decimal(10, 2)
+  feeAmount             Decimal           @default(0.00) @db.Decimal(10, 2)
+  netAmount             Decimal           @db.Decimal(10, 2)
+  gateway               PaymentGateway
+  gatewayTransactionId  String?
+  status                TransactionStatus @default(PENDING)
+  createdAt             DateTime          @default(now())
+
+  @@index([userId])
+  @@index([bookingId])
+  @@index([type])
+  @@index([status])
+}
+
+model HostApplication {
+  id                  String          @id @default(uuid())
+  phone               String
+  fullName            String
+  city                String
+  aadhaarDocUrl       String
+  panDocUrl           String
+  selfieVideoUrl      String?
+  applicationFeePaid  Boolean         @default(false)
+  screeningStatus     ScreeningStatus @default(SUBMITTED)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([phone])
+  @@index([screeningStatus])
+}
+
+model ReviewRating {
+  id              String      @id @default(uuid())
+  bookingId       String      @unique
+  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  memberId        String
+  member          User        @relation("MemberReviews", fields: [memberId], references: [id])
+  companionId     String
+  companion       Companion   @relation("CompanionReviews", fields: [companionId], references: [id])
+  score           Int         // 1 to 5
+  comment         String?     @db.Text
+  createdAt       DateTime    @default(now())
+
+  @@index([companionId])
+  @@index([score])
+}
+
+model SafetyAlert {
+  id              String            @id @default(uuid())
+  bookingId       String
+  booking         Booking           @relation(fields: [bookingId], references: [id])
+  triggeredById   String
+  triggeredBy     User              @relation("TriggeredAlerts", fields: [triggeredById], references: [id])
+  latitude        Float?
+  longitude       Float?
+  status          SafetyAlertStatus @default(ACTIVE)
+  createdAt       DateTime          @default(now())
+  resolvedAt      DateTime?
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+model GrievanceTicket {
+  id              String          @id @default(uuid())
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id])
+  category        TicketCategory
+  subject         String
+  description     String          @db.Text
+  status          TicketStatus    @default(OPEN)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([category])
+  @@index([status])
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Companio — Verified Local Buddies",
+  "short_name": "Companio",
+  "description": "Find an ID-verified local buddy for the gym, movies, coffee, city walks, travel and events across India. 100% platonic, 18+, safety-first.",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#FFF8EE",
+  "theme_color": "#141414",
+  "icons": [
+    {
+      "src": "/assets/hosts/kashish.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "/assets/hosts/akash.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ]
+}
