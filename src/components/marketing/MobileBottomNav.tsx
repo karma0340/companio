@@ -52,35 +52,52 @@ export function MobileBottomNav() {
     <>
       <nav
         aria-label="Mobile navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0.25rem)" }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t transition-transform duration-200"
+        style={{
+          background: "rgb(251, 252, 255)",
+          borderTopColor: "rgba(20, 26, 46, 0.1)",
+          boxShadow: "0 -2px 12px rgba(20, 26, 46, 0.08)",
+          paddingBottom: "env(safe-area-inset-bottom, 0.25rem)",
+        }}
       >
-        <div className="flex h-14 items-center justify-around px-2">
+        <div className="flex">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link
                 key={item.label}
                 href={item.href}
-                className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors ${
+                className={`flex flex-1 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-2.5 min-h-[56px] text-xs leading-tight font-sans font-semibold text-center transition-all active:scale-[0.94] ${
                   item.isActive
-                    ? "font-semibold text-blue-600"
-                    : "font-medium text-slate-500 hover:text-slate-800"
+                    ? "text-[#194FE6]"
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <Icon className={`h-4 w-4 ${item.isActive ? "text-blue-600" : "text-slate-500"}`} strokeWidth={1.75} />
-                <span className="text-[10px]">{item.label}</span>
+                <span className="relative inline-flex rounded-full">
+                  <Icon
+                    className={`h-[22px] w-[22px] ${
+                      item.isActive ? "text-[#194FE6]" : "text-slate-500"
+                    }`}
+                    strokeWidth={item.isActive ? 2 : 1.5}
+                  />
+                </span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
 
-          {/* User Sign in / Profile Tab (Image 2 Parity) */}
+          {/* User Sign in / Profile Tab (1:1 Parity) */}
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center font-medium text-slate-500 hover:text-slate-800"
+            className="flex flex-1 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-2.5 min-h-[56px] text-xs leading-tight font-sans font-semibold text-center text-slate-500 hover:text-slate-800 transition-all active:scale-[0.94]"
           >
-            <User className="h-4 w-4 text-slate-500" strokeWidth={1.75} />
-            <span className="text-[10px]">{user ? "Account" : "Sign in"}</span>
+            <span className="relative inline-flex rounded-full">
+              <User
+                className="h-[22px] w-[22px] text-slate-500"
+                strokeWidth={1.5}
+              />
+            </span>
+            <span>{user ? "Account" : "Sign in"}</span>
           </button>
         </div>
       </nav>

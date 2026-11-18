@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { MomentsSection } from "@/components/marketing/MomentsSection";
 import {
   Coffee,
   MapPin,
@@ -171,54 +172,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* MOMENT TILES CAROUSEL (220px x 293px Aspect Ratio 3:4) */}
-      <section className="py-12 border-t border-[#1F1F1F] bg-[#0E0E0E]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-serif text-xl sm:text-3xl font-bold text-white">
-                Life is richer with someone.
-              </h2>
-              <p className="text-xs sm:text-sm text-[#8E8E93] pt-1">
-                Real city moments shared between verified members and companions.
-              </p>
-            </div>
-            <Link
-              href="/explore"
-              className="text-xs font-bold text-[#D4AF37] hover:underline"
-            >
-              View directory →
-            </Link>
-          </div>
-
-          {/* Horizontal Scroll Grid with Touch Snap */}
-          <div className="flex gap-4 sm:gap-5 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 snap-x snap-mandatory">
-            {momentTiles.map((tile, i) => (
-              <div
-                key={i}
-                className="relative flex-none w-[180px] h-[240px] sm:w-[220px] sm:h-[293px] rounded-2xl overflow-hidden border border-[#2B2B2B] group hover:border-[#D4AF37] transition-all snap-start"
-              >
-                <Image
-                  src={tile.src}
-                  alt={tile.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  unoptimized
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
-                <div className="absolute bottom-3 left-3 right-3 text-left">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#D4AF37] block">
-                    {tile.city}
-                  </span>
-                  <span className="text-sm font-bold text-white block">
-                    {tile.title}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* 1:1 AUTHENTIC POLAROID MOMENTS PARALLAX SCROLL SECTION */}
+      <MomentsSection />
 
       {/* ACTIVITY SELECTOR */}
       <section className="border-t border-[#262626] bg-[#0A0A0A] py-16">
