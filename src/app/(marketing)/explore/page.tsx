@@ -170,9 +170,9 @@ export default function ExplorePage() {
           </div>
 
           {/* Search and Filters Toolbar */}
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+          <div className="mt-5 space-y-3 pt-4 border-t border-slate-100">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[240px] max-w-md">
+            <div className="relative w-full max-w-md">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
@@ -183,47 +183,68 @@ export default function ExplorePage() {
               />
             </div>
 
-            {/* Gender Segmented Control */}
-            <div className="inline-flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
-              {(["Women", "Men", "All"] as const).map((g) => (
+            {/* Horizontal Scrollable Filter Chips Strip */}
+            <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+              {/* Gender Segmented Control */}
+              <div className="flex shrink-0 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+                {(["Women", "Men", "All"] as const).map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setGenderFilter(g)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                      genderFilter === g
+                        ? "bg-slate-900 text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+
+              {/* Time Filter Pill */}
+              <button className="flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:border-slate-300">
+                <span>Any time</span>
+                <ChevronDown className="h-3 w-3 text-slate-400" />
+              </button>
+
+              {/* Best Fit Sort Pill */}
+              <button className="flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:border-slate-300">
+                <span>Best fit</span>
+                <ChevronDown className="h-3 w-3 text-slate-400" />
+              </button>
+
+              {/* Available Now Toggle Pill */}
+              <button className="flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:border-slate-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>Available now</span>
+              </button>
+
+              {/* View Mode Toggle (Grid / Map) */}
+              <div className="flex shrink-0 rounded-full border border-slate-200 bg-white p-1 shadow-sm ml-auto">
                 <button
-                  key={g}
-                  onClick={() => setGenderFilter(g)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                    genderFilter === g
-                      ? "bg-slate-900 text-white shadow-xs"
+                  onClick={() => setViewMode("grid")}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
+                    viewMode === "grid"
+                      ? "bg-blue-600 text-white shadow-xs"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  {g}
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  <span>Grid</span>
                 </button>
-              ))}
-            </div>
-
-            {/* View Mode Toggle (Grid / Map) */}
-            <div className="inline-flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
-                  viewMode === "grid"
-                    ? "bg-blue-600 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                <span>Grid</span>
-              </button>
-              <button
-                onClick={() => setViewMode("map")}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
-                  viewMode === "map"
-                    ? "bg-blue-600 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <MapIcon className="h-3.5 w-3.5" />
-                <span>Map</span>
-              </button>
+                <button
+                  onClick={() => setViewMode("map")}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
+                    viewMode === "map"
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <MapIcon className="h-3.5 w-3.5" />
+                  <span>Map</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

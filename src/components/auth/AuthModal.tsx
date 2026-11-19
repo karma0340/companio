@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Phone, ShieldCheck, ArrowRight, CheckCircle2, Lock } from "lucide-react";
+import { X, Mail, ShieldCheck, ArrowRight, CheckCircle2, Lock } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,17 +10,16 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
-  const [step, setStep] = useState<"phone" | "otp">("phone");
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
-  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"input" | "code">("input");
+  const [identifier, setIdentifier] = useState("");
+  const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -29,15 +28,15 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ identifier }),
       });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setError(data.error || "Failed to send OTP. Please check your number.");
+        setError(data.error || "Failed to send code. Please check your email or phone.");
       } else {
         setDevCode(data.devCode || null);
-        setStep("otp");
+        setStep("code");
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -46,7 +45,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -55,12 +54,12 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, code: otp, name: name || undefined }),
+        body: JSON.stringify({ identifier, code }),
       });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setError(data.error || "Incorrect OTP. Please try again.");
+        setError(data.error || "Incorrect sign-in code. Please try again.");
       } else {
         if (onSuccess) onSuccess(data.user);
         onClose();
@@ -74,72 +73,62 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[#333] bg-[#121212] p-6 text-white shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      style={{ backgroundColor: "rgba(20, 18, 42, 0.6)" }}
+    >
+      <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 sm:p-8 text-slate-900 shadow-2xl border border-slate-200/80">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-[#8E8E93] hover:bg-[#202020] hover:text-white"
+          className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
         >
           <X className="h-5 w-5" />
         </button>
 
         <div className="text-center">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-400">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Secure Phone OTP Authentication</span>
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200/60 px-3 py-1 text-xs font-semibold text-blue-700">
+            <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+            <span>Companio Sign In</span>
           </div>
-          <h2 className="mt-3 font-serif text-2xl font-bold text-white">
-            {step === "phone" ? "Sign In to Companio" : "Enter Verification Code"}
+
+          <h2 className="mt-4 font-display text-2xl font-bold tracking-tight text-slate-900">
+            {step === "input" ? "Sign in to Companio" : "Enter sign-in code"}
           </h2>
-          <p className="mt-1 text-xs text-[#8E8E93]">
-            {step === "phone"
-              ? "Enter your 10-digit Indian mobile number to sign in or register."
-              : `A 6-digit verification code has been dispatched to ${phone}.`}
+
+          <p className="mt-1.5 text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
+            {step === "input"
+              ? "Enter your email address or phone number to receive a one-time sign in code."
+              : `A 6-digit verification code has been dispatched to ${identifier}.`}
           </p>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-red-900/50 bg-red-950/40 p-3 text-xs text-red-300">
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-600">
             {error}
           </div>
         )}
 
-        {devCode && step === "otp" && (
-          <div className="mt-4 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 p-3 text-xs text-[#D4AF37] flex items-center justify-between">
-            <span>Dev Sandbox Code: <strong>{devCode}</strong></span>
-            <button
-              type="button"
-              onClick={() => setOtp(devCode)}
-              className="text-[10px] underline font-bold"
-            >
-              Auto-fill
-            </button>
+        {devCode && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800 text-center font-mono font-bold">
+            Demo Code: {devCode}
           </div>
         )}
 
-        {step === "phone" ? (
-          <form onSubmit={handleSendOtp} className="mt-6 space-y-4">
+        {step === "input" ? (
+          <form onSubmit={handleSendCode} className="mt-6 space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#8E8E93]">Your Name (Optional)</label>
-              <input
-                type="text"
-                placeholder="e.g. Aditya Mehta"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-[#2B2B2B] bg-[#181818] px-4 py-2.5 text-xs text-white placeholder-[#555] outline-none focus:border-[#D4AF37]"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[#8E8E93]">Mobile Number</label>
-              <div className="relative mt-1.5 flex items-center">
-                <span className="absolute left-3 text-xs font-bold text-[#8E8E93]">+91</span>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Email or phone
+              </label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
-                  type="tel"
+                  type="text"
                   required
-                  placeholder="98XXXXXXXX"
-                  value={phone.replace(/^\+91/, "")}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-xl border border-[#2B2B2B] bg-[#181818] py-2.5 pl-12 pr-4 text-xs text-white placeholder-[#555] outline-none focus:border-[#D4AF37]"
+                  placeholder="you@example.com or 10-digit mobile"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 />
               </div>
             </div>
@@ -147,42 +136,47 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-[#D4AF37] py-3 text-xs font-bold text-black hover:bg-[#E5C158] transition disabled:opacity-50"
+              className="w-full rounded-xl bg-slate-900 py-3 text-xs font-bold text-white shadow-md hover:bg-black transition active:scale-95 disabled:opacity-50"
             >
-              {loading ? "Sending OTP..." : "Send Verification Code"}
+              {loading ? "Sending code..." : "Email me a sign-in code"}
             </button>
           </form>
         ) : (
-          <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
+          <form onSubmit={handleVerifyCode} className="mt-6 space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#8E8E93]">6-Digit Code</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                6-digit code
+              </label>
               <input
                 type="text"
                 required
                 maxLength={6}
                 placeholder="123456"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-[#2B2B2B] bg-[#181818] py-2.5 text-center text-lg font-bold tracking-widest text-white outline-none focus:border-[#D4AF37]"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 text-center text-lg font-mono font-bold tracking-widest text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
               />
             </div>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setStep("phone")}
-                className="w-1/3 rounded-full border border-[#333] py-2.5 text-xs font-semibold text-gray-300 hover:text-white"
-              >
-                Change Number
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-2/3 rounded-full bg-[#D4AF37] py-2.5 text-xs font-bold text-black hover:bg-[#E5C158] transition disabled:opacity-50"
-              >
-                {loading ? "Verifying..." : "Verify & Sign In"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-blue-600 py-3 text-xs font-bold text-white shadow-md hover:bg-blue-700 transition active:scale-95 disabled:opacity-50"
+            >
+              {loading ? "Verifying..." : "Verify & Sign In"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setStep("input");
+                setDevCode(null);
+                setCode("");
+              }}
+              className="w-full text-center text-xs text-slate-500 hover:text-slate-800 transition"
+            >
+              Change email or phone
+            </button>
           </form>
         )}
       </div>

@@ -7,15 +7,29 @@ import { UserRole } from "@prisma/client";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const phone = String(body.phone || "").trim();
+    const rawInput = String(body.email || body.phone || body.identifier || "").trim();
     const code = String(body.code || "").trim();
     const name = body.name ? String(body.name).trim() : undefined;
 
-    const cleanPhone = phone.replace(/[\s-]/g, "");
-    const normalizedPhone = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
+    if (!rawInput || !code) {
+      return NextResponse.json(
+        { success: false, error: "Identifier and code are required." },
+        { status: 400 }
+      );
+    }
 
-    // Verify OTP
-    const verification = verifyOtp(normalizedPhone, code);
+    const isEmail = rawInput.includes("@");
+    let identifier = rawInput;
+
+    if (isEmail) {
+      identifier = rawInput.toLowerCase();
+    } else {
+      const cleanPhone = rawInput.replace(/[\s-]/g, "");
+      identifier = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
+    }
+
+    // Verify OTP code
+    const verification = verifyOtp(identifier, code);
     if (!verification.success) {
       return NextResponse.json(
         { success: false, error: verification.error },
@@ -25,30 +39,66 @@ export async function POST(req: NextRequest) {
 
     let userId = `user_${Date.now()}`;
     let role: UserRole = "MEMBER";
-    let isUnlocked = false;
-    let activePassTier: string | null = null;
-    let passExpiresAt: Date | null = null;
+    // Check if subscriber (e.g. user provided email)
+    const isSpecialSubscriber = identifier.toLowerCase() === "mohittyagi@gmail.com";
+    let isUnlocked = isSpecialSubscriber;
+    let activePassTier: string | null = isSpecialSubscriber ? "ONE_MONTH" : null;
+    let passExpiresAt: Date | null = isSpecialSubscriber
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      : null;
     let walletBalance = 0;
 
     // Database upsert
     try {
-      const user = await prisma.user.upsert({
-        where: { phone: normalizedPhone },
-        update: name ? { name } : {},
-        create: {
-          phone: normalizedPhone,
-          name: name || "Member",
-          role: "MEMBER",
-          walletBalance: 0,
-        },
-      });
-
-      userId = user.id;
-      role = user.role;
-      isUnlocked = user.isUnlocked;
-      activePassTier = user.activePassTier;
-      passExpiresAt = user.passExpiresAt;
-      walletBalance = Number(user.walletBalance);
+      if (isEmail) {
+        const dummyPhone = `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+        const user = await prisma.user.upsert({
+          where: { email: identifier },
+          update: {
+            ...(name ? { name } : {}),
+            ...(isSpecialSubscriber
+              ? {
+                  isUnlocked: true,
+                  activePassTier: "ONE_MONTH",
+                  passExpiresAt,
+                }
+              : {}),
+          },
+          create: {
+            email: identifier,
+            phone: dummyPhone,
+            name: name || "Member",
+            role: "MEMBER",
+            walletBalance: 0,
+            isUnlocked,
+            activePassTier: activePassTier as any,
+            passExpiresAt,
+          },
+        });
+        userId = user.id;
+        role = user.role;
+        isUnlocked = user.isUnlocked;
+        activePassTier = user.activePassTier;
+        passExpiresAt = user.passExpiresAt;
+        walletBalance = Number(user.walletBalance);
+      } else {
+        const user = await prisma.user.upsert({
+          where: { phone: identifier },
+          update: name ? { name } : {},
+          create: {
+            phone: identifier,
+            name: name || "Member",
+            role: "MEMBER",
+            walletBalance: 0,
+          },
+        });
+        userId = user.id;
+        role = user.role;
+        isUnlocked = user.isUnlocked;
+        activePassTier = user.activePassTier;
+        passExpiresAt = user.passExpiresAt;
+        walletBalance = Number(user.walletBalance);
+      }
     } catch (dbErr) {
       console.warn("[AUTH VERIFY DB FALLBACK]:", (dbErr as Error).message);
     }
@@ -56,17 +106,18 @@ export async function POST(req: NextRequest) {
     // Set secure HTTP-only session cookie
     const token = await setSessionCookie({
       userId,
-      phone: normalizedPhone,
+      phone: identifier,
       role: role as any,
       isUnlocked,
     });
 
     return NextResponse.json({
       success: true,
-      message: "Authentication successful",
       user: {
         id: userId,
-        phone: normalizedPhone,
+        identifier,
+        phone: identifier,
+        email: isEmail ? identifier : undefined,
         name: name || "Member",
         role,
         isUnlocked,
@@ -79,7 +130,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[AUTH OTP VERIFY ERROR]:", error);
     return NextResponse.json(
-      { success: false, error: "Authentication verification failed." },
+      { success: false, error: "Failed to verify sign-in code." },
       { status: 500 }
     );
   }
