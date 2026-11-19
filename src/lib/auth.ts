@@ -1,6 +1,16 @@
-import jwt, { SignOptions } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+import type { SignOptions } from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "companio-production-secure-jwt-secret-key-32chars";
+// Unified JWT / NextAuth secret resolution with robust fallbacks
+export function getJwtSecret(): string {
+  const secret =
+    process.env.JWT_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    "15e0475f24074512e0674de2d2adc71a02f96fb94bdded4bd40a047997c27ecd";
+
+  // Sanitize any accidental quotes or whitespace from env configs
+  return secret.replace(/^["']|["']$/g, "").trim();
+}
 
 export interface UserTokenPayload {
   userId: string;
@@ -15,12 +25,12 @@ export interface UserTokenPayload {
 
 export function signUserToken(payload: UserTokenPayload, expiresIn: SignOptions["expiresIn"] = "7d"): string {
   const options: SignOptions = { expiresIn };
-  return jwt.sign(payload, JWT_SECRET, options);
+  return jwt.sign(payload, getJwtSecret(), options);
 }
 
 export function verifyUserToken(token: string): UserTokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as UserTokenPayload;
+    return jwt.verify(token, getJwtSecret()) as UserTokenPayload;
   } catch (error) {
     return null;
   }

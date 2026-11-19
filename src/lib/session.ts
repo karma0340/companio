@@ -1,13 +1,19 @@
 import { cookies } from "next/headers";
 import { signUserToken, verifyUserToken, UserTokenPayload } from "./auth";
 
-export const SESSION_COOKIE_NAME = "companio_session";
+export function getSessionCookieName(): string {
+  const name = process.env.SESSION_COOKIE_NAME || "companio_session";
+  return name.replace(/^["']|["']$/g, "").trim();
+}
+
+export const SESSION_COOKIE_NAME = getSessionCookieName();
 
 export async function setSessionCookie(payload: UserTokenPayload, expiresIn = "7d"): Promise<string> {
   const token = signUserToken(payload, expiresIn as any);
   const cookieStore = cookies();
+  const cookieName = getSessionCookieName();
   
-  cookieStore.set(SESSION_COOKIE_NAME, token, {
+  cookieStore.set(cookieName, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -20,12 +26,14 @@ export async function setSessionCookie(payload: UserTokenPayload, expiresIn = "7
 
 export async function getSession(): Promise<UserTokenPayload | null> {
   const cookieStore = cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const cookieName = getSessionCookieName();
+  const token = cookieStore.get(cookieName)?.value;
   if (!token) return null;
   return verifyUserToken(token);
 }
 
 export async function clearSessionCookie(): Promise<void> {
   const cookieStore = cookies();
-  cookieStore.delete(SESSION_COOKIE_NAME);
+  const cookieName = getSessionCookieName();
+  cookieStore.delete(cookieName);
 }
