@@ -14,6 +14,7 @@ import {
   Sparkles,
   ArrowRightLeft,
   KeyRound,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ export function Navbar() {
   const [selectedCity, setSelectedCity] = useState('bengaluru');
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isBannerVisible, setIsBannerVisible] = useState(true);
 
   const { isAuthenticated, user, memberProfile, hostProfile, activeRole, logout, switchRole } =
     useAuth();
@@ -47,11 +49,23 @@ export function Navbar() {
 
   return (
     <>
-      {/* Top High-Voltage Platonic Notice Strip */}
-      <div className="bg-pink text-ink border-b-brutal px-4 py-1.5 text-center font-display text-xs sm:text-sm font-extrabold tracking-wide uppercase flex items-center justify-center gap-2 select-none">
-        <span className="inline-block h-2 w-2 rounded-full bg-ink animate-pulse" />
-        <span>100% Platonic Only · Government ID Verified · Escrow Protected · 18+</span>
-      </div>
+      {/* Top High-Voltage Platonic Notice Strip (Dismissible) */}
+      {isBannerVisible && (
+        <div className="relative bg-pink text-ink border-b-brutal px-8 py-1.5 text-center font-display text-xs sm:text-sm font-extrabold tracking-wide uppercase flex items-center justify-center gap-2 select-none">
+          <span className="inline-block h-2 w-2 rounded-full bg-ink animate-pulse" />
+          <span className="truncate sm:overflow-visible">
+            100% Platonic Only · Government ID Verified · Escrow Protected · 18+
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsBannerVisible(false)}
+            aria-label="Close announcement banner"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-black/15 active:scale-95 transition-all text-ink flex items-center justify-center"
+          >
+            <X className="h-4 w-4 stroke-[2.5]" />
+          </button>
+        </div>
+      )}
 
       {/* Main Sticky Navbar */}
       <header className="sticky top-0 z-40 w-full border-b-brutal bg-paper/95 backdrop-blur-sm">

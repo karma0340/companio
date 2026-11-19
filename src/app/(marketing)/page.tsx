@@ -240,70 +240,74 @@ export default function HomePage() {
                     }}
                   >
                     <TiltCard maxTilt={6}>
-                      <div className="relative rounded-2xl border-brutal bg-white p-5 shadow-brutal-lg rotate-1 space-y-4">
-                        {/* Top Badges */}
-                        <div className="flex items-center justify-between">
-                          <Badge variant="lime" size="sm" className="inline-flex items-center gap-1.5">
-                            <StatusPulse size="xs" status="active" />
-                            <span>Free in 2 hours</span>
-                          </Badge>
-                          <span className="inline-flex items-center gap-1 font-display text-xs font-black text-ink-muted">
-                            <MapPin className="h-3 w-3 text-ink-muted" />
-                            <span>Indiranagar, BLR</span>
-                          </span>
-                        </div>
-
-                        {/* Companion Avatar & Info */}
-                        <div className="flex gap-4 items-center">
-                          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-brutal bg-paper-deep">
-                            <Image
-                              src={COMPANIONS[0].avatarUrl}
-                              alt={COMPANIONS[0].name}
-                              fill
-                              sizes="80px"
-                              className="object-cover"
-                            />
+                      <Link
+                        href={`/companions/${COMPANIONS[0].id}`}
+                        className="block group cursor-pointer"
+                        aria-label={`View profile of ${COMPANIONS[0].name}`}
+                      >
+                        <div className="relative rounded-2xl border-brutal bg-white p-5 shadow-brutal-lg rotate-1 space-y-4 transition-transform group-hover:scale-[1.02]">
+                          {/* Top Badges */}
+                          <div className="flex items-center justify-between">
+                            <Badge variant="lime" size="sm" className="inline-flex items-center gap-1.5">
+                              <StatusPulse size="xs" status="active" />
+                              <span>Free in 2 hours</span>
+                            </Badge>
+                            <span className="inline-flex items-center gap-1 font-display text-xs font-black text-ink-muted">
+                              <MapPin className="h-3 w-3 text-ink-muted" />
+                              <span>Indiranagar, BLR</span>
+                            </span>
                           </div>
-                          <div>
-                            <h3 className="font-display text-2xl font-black text-ink">
-                              {COMPANIONS[0].name} · {COMPANIONS[0].age}
-                            </h3>
-                            <p className="text-xs font-bold text-ink-soft">
-                              Design Student & Indie Music Fan
-                            </p>
-                            <div className="mt-1.5 flex gap-1">
-                              <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-sunny px-1.5 py-0.5 text-[10px] font-bold text-ink">
-                                <ActivityIcon slug="shopping-buddy" size="xs" />
-                                <span>Shopping</span>
+
+                          {/* Companion Avatar & Info */}
+                          <div className="flex gap-4 items-center">
+                            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-brutal bg-paper-deep">
+                              <Image
+                                src={COMPANIONS[0].avatarUrl}
+                                alt={COMPANIONS[0].name}
+                                fill
+                                sizes="80px"
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                            <div>
+                              <h3 className="font-display text-2xl font-black text-ink group-hover:text-lavender transition-colors">
+                                {COMPANIONS[0].name} · {COMPANIONS[0].age}
+                              </h3>
+                              <p className="text-xs font-bold text-ink-soft">
+                                Design Student & Indie Music Fan
+                              </p>
+                              <div className="mt-1.5 flex gap-1">
+                                <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-sunny px-1.5 py-0.5 text-[10px] font-bold text-ink">
+                                  <ActivityIcon slug="shopping-buddy" size="xs" />
+                                  <span>Shopping</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-paper-deep px-1.5 py-0.5 text-[10px] font-bold text-ink">
+                                  <ActivityIcon slug="coffee-chat" size="xs" />
+                                  <span>Coffee</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Tagline Quote */}
+                          <div className="rounded-xl border-brutal-sm bg-paper/70 p-3 text-xs font-medium text-ink-soft leading-relaxed italic">
+                            "{COMPANIONS[0].tagline}"
+                          </div>
+
+                          {/* Footer Rate & CTA */}
+                          <div className="flex items-center justify-between pt-2 border-t-brutal-sm">
+                            <div>
+                              <span className="text-[10px] uppercase font-black text-ink-muted block">
+                                Hourly Rate
                               </span>
-                              <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-paper-deep px-1.5 py-0.5 text-[10px] font-bold text-ink">
-                                <ActivityIcon slug="coffee-chat" size="xs" />
-                                <span>Coffee</span>
-                              </span>
+                              <span className="font-display text-lg font-black text-ink">₹599 /hr</span>
+                            </div>
+                            <div className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-lime px-4 py-2 font-display text-xs font-black text-ink shadow-brutal-sm group-hover:bg-sunny btn-press transition-colors">
+                              <span>View Kashish →</span>
                             </div>
                           </div>
                         </div>
-
-                        {/* Tagline Quote */}
-                        <div className="rounded-xl border-brutal-sm bg-paper/70 p-3 text-xs font-medium text-ink-soft leading-relaxed italic">
-                          "{COMPANIONS[0].tagline}"
-                        </div>
-
-                        {/* Footer Rate & CTA */}
-                        <div className="flex items-center justify-between pt-2 border-t-brutal-sm">
-                          <div>
-                            <span className="text-[10px] uppercase font-black text-ink-muted block">
-                              Hourly Rate
-                            </span>
-                            <span className="font-display text-lg font-black text-ink">₹599 /hr</span>
-                          </div>
-                          <Link href={`/companions/${COMPANIONS[0].id}`}>
-                            <Button variant="primary" size="sm" className="font-display font-black">
-                              <span>View Kashish →</span>
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
+                      </Link>
                     </TiltCard>
                   </motion.div>
                 </div>

@@ -43,5 +43,8 @@ companioassets/
 *.whtt
 text_*.txt
 
+# Local Neon
+.neon
+
 # Local Reference Clone
 try/
