@@ -568,6 +568,7 @@ function BookPageContent({ params }: BookPageProps) {
                     src={companion.avatarUrl}
                     alt={companion.name}
                     fill
+                    sizes="56px"
                     className="object-cover"
                   />
                 </div>
@@ -612,7 +613,7 @@ function BookPageContent({ params }: BookPageProps) {
                   <span>100% Money-Back Guarantee</span>
                 </div>
                 <p className="font-body text-[11px] text-ink-soft leading-relaxed">
-                  Your payment is never given upfront. It is safely held by Companio and released only after your meetup takes place.
+                  Your payment is never given upfront. It is safely held by Togethr Escrow and released only after your meetup takes place.
                 </p>
               </div>
 

@@ -1,21 +1,21 @@
 {
-  "name": "Companio — Verified Local Buddies",
-  "short_name": "Companio",
-  "description": "Find an ID-verified local buddy for the gym, movies, coffee, city walks, travel and events across India. 100% platonic, 18+, safety-first.",
-  "start_url": "/app",
+  "name": "made4togethr — Verified Meetup Companions",
+  "short_name": "Togethr",
+  "description": "Find an ID-verified local companion for concerts, cafes, city walks, workout sessions and events across India. 100% platonic, safe escrow, strict verification.",
+  "start_url": "/explore",
   "display": "standalone",
-  "background_color": "#FFF8EE",
-  "theme_color": "#141414",
+  "background_color": "#FDFBF7",
+  "theme_color": "#121212",
   "icons": [
     {
-      "src": "/assets/hosts/kashish.webp",
-      "sizes": "192x192",
-      "type": "image/webp"
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
     },
     {
-      "src": "/assets/hosts/akash.webp",
+      "src": "/icon.png",
       "sizes": "512x512",
-      "type": "image/webp"
+      "type": "image/png"
     }
   ]
 }

@@ -5,7 +5,7 @@ export async function GET() {
     ok: true,
     status: "operational",
     time: new Date().toISOString(),
-    service: "Companio Central API Engine",
+    service: "Togethr Central API Engine",
     activeCities: 126,
     activeHosts: 48,
     version: "2.4.0",

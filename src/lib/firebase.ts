@@ -76,6 +76,9 @@ export function formatFirebasePhoneError(error: any): string {
   const code = error?.code || "";
   const message = error?.message || "";
 
+  if (code === "auth/operation-not-allowed" || message.toLowerCase().includes("region")) {
+    return "India (+91) SMS region is not enabled in Firebase Console. Go to Firebase Console -> Authentication -> Settings -> SMS region policy to allow India (+91), or configure test numbers under Sign-in method -> Phone.";
+  }
   if (code === "auth/unauthorized-domain") {
     const host = typeof window !== "undefined" ? window.location.hostname : "companio-eight.vercel.app";
     return `Domain unauthorized: Please add "${host}" to Firebase Console -> Authentication -> Settings -> Authorized domains.`;

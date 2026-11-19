@@ -40,11 +40,11 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: CompanionProfilePageProps): Metadata {
   const companion = COMPANIONS.find((c) => c.id === params.id);
-  if (!companion) return { title: 'Companion Not Found | Companio' };
+  if (!companion) return { title: 'Companion Not Found | made4togethr' };
 
   return {
-    title: `${companion.name}, ${companion.age} — Verified Companion in ${companion.area} (₹${companion.hourlyRate}/hr) | Companio`,
-    description: `Book an ID-verified meetup with ${companion.name} in ${companion.area}. "${companion.tagline}" 100% platonic & escrow protected.`,
+    title: `${companion.name}, ${companion.age} — Verified Companion in ${companion.area} (₹${companion.hourlyRate}/hr) | made4togethr`,
+    description: `Book an ID-verified meetup with ${companion.name} in ${companion.area}. "${companion.tagline}" 100% platonic & escrow protected on Togethr.`,
   };
 }
 
@@ -58,7 +58,7 @@ export default function CompanionProfilePage({ params }: CompanionProfilePagePro
     gender: 'female' as const,
     city: 'bengaluru',
     area: 'Central',
-    tagline: 'Verified Companio Host',
+    tagline: 'Verified Togethr Host',
     about: 'Experienced companion for city meetups.',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
     languages: ['English', 'Hindi'],
@@ -113,6 +113,7 @@ export default function CompanionProfilePage({ params }: CompanionProfilePagePro
                       src={companion.avatarUrl}
                       alt={companion.name}
                       fill
+                      sizes="(max-width: 640px) 112px, 144px"
                       className="object-cover"
                       priority
                     />

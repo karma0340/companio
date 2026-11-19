@@ -158,7 +158,7 @@ export async function sendSmsOtp(
       const bodyParams = new URLSearchParams({
         To: e164,
         From: fromNumber,
-        Body: `Your Companio verification code is ${otpCode}. Valid for 5 minutes. Do not share this code with anyone.`,
+        Body: `Your Togethr verification code is ${otpCode}. Valid for 5 minutes. Do not share this code with anyone.`,
       });
 
       const response = await fetch(

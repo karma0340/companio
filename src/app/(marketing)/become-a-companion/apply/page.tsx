@@ -376,7 +376,7 @@ export default function CompanionApplyPage() {
                           className="mt-0.5 h-4 w-4 border-2 border-ink accent-ink"
                         />
                         <span className="text-xs font-bold text-ink leading-relaxed">
-                          I agree to Companio&apos;s Strictly Platonic &amp; Public Venues policy. I understand that all meetups must be in public venues, that alcohol or romance is strictly forbidden, and that violations lead to immediate permanent ban and forfeiture of escrow earnings.
+                          I agree to Togethr&apos;s Strictly Platonic &amp; Public Venues policy. I understand that all meetups must be in public venues, that alcohol or romance is strictly forbidden, and that violations lead to immediate permanent ban and forfeiture of escrow earnings.
                         </span>
                       </label>
                     </div>

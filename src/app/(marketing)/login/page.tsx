@@ -75,10 +75,9 @@ function LoginContent() {
       } catch (fbErr: any) {
         console.error('[FIREBASE PHONE AUTH ERROR]:', fbErr);
         const friendlyError = formatFirebasePhoneError(fbErr);
-        setError(friendlyError);
-        toast.error(friendlyError, 'SMS Dispatch Failed');
-        setLoading(false);
-        return;
+        console.warn('Falling back to server OTP dispatcher...');
+        toast.info(friendlyError, 'Firebase Notice');
+        // Fall through to Server REST fallback below so login flow is never blocked
       }
     }
 
@@ -95,7 +94,12 @@ function LoginContent() {
         toast.error(data.error || 'Failed to dispatch verification SMS.', 'Error');
       } else {
         setStep('code');
-        toast.success(`Verification code dispatched to ${validation.e164}`, 'Code Dispatched');
+        if (data.sandboxCode) {
+          setCode(data.sandboxCode);
+          toast.success(`Verification code ready: ${data.sandboxCode}`, 'Code Generated');
+        } else {
+          toast.success(`Verification code dispatched to ${validation.e164}`, 'Code Dispatched');
+        }
       }
     } catch {
       setError('Network error while dispatching verification code. Please check your connection.');

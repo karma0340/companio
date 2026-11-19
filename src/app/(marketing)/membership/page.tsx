@@ -122,7 +122,7 @@ export default function MembershipPage() {
         key: data.keyId,
         amount: Math.round(data.amount * 100),
         currency: "INR",
-        name: "Companio Pass",
+        name: "Togethr Pass",
         description: `${data.tierName} Access Pass`,
         order_id: data.orderId,
         prefill: {

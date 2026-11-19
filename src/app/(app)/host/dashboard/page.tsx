@@ -392,7 +392,7 @@ export default function HostDashboardPage() {
                       <strong className="text-base text-lavender font-mono font-black">
                         {formatRupees(req.payout || req.hostSubtotal || 600)}
                       </strong>{' '}
-                      (Protected by Companio)
+                      (Protected by Togethr Escrow)
                     </div>
                   </div>
 

@@ -232,6 +232,7 @@ export default function MemberBookingsPage() {
                             src={booking.companion.avatarUrl || '/avatars/female.svg'}
                             alt={booking.companion.name}
                             fill
+                            sizes="56px"
                             className="object-cover"
                           />
                         </div>
@@ -345,6 +346,7 @@ export default function MemberBookingsPage() {
                           src={b.companion.avatarUrl || '/avatars/female.svg'}
                           alt={b.companion.name}
                           fill
+                          sizes="48px"
                           className="object-cover"
                         />
                       </div>
@@ -478,7 +480,7 @@ export default function MemberBookingsPage() {
                     Rate Your Meetup with {reviewModalBooking.companion.name}
                   </h3>
                   <p className="text-xs text-ink-muted">
-                    Your honest review helps keep the Companio community respectful and trustworthy.
+                    Your honest review helps keep the Togethr community respectful and trustworthy.
                   </p>
                 </div>
 
@@ -568,10 +570,10 @@ export default function MemberBookingsPage() {
                   </a>
 
                   <a
-                    href="mailto:safety@companio.in?subject=URGENT%20SAFETY%20INCIDENT"
+                    href="mailto:safety@togethr.in?subject=URGENT%20SAFETY%20INCIDENT"
                     className="flex w-full items-center justify-center gap-2 rounded-xl border-brutal bg-sunny p-3 font-display text-xs font-black text-ink shadow-brutal-sm btn-press"
                   >
-                    <span>Alert 24/7 Companio Safety Desk</span>
+                    <span>Alert 24/7 Togethr Safety Desk</span>
                   </a>
                 </div>
 

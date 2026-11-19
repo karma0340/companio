@@ -29,13 +29,13 @@ export async function sendEmailOtp(
           Authorization: `Bearer ${resendApiKey}`,
         },
         body: JSON.stringify({
-          from: process.env.EMAIL_FROM || "Companio <auth@companio.in>",
+          from: process.env.EMAIL_FROM || "Togethr <auth@togethr.in>",
           to: [normalizedEmail],
-          subject: `${otpCode} is your Companio verification code`,
+          subject: `${otpCode} is your Togethr verification code`,
           html: `
             <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 2px solid #0D0D11; border-radius: 8px;">
-              <h2 style="margin-top: 0; color: #0D0D11;">Companio Sign-In</h2>
-              <p style="font-size: 14px; color: #4B5563;">Use the verification code below to sign in to your Companio account. This code is valid for 10 minutes.</p>
+              <h2 style="margin-top: 0; color: #0D0D11;">made4togethr Sign-In</h2>
+              <p style="font-size: 14px; color: #4B5563;">Use the verification code below to sign in to your Togethr account. This code is valid for 10 minutes.</p>
               <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; padding: 16px; background-color: #F8F9FA; border: 2px solid #0D0D11; border-radius: 6px; text-align: center; margin: 24px 0; color: #0D0D11;">
                 ${otpCode}
               </div>

@@ -12,7 +12,7 @@ export async function GET() {
 
   return NextResponse.json({
     status: "ok",
-    service: "Companio Platform API",
+    service: "Togethr Platform API",
     version: "1.0.0",
     database: dbStatus,
     timestamp: new Date().toISOString(),

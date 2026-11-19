@@ -260,6 +260,7 @@ export default function HomePage() {
                               src={COMPANIONS[0].avatarUrl}
                               alt={COMPANIONS[0].name}
                               fill
+                              sizes="80px"
                               className="object-cover"
                             />
                           </div>

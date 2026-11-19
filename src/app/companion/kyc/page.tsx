@@ -63,7 +63,7 @@ export default function HostKYCPage() {
 
   // Prefill legal name from member profile if available
   useEffect(() => {
-    if (memberProfile?.fullName && memberProfile.fullName !== 'Companio Member') {
+    if (memberProfile?.fullName && memberProfile.fullName !== 'Togethr Member') {
       setValue('fullName', memberProfile.fullName, { shouldValidate: true });
     }
   }, [memberProfile, setValue]);
@@ -142,7 +142,7 @@ export default function HostKYCPage() {
       age--;
     }
     if (age < 18) {
-      toast.error('You must be at least 18 years of age to host on Companio.', 'Age Requirement');
+      toast.error('You must be at least 18 years of age to host on Togethr.', 'Age Requirement');
       return;
     }
 
@@ -214,7 +214,7 @@ export default function HostKYCPage() {
       setSubmitted(true);
       setKycReference(json.kycReference || '#CMP-8921');
       toast.success(
-        'Congratulations! You are now an approved and verified Host on Companio.',
+        'Congratulations! You are now an approved and verified Host on Togethr.',
         'Profile Verified & Approved'
       );
     } catch (err) {
@@ -250,7 +250,7 @@ export default function HostKYCPage() {
             </h1>
 
             <p className="font-body text-xs sm:text-sm text-ink-soft leading-relaxed">
-              To keep meetups safe for everyone, all Companio companions confirm their identity with an Aadhaar card and photo before meeting members in public.
+              To keep meetups safe for everyone, all Togethr companions confirm their identity with an Aadhaar card and photo before meeting members in public.
             </p>
           </div>
 
@@ -341,7 +341,7 @@ export default function HostKYCPage() {
                         className="w-full rounded-xl border-brutal bg-white px-3.5 py-3 font-display text-xs sm:text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
                       />
                       <span className="block text-[11px] font-medium text-ink-muted">
-                        You must be at least 18 years of age to host on Companio.
+                        You must be at least 18 years of age to host on Togethr.
                       </span>
                     </div>
 

@@ -22,7 +22,7 @@ export default function AboutPage() {
               Find a Buddy, Not a Date.
             </h1>
             <p className="mt-4 text-sm sm:text-base font-bold text-ink/80 max-w-2xl mx-auto leading-relaxed">
-              Companio is India&apos;s verified on-demand platonic companionship marketplace. We connect urban adults for respectful, safe, in-person social activities across major metropolitan cities.
+              made4togethr is India&apos;s verified on-demand platonic companionship marketplace. We connect urban adults for respectful, safe, in-person social activities across major metropolitan cities.
             </p>
           </div>
 
@@ -34,7 +34,7 @@ export default function AboutPage() {
               </div>
               <h3 className="text-lg font-black uppercase text-ink">100% Platonic</h3>
               <p className="mt-2 text-xs font-bold text-ink/70 leading-relaxed">
-                Zero tolerance for solicitation, romance, or dating. Companio is exclusively for genuine social company: coffee, gym, concerts, and exploring the city.
+                Zero tolerance for solicitation, romance, or dating. Togethr is exclusively for genuine social company: coffee, gym, concerts, and exploring the city.
               </p>
             </div>
 
@@ -62,14 +62,14 @@ export default function AboutPage() {
           {/* Story & Background */}
           <div className="border-brutal shadow-brutal bg-white p-8 sm:p-10 space-y-6">
             <h2 className="text-2xl font-black uppercase text-ink tracking-tight">
-              Why We Built Companio
+              Why We Built Togethr
             </h2>
             <div className="space-y-4 text-xs sm:text-sm font-medium text-ink/80 leading-relaxed">
               <p>
                 In fast-growing metropolitan cities across India - Bengaluru, Delhi NCR, Mumbai, Hyderabad - millions of ambitious students and professionals move away from home. While our careers grow, our casual social circles often shrink.
               </p>
               <p>
-                Existing apps push users into romantic dates or sterile networking groups. Companio bridges the gap: safe, on-demand, reliable companionship for ordinary everyday activities. Whether you need a gym spotter, a shopping opinion, a partner for a newly opened art exhibition, or just friendly conversation over a cup of specialty coffee, you never have to go alone.
+                Existing apps push users into romantic dates or sterile networking groups. Togethr bridges the gap: safe, on-demand, reliable companionship for ordinary everyday activities. Whether you need a gym spotter, a shopping opinion, a partner for a newly opened art exhibition, or just friendly conversation over a cup of specialty coffee, you never have to go alone.
               </p>
             </div>
 
