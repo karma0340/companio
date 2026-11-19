@@ -14,7 +14,14 @@ export function isRazorpayConfigured(): boolean {
   const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
 
   if (!keyId || !keySecret) return false;
-  if (keyId.includes("placeholder") || keySecret.includes("placeholder")) return false;
+  if (
+    keyId.includes("placeholder") ||
+    keySecret.includes("placeholder") ||
+    keyId.includes("MOCK") ||
+    keySecret.includes("mock")
+  ) {
+    return false;
+  }
   return true;
 }
 
