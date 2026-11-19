@@ -1,63 +1,77 @@
-import React from "react";
-import Link from "next/link";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import React from 'react';
+import Link from 'next/link';
+import type { Metadata } from 'next';
+import { Navbar } from '@/components/layout/navbar';
+import { Footer } from '@/components/layout/footer';
+import { Badge } from '@/components/ui/badge';
+
+export const metadata: Metadata = {
+  title: "Terms of Service — Platonic Rules & User Agreement",
+  description: "Official terms and conditions governing the use of made4companio platonic companionship platform in India.",
+};
 
 export default function TermsPage() {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16 text-sm text-[#A1A1A6] leading-relaxed">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8E8E93] hover:text-white mb-6"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        <span>Back to homepage</span>
-      </Link>
+    <div className="min-h-screen flex flex-col bg-paper">
+      <Navbar />
 
-      <div className="border-b border-[#262626] pb-8 mb-8">
-        <h1 className="font-serif text-3xl font-extrabold text-white sm:text-4xl">
-          Terms of Service & Code of Conduct
-        </h1>
-        <p className="mt-2 text-xs text-[#8E8E93]">
-          TRYCOMPANIOLABS LLP • Effective Platform Terms
-        </p>
-      </div>
+      <main className="flex-1 py-12 sm:py-20">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="text-center space-y-4 max-w-2xl mx-auto">
+            <Badge variant="sunny" size="md">
+              Legal Compliance
+            </Badge>
 
-      <div className="space-y-8">
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-3">1. Strictly Platonic Nature of Services</h2>
-          <p>
-            Companio is an on-demand social companionship platform. All interactions between members and companions are strictly platonic, non-romantic, and non-sexual. Physical contact is restricted to a polite greeting handshake. Any solicitation of romantic, intimate, or illegal acts results in immediate permanent expulsion and legal escalation.
-          </p>
-        </section>
+            <h1 className="font-display text-4xl sm:text-6xl font-black text-ink">
+              Terms of Service
+            </h1>
 
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-3">2. Neutral Public Venue Requirement</h2>
-          <p>
-            All bookings must occur strictly within recognized, well-lit public establishments (cafes, restaurants, art galleries, museums, shopping centers, or parks). Meeting in private residences, hotel rooms, or secluded vehicles is an explicit violation of our terms and immediately voids all platform protections and insurance.
-          </p>
-        </section>
+            <p className="font-body text-xs sm:text-sm text-ink-muted">
+              Effective Date: November 2026 · Governed by the Laws of the Republic of India
+            </p>
+          </div>
 
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-3">3. Access Passes vs. Booking Hourly Fees</h2>
-          <p>
-            Access Passes (1-Month, 3-Month, 6-Month, 1-Year, and Lifetime) grant browsing, unmasking, and booking privileges only. An Access Pass does NOT cover the companion&apos;s hourly booking fee (e.g. ₹499/hr) or food/beverage costs. All Access Pass purchases are final and non-refundable once activated.
-          </p>
-        </section>
+          <div className="rounded-3xl border-brutal bg-white p-8 sm:p-12 shadow-brutal-lg space-y-8 font-body text-sm text-ink-soft leading-relaxed">
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-black text-ink">
+                1. Strictly Platonic Nature of the Platform
+              </h2>
+              <p>
+                Companio (operated under <strong>made4companio</strong>) is an intermediary technology platform connecting independent adult users for strictly platonic, social companionship in public venues. Companio is <strong>not</strong> an employer, dating service, matrimony bureau, or adult entertainment directory. Any solicitation of romantic or sexual favors constitutes a breach of contract and criminal conduct under applicable Indian penal provisions.
+              </p>
+            </section>
 
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-3">4. Cancellations and Refunds</h2>
-          <p>
-            If a companion fails to accept a booking within the 12-hour response window, 100% of the escrow fee is automatically refunded to the member&apos;s wallet. If a member cancels a confirmed booking less than 24 hours prior to the scheduled time, a cancellation penalty of ₹250 is deducted, with ₹125 paid to the companion host as compensation.
-          </p>
-        </section>
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-black text-ink">
+                2. Age and Government Verification Mandate
+              </h2>
+              <p>
+                Platform access is strictly restricted to individuals aged 18 and older. Both hosts and members must submit valid government-issued proof of identity upon request. Providing forged documents or impersonating another person results in immediate account termination and legal escalation.
+              </p>
+            </section>
 
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-3">5. In-Person 4-Digit Handshake Verification</h2>
-          <p>
-            The session officially starts only when the companion inputs the member&apos;s 4-digit verification code into their portal. Entering this code constitutes formal legal confirmation that both parties are physically present at the agreed public venue.
-          </p>
-        </section>
-      </div>
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-black text-ink">
+                3. Public Venue Requirement
+              </h2>
+              <p>
+                All meetups facilitated through Companio must occur exclusively in publicly accessible venues such as restaurants, cafes, shopping centers, libraries, fitness studios, sports turfs, and public parks. Private residences, hotel rooms, and isolated properties are strictly off-limits.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-black text-ink">
+                4. Escrow Mechanism & Off-Platform Payments
+              </h2>
+              <p>
+                All financial consideration must be transacted through Companio’s authorized escrow payment gateway. Soliciting or accepting off-platform payments (cash, direct UPI, gift vouchers) is strictly prohibited and results in permanent deplatforming.
+              </p>
+            </section>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

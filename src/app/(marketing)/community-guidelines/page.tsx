@@ -1,70 +1,145 @@
-import React from "react";
-import Link from "next/link";
-import { ArrowLeft, ShieldCheck, AlertOctagon, Heart, Users } from "lucide-react";
+import React from 'react';
+import Link from 'next/link';
+import type { Metadata } from 'next';
+import {
+  ShieldAlert,
+  CheckCircle2,
+  XCircle,
+  AlertOctagon,
+  ArrowRight,
+  HeartHandshake,
+} from 'lucide-react';
+import { Navbar } from '@/components/layout/navbar';
+import { Footer } from '@/components/layout/footer';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+export const metadata: Metadata = {
+  title: "100% Platonic Code of Conduct & Guidelines",
+  description:
+    "Our zero-tolerance policy against romance, solicitation, and harassment. Learn our clear boundaries for safe, respectful, public companionship.",
+};
 
 export default function CommunityGuidelinesPage() {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16 text-sm text-[#A1A1A6] leading-relaxed">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8E8E93] hover:text-white mb-6"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        <span>Back to homepage</span>
-      </Link>
+    <div className="min-h-screen flex flex-col bg-paper">
+      <Navbar />
 
-      <div className="border-b border-[#262626] pb-8 mb-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-xs font-semibold text-[#D4AF37]">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          <span>Code of Conduct & Platonic Integrity</span>
-        </div>
-        <h1 className="mt-4 font-serif text-3xl font-extrabold text-white sm:text-4xl">
-          Community Guidelines
-        </h1>
-        <p className="mt-2 text-xs text-[#8E8E93]">
-          These standards apply to every member and companion host on the platform.
-        </p>
-      </div>
+      <main className="flex-1 py-12 sm:py-20">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-12">
+          {/* Header */}
+          <div className="text-center space-y-4 max-w-2xl mx-auto">
+            <Badge variant="pink" size="md">
+              Code of Conduct
+            </Badge>
 
-      <div className="space-y-8">
-        <section className="rounded-2xl border border-red-900/40 bg-[#160D0D] p-6 text-white">
-          <div className="flex items-center gap-2 font-bold text-red-400">
-            <AlertOctagon className="h-5 w-5" />
-            <span>Zero Tolerance for Sexual or Romantic Solicitation</span>
+            <h1 className="font-display text-4xl sm:text-6xl font-black text-ink">
+              Community Guidelines
+            </h1>
+
+            <p className="font-body text-base sm:text-lg text-ink-soft leading-relaxed">
+              Companio is built on mutual respect, clear boundaries, and platonic camaraderie. Every member and host must adhere strictly to these rules.
+            </p>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-red-200/80">
-            Companio is strictly for platonic social companionship. Any user—member or companion—who asks for romantic favors, intimate contact, or proposes inappropriate conduct will be permanently banned immediately, have their wallet balance forfeited, and face legal reporting where applicable.
-          </p>
-        </section>
 
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-2">1. The Public-Only Rule</h2>
-          <p>
-            All sessions must occur in busy, verified public venues: coffee shops, restaurants, art galleries, museums, shopping malls, or public gardens. Meeting at private homes, airbnbs, hotel rooms, or secluded vehicles is an automatic violation that invalidates all insurance and support.
-          </p>
-        </section>
+          {/* Zero Tolerance Platonic Declaration */}
+          <div className="rounded-3xl border-brutal bg-sunny p-8 sm:p-10 shadow-brutal space-y-4">
+            <div className="flex items-center gap-2 text-ink font-display text-sm font-black uppercase">
+              <AlertOctagon className="h-5 w-5" />
+              <span>Core Principle</span>
+            </div>
 
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-2">2. Respectful Boundaries & Dress Code</h2>
-          <p>
-            Both parties must dress respectfully and appropriately for public social settings. Conversation should be friendly, curious, and respectful. Neither party is obligated to answer invasive personal questions about family finances, past relationships, or private matters.
-          </p>
-        </section>
+            <h2 className="font-display text-2xl sm:text-3xl font-black text-ink">
+              Strictly Platonic. Zero Exceptions.
+            </h2>
 
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-2">3. Punctuality & 4-Digit Handshake</h2>
-          <p>
-            Respect the other person&apos;s time. Arrive on time at the agreed venue. When you arrive, the member provides the private 4-digit code displayed on their phone, which the host inputs into their dashboard. The session timer runs only while both parties are physically present.
-          </p>
-        </section>
+            <p className="font-body text-sm sm:text-base text-ink leading-relaxed">
+              Companio is not a dating service, hookup platform, or escort agency. Any user who makes romantic advances, sexual propositions, requests for intimate favors, or asks for physical affection will be <strong>permanently banned immediately</strong> without refund, and reported to law enforcement where applicable.
+            </p>
+          </div>
 
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-2">4. Disintermediation & Safety Warning</h2>
-          <p>
-            Do not pressure companions or members to transact off-platform or share private contact numbers during early meetups. In-app bookings are protected by platform insurance, escrow financial safety, and 24/7 rapid response monitoring.
-          </p>
-        </section>
-      </div>
+          {/* The Do's and Don'ts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* What is encouraged */}
+            <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal space-y-4">
+              <div className="flex items-center gap-2 text-emerald-600 font-display text-lg font-black">
+                <CheckCircle2 className="h-6 w-6" />
+                <span>What We Encourage</span>
+              </div>
+
+              <ul className="space-y-3 font-body text-sm text-ink-soft">
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5 stroke-[2.25]" />
+                  <span><strong>Daylight Public Meetups:</strong> Cafes, malls, gym chains, food streets, and public parks.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5 stroke-[2.25]" />
+                  <span><strong>Punctuality & Communication:</strong> Arrive on time and coordinate through in-app chat.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5 stroke-[2.25]" />
+                  <span><strong>Respecting Boundaries:</strong> Treat your companion with courtesy, active listening, and warmth.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5 stroke-[2.25]" />
+                  <span><strong>Code Exchange:</strong> Always verbally share the 4-digit start code to activate the session.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* What is strictly prohibited */}
+            <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal space-y-4">
+              <div className="flex items-center gap-2 text-danger font-display text-lg font-black">
+                <XCircle className="h-6 w-6" />
+                <span>Strictly Prohibited</span>
+              </div>
+
+              <ul className="space-y-3 font-body text-sm text-ink-soft">
+                <li className="flex items-start gap-2.5">
+                  <XCircle className="h-4 w-4 text-danger shrink-0 mt-0.5 stroke-[2.25]" />
+                  <span><strong>Private Residences or Hotels:</strong> Never meet in homes, Airbnb apartments, or hotel rooms.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <XCircle className="h-4 w-4 text-danger shrink-0 mt-0.5 stroke-[2.25]" />
+                  <span><strong>Off-Platform Payments:</strong> Cash or direct UPI transfers outside our escrow vault are banned.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <XCircle className="h-4 w-4 text-danger shrink-0 mt-0.5 stroke-[2.25]" />
+                  <span><strong>Romantic or Sexual Solicitations:</strong> Zero tolerance for flirting, touching, or intimacy requests.</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <XCircle className="h-4 w-4 text-danger shrink-0 mt-0.5 stroke-[2.25]" />
+                  <span><strong>Substance Abuse or Alcohol Pressure:</strong> Never pressure a companion to drink or consume substances.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Reporting & Enforcement */}
+          <div className="rounded-3xl border-brutal bg-white p-8 sm:p-10 shadow-brutal space-y-4">
+            <h2 className="font-display text-2xl font-black text-ink">
+              Violations & Reporting
+            </h2>
+            <p className="font-body text-sm text-ink-soft leading-relaxed">
+              If a host or member makes you feel uncomfortable or violates any guideline, end the meetup immediately and report them via the in-app SOS button or by emailing{' '}
+              <a href="mailto:safety@companio.in" className="font-bold underline text-ink">
+                safety@companio.in
+              </a>
+              . Our safety committee reviews all complaints within 15 minutes.
+            </p>
+
+            <div className="pt-4 flex gap-4">
+              <Link href="/explore">
+                <Button variant="primary" size="md">
+                  <span>Explore Verified Hosts →</span>
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

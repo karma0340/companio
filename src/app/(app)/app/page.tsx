@@ -381,7 +381,7 @@ export default function MarketplaceHomePage() {
                         {host.name}
                       </h3>
                       <span className="px-2 py-0.5 bg-amber-100 border border-[#141414] rounded text-xs font-black text-[#141414]">
-                        ★ {host.rating} ({host.reviews})
+                         {host.rating} ({host.reviews})
                       </span>
                     </div>
 
@@ -452,7 +452,7 @@ export default function MarketplaceHomePage() {
                         {host.name}
                       </h3>
                       <span className="px-2 py-0.5 bg-amber-100 border border-[#141414] rounded text-xs font-black text-[#141414]">
-                        ★ {host.rating}
+                         {host.rating}
                       </span>
                     </div>
 

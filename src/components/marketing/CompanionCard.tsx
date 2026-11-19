@@ -65,7 +65,7 @@ export function CompanionCard({
                   boxShadow: "rgba(138, 100, 24, 0.18) 0px 0px 0px 1px inset",
                 }}
               >
-                ★ Free preview
+                 Free preview
               </span>
             )}
             <span

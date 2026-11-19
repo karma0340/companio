@@ -9,7 +9,51 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Cinematic Showroom Palette (Dark luxury)
+        // Neo-Brutalist Companio Core Palette
+        ink: {
+          DEFAULT: "#141414",
+          soft: "#4a4a4a",
+          muted: "#737373",
+        },
+        paper: {
+          DEFAULT: "#FFF8EE",
+          deep: "#F6EFE3",
+        },
+        surface: "#FFFFFF",
+        lime: {
+          DEFAULT: "#C6F432",
+          soft: "#EDFBC0",
+        },
+        sunny: {
+          DEFAULT: "#FFD23F",
+          soft: "#FFF1BF",
+        },
+        pink: {
+          DEFAULT: "#FF7AC6",
+          soft: "#FFD1EA",
+        },
+        lavender: {
+          DEFAULT: "#7B5CF0",
+          soft: "#E5DEFF",
+        },
+        sky: {
+          DEFAULT: "#38BDF8",
+          soft: "#E0F2FE",
+        },
+        mint: {
+          DEFAULT: "#34D399",
+          soft: "#D1FAE5",
+        },
+        tangerine: {
+          DEFAULT: "#FB923C",
+          soft: "#FFEDD5",
+        },
+        danger: {
+          DEFAULT: "#EF4444",
+          soft: "#FEE2E2",
+        },
+
+        // Legacy / Compatibility Palettes
         dark: {
           bg: "#0A0A0A",
           card: "#141414",
@@ -18,25 +62,32 @@ const config: Config = {
           muted: "#8E8E93",
           accent: "#D4AF37",
         },
-        // Live App Palette (Neo-Brutalist energetic)
         brutal: {
           pink: "#FF7AC6",
           blue: "#70D6FF",
-          lime: "#E9FF70",
-          yellow: "#FFD670",
-          black: "#102A43",
-          bg: "#FFFDF9",
+          lime: "#C6F432",
+          yellow: "#FFD23F",
+          black: "#141414",
+          bg: "#FFF8EE",
         },
       },
       fontFamily: {
+        display: ["var(--font-bricolage)", "Outfit", "ui-sans-serif", "system-ui", "sans-serif"],
+        body: ["var(--font-dmsans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-dmsans)", "Helvetica Neue", "Arial", "sans-serif"],
         serif: ["Georgia", "Cambria", "Times New Roman", "serif"],
-        sans: ["Helvetica Neue", "Arial", "sans-serif"],
         mono: ["Consolas", "Courier New", "monospace"],
       },
       boxShadow: {
-        brutal: "4px 4px 0px 0px #102A43",
-        "brutal-sm": "2px 2px 0px 0px #102A43",
-        "brutal-lg": "6px 6px 0px 0px #102A43",
+        brutal: "4px 4px 0 0 #141414",
+        "brutal-sm": "2px 2px 0 0 #141414",
+        "brutal-xs": "1.5px 1.5px 0 0 #141414",
+        "brutal-lg": "7px 7px 0 0 #141414",
+      },
+      borderWidth: {
+        brutal: "3px",
+        "brutal-sm": "2px",
+        "brutal-lg": "4px",
       },
     },
   },

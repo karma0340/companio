@@ -1,61 +1,86 @@
-import React from "react";
-import Link from "next/link";
-import { ArrowLeft, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import React from 'react';
+import Link from 'next/link';
+import type { Metadata } from 'next';
+import { RotateCcw, ShieldCheck, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Navbar } from '@/components/layout/navbar';
+import { Footer } from '@/components/layout/footer';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
-export default function RefundPolicyPage() {
+export const metadata: Metadata = {
+  title: "100% Escrow Refund Policy & Cancellation Rules",
+  description:
+    "Zero-risk meetups. Instant automated refunds if your host declines, cancels, or fails to attend. Transparent consumer protection.",
+};
+
+export default function RefundsPage() {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16 text-sm text-[#A1A1A6] leading-relaxed">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8E8E93] hover:text-white mb-6"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        <span>Back to homepage</span>
-      </Link>
+    <div className="min-h-screen flex flex-col bg-paper">
+      <Navbar />
 
-      <div className="border-b border-[#262626] pb-8 mb-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-xs font-semibold text-[#D4AF37]">
-          <RefreshCw className="h-3.5 w-3.5" />
-          <span>Fair & Transparent Financial Terms</span>
+      <main className="flex-1 py-12 sm:py-20">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center space-y-4 max-w-2xl mx-auto">
+            <Badge variant="lime" size="md">
+              Consumer Protection
+            </Badge>
+
+            <h1 className="font-display text-4xl sm:text-6xl font-black text-ink">
+              Escrow Refund Policy
+            </h1>
+
+            <p className="font-body text-base sm:text-lg text-ink-soft">
+              Zero-risk booking. Your funds are held safely in escrow and never released without mutual verification.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border-brutal bg-white p-8 sm:p-12 shadow-brutal-lg space-y-6">
+            <h2 className="font-display text-2xl sm:text-3xl font-black text-ink">
+              When do you receive an automated 100% refund?
+            </h2>
+
+            <div className="space-y-4 font-body text-sm sm:text-base text-ink-soft leading-relaxed">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <p>
+                  <strong>Host Declines Request:</strong> If the host is unavailable and declines your request, 100% of your funds are credited back instantly.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <p>
+                  <strong>Host Fails to Respond (Timeout):</strong> Requests expire automatically after 4 hours if not accepted. 100% refund is initiated automatically.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <p>
+                  <strong>Host No-Show:</strong> If the companion fails to meet you at the public venue or start code is never exchanged, 100% of the payment is returned to you.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <p>
+                  <strong>Advance Cancellation by Member:</strong> You can cancel freely with a 100% refund up to 4 hours before the scheduled start time.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t-brutal-sm flex justify-center">
+              <Link href="/explore">
+                <Button variant="primary" size="lg">
+                  <span>Explore Companions with Escrow Protection →</span>
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
-        <h1 className="mt-4 font-serif text-3xl font-extrabold text-white sm:text-4xl">
-          Refund & Cancellation Policy
-        </h1>
-        <p className="mt-2 text-xs text-[#8E8E93]">
-          Clear rules regarding booking escrow, pass purchases, and host cancellations.
-        </p>
-      </div>
+      </main>
 
-      <div className="space-y-8">
-        <section className="rounded-2xl border border-[#262626] bg-[#121212] p-6">
-          <h2 className="font-serif text-xl font-bold text-white mb-2">1. Access Passes (1-Month to Lifetime)</h2>
-          <p className="text-xs sm:text-sm text-[#8E8E93]">
-            Access Passes provide immediate digital unlocks (removing photo blurs, displaying full biographies, and activating messaging privileges). Because this digital utility is delivered instantaneously upon payment confirmation, <strong>all Access Pass purchases are final and non-refundable</strong> once activated.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-2">2. The 12-Hour Companion Acceptance SLA</h2>
-          <p>
-            When you deposit an hourly booking fee into escrow, the companion host has exactly 12 hours to accept or decline. If the companion fails to respond within 12 hours or declines your request, <strong>100% of the escrow fee is automatically refunded</strong> to your wallet balance immediately with zero deductions.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-2">3. Member Cancellation Window</h2>
-          <ul className="list-disc pl-5 mt-2 space-y-2 text-xs">
-            <li><strong>More than 24 Hours in Advance:</strong> 100% refund of the booking fee back to your wallet balance.</li>
-            <li><strong>Less than 24 Hours in Advance:</strong> A late cancellation penalty of ₹250 is charged to compensate the host for blocking their calendar. The remaining balance (e.g. ₹456 out of a ₹706 booking) is returned to your wallet.</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-2">4. Host Wallet Withdrawals & The 12% Threshold</h2>
-          <p>
-            Companions must accumulate at least ₹500 in completed session earnings before initiating standard, free UPI settlements. If a companion requests an expedited or partial cashout below the ₹500 minimum threshold, a <strong>12% early processing fee</strong> is deducted from the withdrawal amount.
-          </p>
-        </section>
-      </div>
+      <Footer />
     </div>
   );
 }

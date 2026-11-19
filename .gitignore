@@ -42,3 +42,6 @@ text_*.txt
 companioassets/
 *.whtt
 text_*.txt
+
+# Local Reference Clone
+try/

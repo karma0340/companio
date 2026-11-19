@@ -1,117 +1,474 @@
-"use client";
+﻿'use client';
 
-import React from "react";
-import Link from "next/link";
-import { MomentsSection } from "@/components/marketing/MomentsSection";
-import { ActivityPlannerSection } from "@/components/marketing/ActivityPlannerSection";
-import { DayTimelineSection } from "@/components/marketing/DayTimelineSection";
-import { SafetySection } from "@/components/marketing/SafetySection";
-import { CommitmentsSection } from "@/components/marketing/CommitmentsSection";
-import { FaqSection } from "@/components/marketing/FaqSection";
-import { CtaBannerSection } from "@/components/marketing/CtaBannerSection";
+import React, { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
+import {
+  ShieldCheck,
+  MapPin,
+  Sparkles,
+  ArrowRight,
+  Lock,
+  AlertTriangle,
+  KeyRound,
+  CheckCircle2,
+  Users,
+  Check,
+} from 'lucide-react';
+import { Navbar } from '@/components/layout/navbar';
+import { Footer } from '@/components/layout/footer';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Accordion } from '@/components/ui/accordion';
+import { CompanionCard } from '@/components/companion/companion-card';
+import { ActivityIcon } from '@/components/ui/activity-icon';
+import { StatusPulse } from '@/components/ui/status-pulse';
+import { ACTIVITIES } from '@/lib/data/activities';
+import { COMPANIONS } from '@/lib/data/companions';
+import { CITIES } from '@/lib/data/cities';
+import { HowItWorksJourney } from '@/components/how-it-works/how-it-works-journey';
+import { KineticText } from '@/components/landing/kinetic-text';
+import { TiltCard } from '@/components/landing/tilt-card';
+import { SafetyBento } from '@/components/landing/safety-bento';
+import { HostEarningsCalculator } from '@/components/landing/host-earnings-calculator';
+import { ActivityCarousel } from '@/components/landing/activity-carousel';
+import { TopRatedCarousel } from '@/components/landing/top-rated-carousel';
 
 export default function HomePage() {
+  const [heroCity, setHeroCity] = useState('bengaluru');
+  const [heroActivity, setHeroActivity] = useState('all');
+
+  const freeTodayCompanions = COMPANIONS.filter((c) => c.isFreeToday);
+
+  const faqItems = [
+    {
+      id: 'faq-1',
+      question: 'Is Companio a dating or matchmaking app?',
+      answer:
+        'Absolutely NOT. Companio is strictly for platonic, activity-based companionship. We exist to help you find a gym spotter, a movie buddy, a shopping guide, or a coffee companion. Any romantic advances, escorting requests, or inappropriate behavior result in an immediate permanent ban and forfeiture of escrow funds.',
+    },
+    {
+      id: 'faq-2',
+      question: 'How do Escrow Payments protect my money?',
+      answer:
+        'When you book a companion, your payment is held securely in our escrow vault. The companion is NOT paid until the meetup happens in person and you exchange the 4-digit start code. If the companion declines, cancels, or fails to show up, you receive an automated 100% refund immediately.',
+    },
+    {
+      id: 'faq-3',
+      question: 'What is the 4-Digit Start Code and how does it work?',
+      answer:
+        'When your booking is confirmed, a secret 4-digit numeric code is generated on your Companio screen. When you meet your companion at the agreed public venue, you share this code with them. Once they enter it, the meetup timer officially activates. No code = no meetup = zero payment released.',
+    },
+    {
+      id: 'faq-4',
+      question: 'Where can meetups take place?',
+      answer:
+        'PUBLIC VENUES ONLY. Coffee shops, malls, public parks, gym franchises, metro lobbies, museums, or cultural venues. Private residences, hotel rooms, or secluded areas are strictly prohibited and will get your account flagged.',
+    },
+    {
+      id: 'faq-5',
+      question: 'How are companions verified?',
+      answer:
+        'Every single host submits a government ID (Aadhaar, Passport, or Voter ID) along with a real-time live selfie for facial comparison. Our human trust team reviews their background, phone number, and social profiles before approving their profile.',
+    },
+    {
+      id: 'faq-6',
+      question: 'Can women choose women-only companions?',
+      answer:
+        'Yes. We have a dedicated "Women Hosts for Women" filter. Female hosts have the autonomy to restrict bookings exclusively to verified female members for maximum comfort and peace of mind.',
+    },
+  ];
+
   return (
-    <div className="relative overflow-hidden bg-[#FBFCFF] text-slate-900 selection:bg-blue-600 selection:text-white">
-      {/* HERO SECTION (Image 2 1:1 Parity) */}
-      <section className="relative min-h-[88vh] flex items-center justify-center overflow-hidden">
-        {/* Cinematic Atmospheric Video / Poster Background */}
-        <video
-          muted
-          loop
-          playsInline
-          autoPlay
-          preload="auto"
-          poster="/assets/landing/hero-poster-v5.webp"
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ zIndex: 1, objectPosition: "50% 25%" }}
-          aria-hidden="true"
-        >
-          <source media="(orientation: portrait) and (max-width: 600px)" src="/assets/landing/hero-phone-v5.mp4" type="video/mp4" />
-          <source src="/assets/landing/hero-desktop-v4.mp4" type="video/mp4" />
-        </video>
+    <div className="min-h-screen flex flex-col bg-paper">
+      <Navbar />
 
-        {/* Ambient Dark Atmospheric Overlays */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0"
-          style={{
-            zIndex: 10,
-            background: "linear-gradient(180deg, rgba(14, 12, 28, 0.25) 0%, rgba(14, 12, 28, 0.45) 30%, rgba(20, 18, 42, 0.75) 55%, rgba(20, 18, 42, 0.94) 80%, rgba(14, 12, 28, 0.98) 100%)",
-          }}
-        />
+      <main className="flex-1">
+        {/* =========================================================================
+            SECTION 1: HERO (GEN-Z KINETIC & HIGH-ENERGY)
+           ========================================================================= */}
+        <section className="relative overflow-hidden border-b-brutal bg-paper pt-8 pb-14 lg:py-18">
+          {/* Subtle Ambient Background Gradients */}
+          <div
+            aria-hidden="true"
+            className="absolute -top-32 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] opacity-35 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(ellipse 600px 300px at 50% 50%, rgba(198,244,50,0.3) 0%, rgba(255,210,63,0.2) 40%, transparent 100%)',
+            }}
+          />
 
-        {/* Hero Content (Image 3 Desktop / Image 5 Mobile Parity) */}
-        <div className="relative z-30 max-w-4xl mx-auto px-6 w-full pt-16 pb-16 text-center">
-          {/* Two-Line Pure White Headline */}
-          <h1
-            id="hero-heading"
-            className="font-serif text-5xl sm:text-7xl md:text-8xl font-bold tracking-tight text-white leading-[0.96] mb-4 md:mb-6"
-            style={{ textShadow: "0 2px 24px rgba(0, 0, 0, 0.75), 0 0 40px rgba(10, 8, 24, 0.6)" }}
-          >
-            <span className="block">Never go</span>
-            <span className="block">alone.</span>
-          </h1>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+              {/* Left Column: Kinetic Headlines & Search Bar */}
+              <div className="lg:col-span-7 space-y-5">
+                {/* Floating Tilted Pill Stickers */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <motion.div
+                    initial={{ rotate: -3, scale: 0.95 }}
+                    animate={{ rotate: [-3, -1, -3] }}
+                    transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                    className="inline-flex items-center gap-1.5 rounded-full border-brutal-sm bg-lime px-3 py-1 font-display text-xs font-black uppercase text-ink shadow-brutal-xs"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>The Anti-Dating App</span>
+                  </motion.div>
 
-          {/* Exact Subtitle Text */}
-          <p
-            className="text-sm sm:text-base md:text-lg text-white/90 leading-relaxed mb-8 md:mb-10 max-w-xl mx-auto font-medium"
-            style={{ textShadow: "0 1px 12px rgba(0, 0, 0, 0.8)" }}
-          >
-            <span className="block mb-1.5">Explore your city with a local companion.</span>
-            <span className="block mb-1.5">Coffee, walks, and gigs with someone who knows the city.</span>
-            <span className="block">Every profile reviewed before it goes live. Strictly platonic.</span>
-          </p>
+                  <motion.div
+                    initial={{ rotate: 2, scale: 0.95 }}
+                    animate={{ rotate: [2, 4, 2] }}
+                    transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+                    className="inline-flex items-center gap-1.5 rounded-full border-brutal-sm bg-sunny px-3 py-1 font-display text-xs font-black uppercase text-ink shadow-brutal-xs"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 text-pink-700" />
+                    <span>100% Platonic Only</span>
+                  </motion.div>
 
-          {/* Action Buttons: Responsive for Mobile (Image 5) and Desktop (Image 3) */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full max-w-sm sm:max-w-md mx-auto">
-            <Link
-              href="/explore"
-              className="w-full sm:w-auto h-12 py-3 px-8 rounded-full font-bold text-sm sm:text-base bg-white text-slate-900 shadow-xl hover:bg-slate-100 transition active:scale-95 flex items-center justify-center text-center"
-            >
-              Find a companion
-            </Link>
-            <Link
-              href="/how-it-works"
-              className="hidden sm:inline-flex items-center justify-center h-12 py-3 px-7 rounded-full font-bold text-sm sm:text-base bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/25 transition active:scale-95"
-            >
-              How it works &rarr;
-            </Link>
+                  <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border-brutal-sm bg-paper-deep px-3 py-1 font-display text-xs font-black uppercase text-ink shadow-brutal-xs">
+                    <StatusPulse size="xs" status="active" />
+                    <span>9 Cities Live</span>
+                  </span>
+                </div>
+
+                {/* Kinetic Hero Title with Compact Proportional Badge */}
+                <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-ink leading-[1.12]">
+                  Find a companion for <br />
+                  <KineticText /> <br />
+                  <span className="text-ink">not a date.</span>
+                </h1>
+
+                <p className="font-body text-base sm:text-lg text-ink-soft max-w-xl leading-relaxed">
+                  Never go alone again. Book verified companions for the gym, movies, cafe chats, or food walks. Safe, strictly public, and zero awkwardness.
+                </p>
+
+                {/* Tactile Discovery Search Bar */}
+                <div className="rounded-2xl border-brutal bg-white p-3.5 sm:p-4 shadow-brutal-lg space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-3 transition-transform hover:translate-y-[-1px]">
+                  {/* City Select */}
+                  <div className="sm:w-1/3">
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-ink-muted mb-1">
+                      City
+                    </label>
+                    <select
+                      value={heroCity}
+                      onChange={(e) => setHeroCity(e.target.value)}
+                      className="w-full rounded-xl border-brutal-sm bg-paper-deep px-3 py-2 text-xs font-extrabold text-ink focus:outline-none cursor-pointer"
+                    >
+                      {CITIES.map((c) => (
+                        <option key={c.slug} value={c.slug}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Activity Select */}
+                  <div className="sm:w-1/3">
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-ink-muted mb-1">
+                      Activity
+                    </label>
+                    <select
+                      value={heroActivity}
+                      onChange={(e) => setHeroActivity(e.target.value)}
+                      className="w-full rounded-xl border-brutal-sm bg-paper-deep px-3 py-2 text-xs font-extrabold text-ink focus:outline-none cursor-pointer"
+                    >
+                      <option value="all">Any Activity (17 available)</option>
+                      {ACTIVITIES.map((a) => (
+                        <option key={a.slug} value={a.slug}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* CTA Button */}
+                  <div className="sm:w-1/3 sm:self-end">
+                    <Link
+                      href={`/explore?city=${heroCity}&activity=${heroActivity}`}
+                      className="block w-full"
+                    >
+                      <Button variant="primary" size="md" fullWidth className="font-display font-black text-sm">
+                        <span>Find Companion â†’</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Trust Badges Strip */}
+                <div className="flex flex-wrap items-center gap-4 pt-1 text-xs font-extrabold text-ink">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span>Aadhaar ID Checked</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span>Escrow Payment Lock</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span>4-Digit Start Code</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Animated Floating 3D Preview Card */}
+              <div className="lg:col-span-5 relative flex justify-center pt-4 lg:pt-0">
+                <div className="relative w-full max-w-sm">
+                  {/* Decorative Backing Pastel Card with Counter-Floating Motion */}
+                  <motion.div
+                    animate={{
+                      rotate: [-3, -4.5, -3],
+                      y: [0, 4, 0],
+                    }}
+                    transition={{
+                      duration: 5,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    }}
+                    className="absolute inset-0 rounded-2xl border-brutal bg-pink translate-x-2 translate-y-3 shadow-brutal pointer-events-none"
+                  />
+
+                  {/* Top Featured Companion Interactive Floating Tilt Card */}
+                  <motion.div
+                    animate={{
+                      y: [0, -8, 0],
+                    }}
+                    transition={{
+                      duration: 4.5,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    }}
+                  >
+                    <TiltCard maxTilt={6}>
+                      <div className="relative rounded-2xl border-brutal bg-white p-5 shadow-brutal-lg rotate-1 space-y-4">
+                        {/* Top Badges */}
+                        <div className="flex items-center justify-between">
+                          <Badge variant="lime" size="sm" className="inline-flex items-center gap-1.5">
+                            <StatusPulse size="xs" status="active" />
+                            <span>Free in 2 hours</span>
+                          </Badge>
+                          <span className="inline-flex items-center gap-1 font-display text-xs font-black text-ink-muted">
+                            <MapPin className="h-3 w-3 text-ink-muted" />
+                            <span>Indiranagar, BLR</span>
+                          </span>
+                        </div>
+
+                        {/* Companion Avatar & Info */}
+                        <div className="flex gap-4 items-center">
+                          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-brutal bg-paper-deep">
+                            <Image
+                              src={COMPANIONS[0].avatarUrl}
+                              alt={COMPANIONS[0].name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-display text-2xl font-black text-ink">
+                              {COMPANIONS[0].name} Â· {COMPANIONS[0].age}
+                            </h3>
+                            <p className="text-xs font-bold text-ink-soft">
+                              Design Student & Indie Music Fan
+                            </p>
+                            <div className="mt-1.5 flex gap-1">
+                              <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-sunny px-1.5 py-0.5 text-[10px] font-bold text-ink">
+                                <ActivityIcon slug="shopping-buddy" size="xs" />
+                                <span>Shopping</span>
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-paper-deep px-1.5 py-0.5 text-[10px] font-bold text-ink">
+                                <ActivityIcon slug="coffee-chat" size="xs" />
+                                <span>Coffee</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Tagline Quote */}
+                        <div className="rounded-xl border-brutal-sm bg-paper/70 p-3 text-xs font-medium text-ink-soft leading-relaxed italic">
+                          "{COMPANIONS[0].tagline}"
+                        </div>
+
+                        {/* Footer Rate & CTA */}
+                        <div className="flex items-center justify-between pt-2 border-t-brutal-sm">
+                          <div>
+                            <span className="text-[10px] uppercase font-black text-ink-muted block">
+                              Hourly Rate
+                            </span>
+                            <span className="font-display text-lg font-black text-ink">â‚¹599 /hr</span>
+                          </div>
+                          <Link href={`/companions/${COMPANIONS[0].id}`}>
+                            <Button variant="primary" size="sm" className="font-display font-black">
+                              <span>View Kashish â†’</span>
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </TiltCard>
+                  </motion.div>
+                </div>
+              </div>
+            </div>
           </div>
+        </section>
 
-          {/* Already a member? Sign in */}
-          <div className="mt-4">
-            <Link
-              href="/explore"
-              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-white/90 hover:text-white transition"
-            >
-              <span>Already a member? Sign in</span>
-              <span>&rarr;</span>
-            </Link>
+        {/* =========================================================================
+            SECTION 2: FREE TODAY LIVE CAROUSEL
+           ========================================================================= */}
+        <section className="border-b-brutal bg-white py-14 sm:py-18">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-md border-brutal-sm bg-lime px-2.5 py-1 text-xs font-black uppercase text-ink shadow-brutal-sm mb-2">
+                  <StatusPulse size="xs" status="active" />
+                  <span>Real-Time Availability</span>
+                </div>
+                <h2 className="flex items-center gap-3 font-display text-3xl sm:text-4xl font-black text-ink">
+                  <StatusPulse size="sm" status="active" />
+                  <span>Free today in your city</span>
+                </h2>
+                <p className="font-body text-sm text-ink-soft mt-1">
+                  Need plans for later today? These verified hosts have open slots right now.
+                </p>
+              </div>
+
+              <Link href="/explore?freeToday=true">
+                <Button variant="outline" size="sm" className="font-display font-black">
+                  <span>See all {freeTodayCompanions.length} hosts â†’</span>
+                </Button>
+              </Link>
+            </div>
+
+            {/* Grid of Free Today Hosts with Tilt Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {freeTodayCompanions.slice(0, 3).map((comp) => (
+                <TiltCard key={comp.id} maxTilt={5}>
+                  <CompanionCard companion={comp} />
+                </TiltCard>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 1:1 AUTHENTIC POLAROID MOMENTS PARALLAX SCROLL SECTION */}
-      <MomentsSection />
+        {/* =========================================================================
+            SECTION 3: WHAT ARE WE DOING TODAY? (17 ACTIVITIES INTERACTIVE CAROUSEL)
+           ========================================================================= */}
+        <section className="border-b-brutal bg-paper py-14 sm:py-18">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
+              <Badge variant="sunny" size="md">
+                17 Approved Activities
+              </Badge>
+              <h2 className="font-display text-3xl sm:text-5xl font-black text-ink">
+                What are we doing today?
+              </h2>
+              <p className="font-body text-sm sm:text-base text-ink-soft">
+                Everything is better with good company. Pick an activity and find a verified buddy ready to show up.
+              </p>
+            </div>
 
-      {/* SECTION 2: COMPANION FOR EVERYTHING */}
-      <ActivityPlannerSection />
+            {/* Gen-Z Interactive Activity Carousel (Compact & Responsive) */}
+            <ActivityCarousel />
+          </div>
+        </section>
 
-      {/* SECTION 3: FROM SUNRISE WALK TO EVENING SHOW */}
-      <DayTimelineSection />
+        {/* =========================================================================
+            SECTION 4: HOW TOGETHR WORKS (5 STEPS SCROLL JOURNEY & LOTTIE)
+           ========================================================================= */}
+        <section className="border-b-brutal bg-white py-10 sm:py-16">
+          <HowItWorksJourney showHero={true} />
+        </section>
 
-      {/* SECTION 5: HOW WE KEEP MEETUPS SAFE */}
-      <SafetySection />
+        {/* =========================================================================
+            SECTION 5: TOP-RATED COMPANIONS (ANIMATED HORIZONTAL CAROUSEL)
+           ========================================================================= */}
+        <section className="border-b-brutal bg-paper py-14 sm:py-18">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+              <div>
+                <Badge variant="pink" size="md" className="mb-2">
+                  Community Favorites
+                </Badge>
+                <h2 className="font-display text-3xl sm:text-5xl font-black text-ink">
+                  Top-rated this week
+                </h2>
+                <p className="font-body text-sm sm:text-base text-ink-soft mt-1">
+                  ID-checked, reviewed by verified members, and ready to hang out.
+                </p>
+              </div>
 
-      {/* SECTION 7: FOUR COMMITMENTS, TRUE FROM DAY ONE */}
-      <CommitmentsSection />
+              <Link href="/explore">
+                <Button variant="dark" size="md" className="font-display font-black">
+                  <span>Browse All Companions â†’</span>
+                </Button>
+              </Link>
+            </div>
 
-      {/* SECTION 8: COMMON QUESTIONS FAQ */}
-      <FaqSection />
+            {/* Animated Horizontal Carousel with Category Filters */}
+            <TopRatedCarousel />
+          </div>
+        </section>
 
-      {/* SECTION 9: YOUR NEXT GREAT EXPERIENCE IS ONE BOOKING AWAY */}
-      <CtaBannerSection />
+        {/* =========================================================================
+            SECTION 6: BUILT SO EVERYONE FEELS SAFE SHOWING UP (INTERACTIVE BENTO)
+           ========================================================================= */}
+        <section className="border-b-brutal bg-white py-12 sm:py-16">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
+              <Badge variant="lavender" size="md">
+                Safety by Architecture
+              </Badge>
+              <h2 className="font-display text-3xl sm:text-5xl font-black text-ink">
+                Built so everyone feels safe showing up.
+              </h2>
+              <p className="font-body text-sm sm:text-base text-ink-soft">
+                Safety is not an afterthought or marketing slogan. It is engineered into every line of code.
+              </p>
+            </div>
+
+            {/* Custom 3-Column + Bottom Bar Bento Grid (Matching User Wireframe) */}
+            <SafetyBento />
+          </div>
+        </section>
+
+        {/* =========================================================================
+            SECTION 7: HOST RECRUITMENT & INTERACTIVE EARNINGS CALCULATOR
+           ========================================================================= */}
+        <section className="border-b-brutal bg-white py-14 sm:py-18">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <HostEarningsCalculator />
+          </div>
+        </section>
+
+        {/* =========================================================================
+            SECTION 8: QUESTIONS, ANSWERED (ACCORDION)
+           ========================================================================= */}
+        <section className="py-14 sm:py-18 bg-paper">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-10">
+            <div className="text-center space-y-3">
+              <Badge variant="paper" size="md">
+                Clarity First
+              </Badge>
+              <h2 className="font-display text-3xl sm:text-5xl font-black text-ink">
+                Questions, answered
+              </h2>
+              <p className="font-body text-sm sm:text-base text-ink-soft">
+                Everything you need to know about safety, escrow, and meetup rules.
+              </p>
+            </div>
+
+            <Accordion items={faqItems} />
+
+            <div className="text-center pt-4">
+              <Link href="/faq" className="font-display text-sm font-extrabold text-lavender underline">
+                Have more questions? Read our full FAQ directory â†’
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
     </div>
   );
 }
+

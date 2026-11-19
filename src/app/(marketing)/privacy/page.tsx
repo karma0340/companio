@@ -1,71 +1,80 @@
-import React from "react";
-import Link from "next/link";
-import { ArrowLeft, Lock, ShieldCheck } from "lucide-react";
+import React from 'react';
+import type { Metadata } from 'next';
+import { Navbar } from '@/components/layout/navbar';
+import { Footer } from '@/components/layout/footer';
+import { Badge } from '@/components/ui/badge';
 
-export default function PrivacyPolicyPage() {
+export const metadata: Metadata = {
+  title: "Privacy Policy — DPDP Act 2023 Compliant",
+  description: "How made4companio securely handles ID verification, phone number masking, and data privacy in accordance with Indian data protection laws.",
+};
+
+export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16 text-sm text-[#A1A1A6] leading-relaxed">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8E8E93] hover:text-white mb-6"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        <span>Back to homepage</span>
-      </Link>
+    <div className="min-h-screen flex flex-col bg-paper">
+      <Navbar />
 
-      <div className="border-b border-[#262626] pb-8 mb-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-400">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          <span>DPDPA 2023 Compliant</span>
-        </div>
-        <h1 className="mt-4 font-serif text-3xl font-extrabold text-white sm:text-4xl">
-          Privacy Policy
-        </h1>
-        <p className="mt-2 text-xs text-[#8E8E93]">
-          TRYCOMPANIOLABS LLP • Protecting User Privacy Across India
-        </p>
-      </div>
+      <main className="flex-1 py-12 sm:py-20">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="text-center space-y-4 max-w-2xl mx-auto">
+            <Badge variant="lime" size="md">
+              Data Privacy
+            </Badge>
 
-      <div className="space-y-8">
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-3">1. Information We Collect</h2>
-          <p>
-            We collect only the minimum personal data required to safely operate the platform and guarantee physical security:
-          </p>
-          <ul className="list-disc pl-5 mt-2 space-y-1 text-xs">
-            <li><strong>Account Verification:</strong> Mobile phone number verified via SMS One-Time Password (OTP).</li>
-            <li><strong>Identity Verification:</strong> Sovereign Aadhaar and PAN documents for companions and verified members.</li>
-            <li><strong>Emergency Location:</strong> HTML5 device GPS coordinates captured ONLY when the user explicitly triggers the Emergency SOS button.</li>
-            <li><strong>Transactional Data:</strong> Payment order IDs, pass status, and UPI payout identifiers.</li>
-          </ul>
-        </section>
+            <h1 className="font-display text-4xl sm:text-6xl font-black text-ink">
+              Privacy Policy
+            </h1>
 
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-3">2. Asymmetric Contact Shielding</h2>
-          <p>
-            Your private phone number, home address, and direct payment handles are never visible to other users. Profile names are masked on public discovery pages (e.g. &quot;Vanshika S***&quot;), and in-app chat automatically redacts phone numbers and social links to protect your personal identity.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-3">3. Zero Data Monetization Guarantee</h2>
-          <p>
-            We never sell, rent, or trade your personal information, browsing history, or chat logs to third-party advertisers or data brokers.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="font-serif text-xl font-bold text-white mb-3">4. Grievance Officer & Contact</h2>
-          <p>
-            For data correction, access, or erasure requests, write to our Data Grievance Officer:
-          </p>
-          <div className="mt-2 rounded-xl border border-[#222] bg-[#121212] p-4 text-xs text-[#BBB]">
-            <div><strong>Grievance Officer:</strong> Suraj Choudhary</div>
-            <div><strong>Entity:</strong> Companio Labs Operations Hub, Jaipur, Rajasthan</div>
-            <div><strong>Email:</strong> privacy@trycompanio.in</div>
+            <p className="font-body text-xs sm:text-sm text-ink-muted">
+              Compliant with the Digital Personal Data Protection (DPDP) Act 2023, India
+            </p>
           </div>
-        </section>
-      </div>
+
+          <div className="rounded-3xl border-brutal bg-white p-8 sm:p-12 shadow-brutal-lg space-y-8 font-body text-sm text-ink-soft leading-relaxed">
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-black text-ink">
+                1. Data We Collect for Safety
+              </h2>
+              <p>
+                To maintain our verification protocols, Companio collects your legal name, mobile phone number, government ID images (Aadhaar, Passport, or Voter ID), live selfie video data, and meeting coordinate logs. Government IDs are encrypted at rest using AES-256 standards.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-black text-ink">
+                2. Privacy by Default: Masked Phone Numbers
+              </h2>
+              <p>
+                Your personal phone number and private contact details are never shared with companions or members. All pre-meetup logistics are handled through our in-app coordination framework.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-black text-ink">
+                3. Live Location Data During Active Meetups
+              </h2>
+              <p>
+                When a 4-digit start code is activated, Companio may access geolocation data strictly to provide real-time SOS tracking and emergency responder assistance if triggered. Geolocation tracking terminates automatically when the session concludes.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h2 className="font-display text-xl font-black text-ink">
+                4. Data Subject Rights & Deletion
+              </h2>
+              <p>
+                Under the DPDP Act 2023, you have the right to request a copy of your personal data or request permanent deletion of your account by emailing{' '}
+                <a href="mailto:privacy@made4companio.com" className="font-bold underline text-ink">
+                  privacy@made4companio.com
+                </a>
+                .
+              </p>
+            </section>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }
