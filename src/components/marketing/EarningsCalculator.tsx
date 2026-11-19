@@ -145,7 +145,7 @@ export function EarningsCalculator() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Vanshika Sharma"
+                      placeholder="Full legal name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="mt-1.5 w-full rounded-xl border border-[#2B2B2B] bg-[#181818] px-4 py-2.5 text-xs text-white placeholder-[#555] outline-none focus:border-[#D4AF37]"

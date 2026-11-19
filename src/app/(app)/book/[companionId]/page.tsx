@@ -377,7 +377,7 @@ function BookPageContent({ params }: BookPageProps) {
                       <input
                         type="text"
                         {...register('memberName', { required: true })}
-                        placeholder="e.g. Nikhil"
+                        placeholder="Enter your full name"
                         className="w-full rounded-xl border-brutal bg-white px-3.5 py-3 font-display text-xs sm:text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
                       />
                     </div>
@@ -401,7 +401,7 @@ function BookPageContent({ params }: BookPageProps) {
                           maxLength={10}
                           value={phoneRaw}
                           onChange={handlePhoneChange}
-                          placeholder="9876543210"
+                          placeholder="Enter 10-digit number"
                           className="w-full rounded-xl border-brutal bg-white pl-12 pr-3.5 py-3 font-mono text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
                         />
                       </div>

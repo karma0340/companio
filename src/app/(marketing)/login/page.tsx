@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Phone, Mail, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Phone, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
@@ -22,10 +22,8 @@ function LoginContent() {
   const toast = useToast();
   const { isAuthenticated, memberProfile, refreshSession } = useAuth();
 
+  const [phone, setPhone] = useState('');
   const [step, setStep] = useState<'input' | 'code'>('input');
-  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,54 +40,23 @@ function LoginContent() {
     }
   }, [isAuthenticated, memberProfile, nextUrl, router]);
 
-  const phoneValidation = authMethod === 'phone' ? validateIndianMobileNumber(phoneNumber) : null;
+  const phoneValidation = validateIndianMobileNumber(phone);
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // 1. Email OTP Dispatch
-    if (authMethod === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email.trim())) {
-        setError('Please enter a valid email address.');
-        setLoading(false);
-        return;
-      }
-      const effectiveIdentifier = email.trim().toLowerCase();
-
-      try {
-        const res = await fetch('/api/auth/otp/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier: effectiveIdentifier }),
-        });
-        const data = await res.json();
-
-        if (!res.ok || !data.success) {
-          setError(data.error || 'Failed to dispatch verification code. Please try again.');
-        } else {
-          setStep('code');
-          toast.success(`Verification code dispatched to ${effectiveIdentifier}`, 'Code Dispatched');
-        }
-      } catch (err) {
-        setError('Network error while dispatching code. Please check your connection.');
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    // 2. Mobile Phone Validation
-    const validation = validateIndianMobileNumber(phoneNumber);
+    const validation = validateIndianMobileNumber(phone);
     if (!validation.isValid) {
-      setError(validation.error || 'Please enter a valid 10-digit Indian mobile number.');
+      const msg = validation.error || `Please enter a valid 10-digit Indian mobile number. You entered ${phone.length} digit${phone.length === 1 ? '' : 's'}.`;
+      setError(msg);
+      toast.error(msg, 'Mobile Number Incomplete');
       setLoading(false);
       return;
     }
 
-    // 3. Real Firebase Phone Auth Dispatch (Primary for real SMS delivery to Indian numbers)
+    // 1. Real Firebase Phone Auth Dispatch (Primary for real SMS delivery to Indian numbers)
     if (isFirebaseConfigured()) {
       try {
         const auth = getFirebaseAuth();
@@ -102,7 +69,7 @@ function LoginContent() {
         );
         setConfirmationResult(confirmation);
         setStep('code');
-        toast.success(`SMS verification code sent to +91 ${validation.formatted}`, 'OTP Dispatched');
+        toast.success(`Verification code sent to +91 ${validation.formatted}`, 'SMS Dispatched');
         setLoading(false);
         return;
       } catch (fbErr: any) {
@@ -115,7 +82,7 @@ function LoginContent() {
       }
     }
 
-    // 4. REST SMS Dispatch fallback
+    // 2. Server REST fallback
     try {
       const res = await fetch('/api/auth/otp/send', {
         method: 'POST',
@@ -125,12 +92,14 @@ function LoginContent() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         setError(data.error || 'Failed to dispatch verification SMS. Please try again.');
+        toast.error(data.error || 'Failed to dispatch verification SMS.', 'Error');
       } else {
         setStep('code');
-        toast.success(`SMS verification code dispatched to ${validation.e164}`, 'Code Dispatched');
+        toast.success(`Verification code dispatched to ${validation.e164}`, 'Code Dispatched');
       }
-    } catch (err) {
-      setError('Network error while dispatching verification code. Please try again.');
+    } catch {
+      setError('Network error while dispatching verification code. Please check your connection.');
+      toast.error('Network error. Please try again.', 'Connection Error');
     } finally {
       setLoading(false);
     }
@@ -138,17 +107,23 @@ function LoginContent() {
 
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
-    const effectiveIdentifier = authMethod === 'email'
-      ? email.trim().toLowerCase()
-      : `+91${phoneNumber.replace(/\D/g, '')}`;
+    const cleanOtp = code.trim().replace(/\D/g, '');
+    if (cleanOtp.length !== 6) {
+      const msg = 'Please enter the complete 6-digit verification code sent to your phone.';
+      setError(msg);
+      toast.error(msg, 'Code Incomplete');
+      return;
+    }
+
+    setLoading(true);
+    const effectiveIdentifier = `+91${phone.replace(/\D/g, '')}`;
 
     // 1. Firebase Phone Auth verification
     if (confirmationResult) {
       try {
-        const cred = await confirmationResult.confirm(code);
+        const cred = await confirmationResult.confirm(cleanOtp);
         const idToken = await cred.user.getIdToken();
 
         const res = await fetch('/api/auth/otp/verify', {
@@ -156,7 +131,7 @@ function LoginContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             identifier: effectiveIdentifier,
-            code,
+            code: cleanOtp,
             firebaseVerified: true,
             idToken,
           }),
@@ -168,11 +143,11 @@ function LoginContent() {
         }
 
         await refreshSession();
-        toast.success('Signed in successfully! Welcome to Companio.', 'Verified');
+        toast.success('Welcome to Togethr! Signing you in...', 'Verified');
         router.push(nextUrl && nextUrl !== '/login' ? nextUrl : '/explore');
         return;
       } catch (fbVerifyErr) {
-        const msg = (fbVerifyErr as Error).message || 'Incorrect verification code. Please check and try again.';
+        const msg = (fbVerifyErr as Error).message || 'Invalid code entered. Please try again.';
         setError(msg);
         toast.error(msg, 'Verification Failed');
         setLoading(false);
@@ -180,25 +155,26 @@ function LoginContent() {
       }
     }
 
-    // 2. Standard REST OTP Verification
+    // 2. Server REST OTP Verification fallback
     try {
       const res = await fetch('/api/auth/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: effectiveIdentifier, code }),
+        body: JSON.stringify({ identifier: effectiveIdentifier, code: cleanOtp }),
       });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setError(data.error || 'Incorrect sign-in code. Please try again.');
-        toast.error(data.error || 'Incorrect sign-in code.', 'Verification Error');
+        setError(data.error || 'Invalid code entered. Please try again.');
+        toast.error(data.error || 'Invalid code entered. Please try again.', 'Verification Failed');
       } else {
         await refreshSession();
-        toast.success('Signed in successfully! Welcome to Companio.', 'Verified');
+        toast.success('Welcome to Togethr! Signing you in...', 'Verified');
         router.push(nextUrl && nextUrl !== '/login' ? nextUrl : '/explore');
       }
-    } catch (err) {
+    } catch {
       setError('Verification failed. Please check your connection.');
+      toast.error('Verification failed. Please check your connection.', 'Error');
     } finally {
       setLoading(false);
     }
@@ -220,49 +196,13 @@ function LoginContent() {
                 Secure Auth
               </Badge>
             </div>
-            <h1 className="font-display text-2xl font-black text-ink uppercase tracking-tight">
-              {step === 'input' ? 'Welcome to Companio' : 'Enter Verification Code'}
+            <h1 className="font-display text-2xl font-black text-ink">
+              Welcome to made4togethr
             </h1>
             <p className="font-body text-xs sm:text-sm text-ink-soft">
-              {step === 'input'
-                ? 'Sign in with your verified Indian mobile number or email address.'
-                : `Enter the 6-digit verification code sent to ${authMethod === 'phone' ? `+91 ${phoneNumber}` : email}.`}
+              Sign in with your mobile number to explore, book meetups, or manage your host profile.
             </p>
           </div>
-
-          {/* Auth Method Selector */}
-          {step === 'input' && (
-            <div className="grid grid-cols-2 gap-2 border-2 border-ink p-1 bg-paper rounded-2xl">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMethod('phone');
-                  setError(null);
-                }}
-                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-display text-xs font-black uppercase transition ${authMethod === 'phone'
-                  ? 'bg-ink text-white shadow-brutal-sm'
-                  : 'text-ink-muted hover:text-ink'
-                  }`}
-              >
-                <Phone className="h-3.5 w-3.5" />
-                <span>Mobile (+91)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMethod('email');
-                  setError(null);
-                }}
-                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-display text-xs font-black uppercase transition ${authMethod === 'email'
-                  ? 'bg-ink text-white shadow-brutal-sm'
-                  : 'text-ink-muted hover:text-ink'
-                  }`}
-              >
-                <Mail className="h-3.5 w-3.5" />
-                <span>Email</span>
-              </button>
-            </div>
-          )}
 
           {error && (
             <div className="flex items-start gap-2.5 rounded-xl border-2 border-danger bg-danger/10 p-3.5 text-xs font-bold text-danger animate-in fade-in">
@@ -273,84 +213,61 @@ function LoginContent() {
 
           {step === 'input' ? (
             <form onSubmit={handleSendCode} className="space-y-4">
-              {authMethod === 'phone' ? (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="block font-display text-xs font-black uppercase text-ink">
-                      Indian Mobile Number
-                    </label>
-                    <span className="font-mono text-[11px] font-bold text-ink-muted">
-                      {phoneNumber.length}/10 digits
-                    </span>
-                  </div>
-
-                  <div className="relative flex items-center">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-display text-xs font-black text-ink-muted select-none">
-                      +91
-                    </span>
-                    <input
-                      type="tel"
-                      maxLength={10}
-                      inputMode="numeric"
-                      value={phoneNumber}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setPhoneNumber(val);
-                        setError(null);
-                      }}
-                      placeholder="98765 43210"
-                      className="w-full rounded-xl border-brutal bg-paper-deep/30 pl-12 pr-4 py-3 font-mono text-sm font-bold text-ink focus:bg-white focus:outline-none focus:shadow-brutal transition"
-                      required
-                      autoFocus
-                    />
-                  </div>
-
-                  {phoneNumber.length > 0 && (
-                    <div className="text-[11px]">
-                      {phoneValidation?.isValid ? (
-                        <span className="text-emerald-700 font-bold flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Valid format (+91 {phoneValidation.formatted})
-                        </span>
-                      ) : (
-                        <span className="text-amber-800 font-bold">
-                          {phoneValidation?.error}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-1.5">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
                   <label className="block font-display text-xs font-black uppercase text-ink">
-                    Email Address
+                    Mobile Number (India +91)
                   </label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        setError(null);
-                      }}
-                      placeholder="you@example.com"
-                      className="w-full rounded-xl border-brutal bg-paper-deep/30 pl-10 pr-4 py-3 font-body text-sm font-bold text-ink focus:bg-white focus:outline-none focus:shadow-brutal transition"
-                      required
-                      autoFocus
-                    />
-                  </div>
+                  <span className="font-mono text-[11px] font-bold text-ink-muted">
+                    {phone.length}/10 digits
+                  </span>
                 </div>
-              )}
+
+                <div className="relative flex items-center">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-display text-xs font-black text-ink-muted select-none">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    inputMode="numeric"
+                    value={phone}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPhone(val);
+                      setError(null);
+                    }}
+                    placeholder="Enter 10-digit mobile number"
+                    className="w-full rounded-xl border-brutal bg-paper-deep/30 pl-12 pr-4 py-3 font-mono text-sm font-bold text-ink focus:bg-white focus:outline-none focus:shadow-brutal transition"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                {phone.length > 0 && (
+                  <div className="text-[11px]">
+                    {phoneValidation.isValid ? (
+                      <span className="text-emerald-700 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Valid Indian mobile format (+91 {phoneValidation.formatted})
+                      </span>
+                    ) : (
+                      <span className="text-amber-800 font-bold">
+                        {phoneValidation.error}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <Button
                 type="submit"
                 variant="primary"
                 size="lg"
                 fullWidth
-                disabled={loading || (authMethod === 'phone' && !phoneValidation?.isValid)}
+                disabled={loading || (phone.length > 0 && !phoneValidation.isValid)}
               >
-                {loading ? 'Sending Code...' : 'Send Verification Code →'}
+                {loading ? 'Sending OTP...' : 'Send Verification Code →'}
               </Button>
             </form>
           ) : (
@@ -358,10 +275,10 @@ function LoginContent() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="block font-display text-xs font-black uppercase text-ink">
-                    6-Digit Verification Code
+                    Enter 6-Digit Code
                   </label>
-                  <span className="font-mono text-[11px] font-bold text-ink-muted">
-                    Sent to {authMethod === 'phone' ? `+91 ${phoneNumber}` : email}
+                  <span className="text-[11px] font-bold text-ink-muted">
+                    Sent to +91 {phone}
                   </span>
                 </div>
 
@@ -383,28 +300,36 @@ function LoginContent() {
                 variant="primary"
                 size="lg"
                 fullWidth
-                disabled={loading || code.length !== 6}
+                disabled={loading || code.replace(/\D/g, '').length !== 6}
               >
-                {loading ? 'Verifying Code...' : 'Verify & Sign In →'}
+                {loading ? 'Verifying...' : 'Verify & Continue →'}
               </Button>
 
               <button
                 type="button"
                 onClick={() => {
                   setStep('input');
-                  setConfirmationResult(null);
                   setCode('');
                   setError(null);
+                  setConfirmationResult(null);
                 }}
                 className="w-full text-center font-display text-xs font-bold text-ink-muted hover:underline cursor-pointer"
               >
-                Change mobile number or email
+                Change Phone Number
               </button>
             </form>
           )}
 
-          <div className="border-t-brutal-sm pt-4 text-center text-[11px] font-bold text-ink-muted leading-relaxed">
-            By proceeding, you agree to Companio's strictly platonic policy and public venue guidelines.
+          <div className="border-t-brutal-sm pt-4 text-center text-[11px] font-medium text-ink-muted leading-relaxed">
+            By proceeding, you agree to our{' '}
+            <Link href="/terms" className="font-bold underline text-ink">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link href="/community-guidelines" className="font-bold underline text-ink">
+              Platonic Community Guidelines
+            </Link>
+            .
           </div>
         </div>
       </main>

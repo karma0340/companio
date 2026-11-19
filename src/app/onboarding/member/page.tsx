@@ -249,7 +249,7 @@ export default function MemberOnboardingPage() {
                   type="tel"
                   maxLength={10}
                   {...register('emergencyContact')}
-                  placeholder="98765 43210"
+                  placeholder="Enter 10-digit number"
                   className="w-full rounded-xl border-brutal bg-paper-deep/30 pl-12 pr-4 py-3 font-mono text-sm font-bold text-ink focus:bg-white focus:outline-none focus:shadow-brutal"
                 />
               </div>

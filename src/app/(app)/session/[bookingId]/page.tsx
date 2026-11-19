@@ -310,7 +310,7 @@ export default function SessionLivePage() {
                     <input
                       type="text"
                       maxLength={4}
-                      placeholder="e.g. 7492"
+                      placeholder="••••"
                       value={pinInput}
                       onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
                       className="w-48 border-3 border-ink bg-paper py-3 text-center text-3xl font-mono font-black tracking-widest text-ink outline-none shadow-brutal"

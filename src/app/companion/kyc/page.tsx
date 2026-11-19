@@ -325,7 +325,7 @@ export default function HostKYCPage() {
                       <input
                         type="text"
                         {...register('fullName', { required: true })}
-                        placeholder="e.g. Kashish Sharma"
+                        placeholder="Full name as printed on ID"
                         className="w-full rounded-xl border-brutal bg-white px-3.5 py-3 font-display text-xs sm:text-sm font-bold text-ink placeholder:text-ink-muted/60 focus:outline-none focus:shadow-brutal"
                       />
                     </div>

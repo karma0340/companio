@@ -173,7 +173,7 @@ export default function CompanionApplyPage() {
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Priyanshu Sharma"
+                        placeholder="Full legal name as on ID"
                         value={formData.fullName}
                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                         className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
@@ -202,7 +202,7 @@ export default function CompanionApplyPage() {
                         <input
                           type="tel"
                           required
-                          placeholder="9876543210"
+                          placeholder="Enter 10-digit mobile number"
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
@@ -257,7 +257,7 @@ export default function CompanionApplyPage() {
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Priyanshu S."
+                        placeholder="Public display name"
                         value={formData.displayName}
                         onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                         className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
@@ -302,7 +302,7 @@ export default function CompanionApplyPage() {
                         <input
                           type="text"
                           required
-                          placeholder="e.g. English, Hindi, Kannada"
+                          placeholder="Languages spoken (e.g. English, Hindi)"
                           value={formData.languages}
                           onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
                           className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
