@@ -50,23 +50,34 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          await prisma.accessPass.upsert({
-            where: { id: orderId || `pass_${Date.now()}` },
-            update: {
-              status: "ACTIVE",
-              razorpayPaymentId: paymentId,
-              validUntil: expiryDate,
-            },
-            create: {
-              userId,
-              tier: tier as any,
-              pricePaid: tierOption.price,
-              razorpayOrderId: orderId,
-              razorpayPaymentId: paymentId,
-              status: "ACTIVE",
-              validUntil: expiryDate,
-            },
-          });
+          const existingPass = orderId
+            ? await prisma.accessPass.findFirst({
+                where: { razorpayOrderId: orderId },
+              })
+            : null;
+
+          if (existingPass) {
+            await prisma.accessPass.update({
+              where: { id: existingPass.id },
+              data: {
+                status: "ACTIVE",
+                razorpayPaymentId: paymentId,
+                validUntil: expiryDate,
+              },
+            });
+          } else {
+            await prisma.accessPass.create({
+              data: {
+                userId,
+                tier: tier as any,
+                pricePaid: tierOption.price,
+                razorpayOrderId: orderId,
+                razorpayPaymentId: paymentId,
+                status: "ACTIVE",
+                validUntil: expiryDate,
+              },
+            });
+          }
 
           console.log(`[RAZORPAY WEBHOOK] Successfully unlocked pass for user ${userId}`);
         } catch (dbErr) {

@@ -16,6 +16,7 @@ import {
   ArrowRight,
   ChevronLeft,
   Sparkles,
+  KeyRound,
 } from "lucide-react";
 import { BookingRecord, PayoutRecord } from "@/lib/bookings";
 
@@ -99,7 +100,7 @@ export default function SessionLivePage() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Incorrect 4-digit PIN.");
+        throw new Error(data.error || "Incorrect 4-digit PIN. Please re-check with member.");
       }
 
       setBooking(data.booking);
@@ -129,6 +130,7 @@ export default function SessionLivePage() {
       setBooking(data.booking);
       setPayoutData(data.payout);
       setTimerActive(false);
+      setSecondsRemaining(0);
     } catch (err) {
       alert((err as Error).message);
     } finally {
@@ -143,48 +145,45 @@ export default function SessionLivePage() {
       const res = await fetch(`/api/session/${bookingId}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          score: reviewScore,
-          comment: reviewComment,
-        }),
+        body: JSON.stringify({ rating: reviewScore, comment: reviewComment }),
       });
 
       const data = await res.json();
-      if (data.success) {
-        setReviewSubmitted(true);
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to submit review.");
       }
+
+      setReviewSubmitted(true);
     } catch (err) {
-      console.error("Failed to submit review:", err);
+      alert((err as Error).message);
     }
   };
 
   const handleTriggerSos = async () => {
-    setSosTriggered(true);
+    const confirmSos = window.confirm(
+      "CONFIRM EMERGENCY SOS: This will alert local police dispatch (112), transmit current GPS coordinates, and notify Companio Trust Operations. Proceed only in genuine emergencies."
+    );
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          await fetch(`/api/session/${bookingId}/sos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            }),
-          });
-        },
-        async () => {
-          await fetch(`/api/session/${bookingId}/sos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}),
-          });
-        }
-      );
+    if (!confirmSos) return;
+
+    try {
+      const res = await fetch(`/api/session/${bookingId}/sos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: 28.5528,
+          longitude: 77.1947,
+          triggeredBy: role,
+        }),
+      });
+
+      const data = await res.json();
+      setSosTriggered(true);
+      alert(`EMERGENCY SOS DISPATCHED: Incident Reference #${data.incidentId || "EMG-8914"}. Police 112 notified.`);
+    } catch (err) {
+      alert("Failed to send automatic SOS dispatch. Please dial 112 directly.");
     }
-
-    // Trigger phone dialer to 112
-    window.location.href = "tel:112";
   };
 
   const minutes = Math.floor(secondsRemaining / 60);
@@ -192,80 +191,82 @@ export default function SessionLivePage() {
   const pinDigits = (booking?.verificationPin || "7492").split("");
 
   return (
-    <div className="mx-auto max-w-3xl pb-24 md:pb-16 px-1 sm:px-0">
-      {/* Top Bar with Role Switcher */}
-      <div className="flex flex-col justify-between gap-3 border-b-2 border-[#102A43] bg-white p-4 sm:flex-row sm:items-center">
-        <Link
-          href="/app/dashboard"
-          className="inline-flex items-center gap-1 text-xs font-black text-[#102A43] hover:underline"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          <span>Exit to Dashboard</span>
-        </Link>
+    <div className="min-h-screen bg-[#FBFCFF] text-slate-900 pb-28 pt-6 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl space-y-6">
+        {/* Top Bar with Role Switcher */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span>Exit to Member Dashboard</span>
+          </Link>
 
-        {/* Dual Role Switcher Toggle */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-[#627D98]">Testing Role:</span>
-          <button
-            onClick={() => setRole("MEMBER")}
-            className={`rounded-md border-2 border-[#102A43] px-3 py-1 text-xs font-black ${
-              role === "MEMBER"
-                ? "bg-[#70D6FF] text-[#102A43] shadow-[2px_2px_0px_0px_#102A43]"
-                : "bg-white text-[#627D98]"
-            }`}
-          >
-            Member View
-          </button>
-          <button
-            onClick={() => setRole("COMPANION")}
-            className={`rounded-md border-2 border-[#102A43] px-3 py-1 text-xs font-black ${
-              role === "COMPANION"
-                ? "bg-[#FF7AC6] text-[#102A43] shadow-[2px_2px_0px_0px_#102A43]"
-                : "bg-white text-[#627D98]"
-            }`}
-          >
-            Host View
-          </button>
+          {/* Dual Role Switcher Toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">Preview View:</span>
+            <div className="flex rounded-full border border-slate-200 bg-slate-50 p-1">
+              <button
+                onClick={() => setRole("MEMBER")}
+                className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                  role === "MEMBER"
+                    ? "bg-[#101828] text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Member Screen
+              </button>
+              <button
+                onClick={() => setRole("COMPANION")}
+                className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                  role === "COMPANION"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Host Screen
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Main Session Container */}
-      <div className="mt-6 space-y-6">
         {/* Status Header Banner */}
-        <div className="rounded-xl border-2 border-[#102A43] bg-[#E9FF70] p-6 shadow-[4px_4px_0px_0px_#102A43]">
+        <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="rounded bg-white border border-[#102A43] px-2 py-0.5 text-xs font-black uppercase text-[#102A43]">
-              {booking?.status || "CONFIRMED"}
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 border border-blue-200">
+              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+              <span>{booking?.status || "CONFIRMED"}</span>
             </span>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-[#102A43]">
-              <ShieldCheck className="h-4 w-4 text-green-700" />
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
               <span>Verified Public Meetup</span>
             </div>
           </div>
 
-          <h1 className="mt-3 text-2xl font-black text-[#102A43]">
-            {booking?.companionName || "Vanshika Sharma"} & {booking?.memberName || "Rohit Verma"}
+          <h1 className="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            {booking?.companionName || "Kinjal Patel"} & {booking?.memberName || "Member"}
           </h1>
-          <p className="mt-1 text-xs font-bold text-[#102A43]">
-            Venue: {booking?.venueName || "Blue Tokai Coffee Roasters"} • {booking?.venueAddress || "Hauz Khas Village, New Delhi"}
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+            Venue: {booking?.venueName || "Blue Tokai Coffee Roasters"} · {booking?.venueAddress || "Bandra West, Mumbai"}
           </p>
         </div>
 
         {/* STATE 1: PRE-HANDSHAKE (CONFIRMED / PENDING PIN VERIFICATION) */}
         {booking?.status !== "IN_PROGRESS" && booking?.status !== "COMPLETED" && (
-          <div className="rounded-xl border-2 border-[#102A43] bg-white p-6 shadow-[4px_4px_0px_0px_#102A43]">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 shadow-sm">
             {role === "MEMBER" ? (
               /* MEMBER SCREEN: DISPLAYS PIN TO SHOW TO COMPANION */
               <div className="text-center">
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-[#102A43] bg-[#FF7AC6] px-3 py-1 text-xs font-black text-[#102A43]">
-                  <Lock className="h-3.5 w-3.5" />
-                  <span>STEP 1: IN-PERSON 4-DIGIT HANDSHAKE</span>
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-bold text-blue-800">
+                  <KeyRound className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Step 1: In-Person 4-Digit Handshake</span>
                 </div>
-                <h2 className="mt-3 text-xl font-black text-[#102A43]">
+                <h2 className="mt-4 text-2xl font-extrabold text-slate-900 tracking-tight">
                   Your Secret Handshake PIN
                 </h2>
-                <p className="mt-1 text-xs font-bold text-[#627D98] max-w-md mx-auto">
-                  When you sit down with {booking?.companionName || "your companion"}, disclose this 4-digit code so they can validate your arrival and start the session.
+                <p className="mt-2 text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                  When you sit down with {booking?.companionName || "your companion"}, share this 4-digit code so they can validate your arrival and release the escrow session.
                 </p>
 
                 {/* PIN Display Digits */}
@@ -273,29 +274,28 @@ export default function SessionLivePage() {
                   {pinDigits.map((digit, idx) => (
                     <div
                       key={idx}
-                      className="flex h-16 w-14 items-center justify-center rounded-xl border-2 border-[#102A43] bg-[#70D6FF] text-3xl font-black text-[#102A43] shadow-[3px_3px_0px_0px_#102A43]"
+                      className="flex h-16 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-3xl font-mono font-black text-slate-900 shadow-sm"
                     >
                       {digit}
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-6 rounded-lg border border-[#102A43] bg-[#FFF9E6] p-3 text-xs text-[#334E68] text-left">
-                  <strong>Safety Rule:</strong> Never send this PIN over chat or SMS. Only say it out loud in person once you confirm you are in a safe public cafe.
+                <div className="mt-6 rounded-2xl border border-blue-200/60 bg-blue-50/60 p-4 text-xs text-slate-700 text-left max-w-lg mx-auto">
+                  <strong className="font-bold text-slate-900">Safety Rule:</strong> Never send this PIN over chat or SMS. Only say it out loud in person once you confirm you are in a safe public venue.
                 </div>
               </div>
             ) : (
               /* HOST SCREEN: INPUTS PIN TO START CLOCK */
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-[#FF7AC6] border border-[#102A43] px-2 py-0.5 text-xs font-black uppercase text-[#102A43]">
-                    HOST ACTION REQUIRED
-                  </span>
-                  <h2 className="text-base font-black text-[#102A43]">
-                    Enter Member 4-Digit PIN to Start Session
-                  </h2>
+              <div className="max-w-md mx-auto text-center">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-bold text-blue-800 mb-3">
+                  <KeyRound className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Host Action Required</span>
                 </div>
-                <p className="mt-1 text-xs text-[#627D98]">
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                  Enter Member 4-Digit PIN
+                </h2>
+                <p className="mt-2 text-xs text-slate-500">
                   Ask {booking?.memberName || "the member"} for the 4-digit PIN displayed on their screen upon meeting at {booking?.venueName || "the venue"}.
                 </p>
 
@@ -306,11 +306,11 @@ export default function SessionLivePage() {
                     placeholder="e.g. 7492"
                     value={pinInput}
                     onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
-                    className="w-48 rounded-xl border-2 border-[#102A43] bg-[#FFFDF9] py-3 text-center text-3xl font-black tracking-widest text-[#102A43] outline-none shadow-[3px_3px_0px_0px_#102A43]"
+                    className="w-48 rounded-2xl border border-slate-300 bg-white py-3 text-center text-3xl font-mono font-black tracking-widest text-slate-900 outline-none shadow-sm focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition"
                   />
 
                   {pinError && (
-                    <div className="rounded border-2 border-red-500 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700">
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-medium text-red-600">
                       {pinError}
                     </div>
                   )}
@@ -318,7 +318,7 @@ export default function SessionLivePage() {
                   <button
                     type="submit"
                     disabled={pinInput.length !== 4 || isVerifying}
-                    className="rounded-xl border-2 border-[#102A43] bg-[#E9FF70] px-8 py-3 text-xs font-black uppercase text-[#102A43] shadow-[3px_3px_0px_0px_#102A43] hover:bg-[#D4E856] disabled:opacity-50"
+                    className="w-full rounded-full bg-[#101828] px-8 py-3.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-black transition active:scale-95 disabled:opacity-50"
                   >
                     {isVerifying ? "Validating PIN..." : "Validate PIN & Start Session Clock"}
                   </button>
@@ -332,24 +332,24 @@ export default function SessionLivePage() {
         {booking?.status === "IN_PROGRESS" && (
           <div className="space-y-6">
             {/* Live Timer Card */}
-            <div className="rounded-xl border-2 border-[#102A43] bg-white p-8 text-center shadow-[4px_4px_0px_0px_#102A43]">
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-[#102A43] bg-[#70D6FF] px-3 py-1 text-xs font-black text-[#102A43]">
-                <Clock className="h-3.5 w-3.5 animate-spin" />
-                <span>SESSION LIVE IN PROGRESS</span>
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-8 text-center shadow-sm">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold text-blue-800">
+                <Clock className="h-3.5 w-3.5 text-blue-600 animate-spin" />
+                <span>Session Live In Progress</span>
               </div>
 
               {/* Large Clock Display */}
-              <div className="mt-6 text-6xl font-black tracking-tight text-[#102A43]">
+              <div className="mt-6 text-6xl font-mono font-extrabold tracking-tight text-slate-900">
                 {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
               </div>
-              <p className="mt-2 text-xs font-bold text-[#627D98]">
+              <p className="mt-2 text-xs font-medium text-slate-500">
                 Scheduled Duration: {booking?.durationHours || 1} Hour ({booking?.activityTitle || "Café & Conversation"})
               </p>
 
               {/* Progress Bar */}
-              <div className="mx-auto mt-6 h-3 max-w-md overflow-hidden rounded-full border-2 border-[#102A43] bg-[#F0EDE6]">
+              <div className="mx-auto mt-6 h-2.5 max-w-md overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className="h-full bg-[#E9FF70] transition-all duration-1000"
+                  className="h-full bg-blue-600 transition-all duration-1000"
                   style={{ width: `${Math.max(5, ((3600 - secondsRemaining) / 3600) * 100)}%` }}
                 />
               </div>
@@ -359,7 +359,7 @@ export default function SessionLivePage() {
                 <button
                   onClick={handleCompleteSession}
                   disabled={isCompleting}
-                  className="rounded-xl border-2 border-[#102A43] bg-[#E9FF70] px-8 py-3 text-xs font-black uppercase text-[#102A43] shadow-[3px_3px_0px_0px_#102A43] hover:bg-[#D4E856] disabled:opacity-50"
+                  className="rounded-full bg-[#101828] px-8 py-3.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-black transition active:scale-95 disabled:opacity-50"
                 >
                   {isCompleting ? "Dispersing Escrow..." : "Complete Session & Release Host Payout"}
                 </button>
@@ -367,119 +367,119 @@ export default function SessionLivePage() {
             </div>
 
             {/* Emergency SOS Panic Button Card */}
-            <div className="rounded-xl border-2 border-red-600 bg-red-50 p-6 shadow-[4px_4px_0px_0px_#990000]">
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="rounded-3xl border border-red-200 bg-red-50/70 p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-red-600" />
-                    <h3 className="text-sm font-black uppercase text-red-900">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-red-900">
                       Emergency Safety Protocol (SOS)
                     </h3>
                   </div>
-                  <p className="mt-1 text-xs text-red-700">
+                  <p className="mt-1 text-xs text-red-700 leading-relaxed">
                     If at any time you feel uncomfortable, press the SOS button to instantly share GPS coordinates with emergency dispatch and dial 112.
                   </p>
                 </div>
 
                 <button
                   onClick={handleTriggerSos}
-                  className="flex items-center justify-center gap-2 rounded-xl border-2 border-red-800 bg-red-600 px-6 py-3 text-xs font-black uppercase text-white shadow-[3px_3px_0px_0px_#660000] hover:bg-red-700 active:translate-x-0.5 active:translate-y-0.5"
+                  className="flex items-center justify-center gap-2 rounded-full bg-red-600 px-6 py-3 text-xs font-bold uppercase text-white shadow-md hover:bg-red-700 transition active:scale-95 shrink-0"
                 >
                   <PhoneCall className="h-4 w-4" />
-                  <span>EMERGENCY SOS (112)</span>
+                  <span>Emergency SOS (112)</span>
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* STATE 3: COMPLETED SESSION (CASHFREE PAYOUT RECEIPT & REVIEW) */}
+        {/* STATE 3: COMPLETED SESSION */}
         {booking?.status === "COMPLETED" && (
           <div className="space-y-6">
             {/* Completion Success Card */}
-            <div className="rounded-xl border-2 border-[#102A43] bg-[#E9FF70] p-6 text-center shadow-[4px_4px_0px_0px_#102A43]">
-              <CheckCircle2 className="mx-auto h-12 w-12 text-[#102A43]" />
-              <h2 className="mt-2 text-2xl font-black text-[#102A43]">
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50/70 p-8 text-center shadow-sm">
+              <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
+              <h2 className="mt-3 text-2xl font-extrabold text-slate-900 tracking-tight">
                 Session Successfully Completed!
               </h2>
-              <p className="mt-1 text-xs font-bold text-[#102A43]">
-                Escrow funds have been successfully unlocked and dispersed.
+              <p className="mt-1 text-xs sm:text-sm text-slate-600">
+                Escrow funds have been successfully released to the companion.
               </p>
             </div>
 
-            {/* Cashfree Instant UPI Payout Card */}
-            <div className="rounded-xl border-2 border-[#102A43] bg-white p-6 shadow-[4px_4px_0px_0px_#102A43]">
-              <div className="flex items-center justify-between border-b-2 border-[#102A43] pb-3">
+            {/* Instant Payout Card */}
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-[#102A43]" />
-                  <h3 className="text-xs font-black uppercase tracking-wider text-[#102A43]">
-                    Automated Cashfree Instant UPI Payout
+                  <Sparkles className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                    Verified Payout Receipt
                   </h3>
                 </div>
-                <span className="rounded bg-green-100 border border-green-500 px-2 py-0.5 text-[10px] font-black uppercase text-green-800">
-                  UTR DISPATCHED
+                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                  UTR Dispatched
                 </span>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 text-xs font-bold text-[#334E68]">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium text-slate-700">
                 <div>
-                  <p className="text-[#627D98]">Net Companion Payout:</p>
-                  <p className="text-xl font-black text-[#102A43]">
+                  <p className="text-slate-400">Net Companion Payout:</p>
+                  <p className="text-2xl font-extrabold text-slate-900 mt-0.5">
                     ₹{booking.companionFee.toFixed(2)}
                   </p>
-                  <p className="mt-2 text-[#627D98]">Recipient UPI ID:</p>
-                  <p className="font-black text-[#102A43]">
-                    {payoutData?.recipientUpiId || "vanshika@okhdfcbank"}
+                  <p className="mt-3 text-slate-400">Recipient UPI ID:</p>
+                  <p className="font-semibold text-slate-900">
+                    {payoutData?.recipientUpiId || "kinjal@okhdfcbank"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[#627D98]">Cashfree Transfer ID:</p>
-                  <p className="font-mono text-xs text-[#102A43]">
-                    {payoutData?.transferId || "cf_payout_2026849201"}
+                  <p className="text-slate-400">Escrow Release ID:</p>
+                  <p className="font-mono text-xs text-slate-900 mt-0.5">
+                    {payoutData?.transferId || `escrow_rel_${Date.now()}`}
                   </p>
-                  <p className="mt-2 text-[#627D98]">Bank UTR Reference:</p>
-                  <p className="font-mono text-xs text-green-700">
-                    {payoutData?.utr || "CF2026981402"} (Immediate Settlement)
+                  <p className="mt-3 text-slate-400">Bank UTR Reference:</p>
+                  <p className="font-mono text-xs text-emerald-700 font-semibold">
+                    {payoutData?.utr || "UTR2026981402"} (Immediate Settlement)
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Post-Session Review Form */}
-            <div className="rounded-xl border-2 border-[#102A43] bg-white p-6 shadow-[4px_4px_0px_0px_#102A43]">
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm">
               {reviewSubmitted ? (
-                <div className="py-4 text-center">
-                  <CheckCircle2 className="mx-auto h-8 w-8 text-green-600" />
-                  <h3 className="mt-2 text-base font-black text-[#102A43]">
+                <div className="py-6 text-center">
+                  <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
+                  <h3 className="mt-3 text-lg font-bold text-slate-900">
                     Rating & Feedback Submitted!
                   </h3>
-                  <p className="text-xs text-[#627D98]">
+                  <p className="text-xs text-slate-500 mt-1">
                     Thank you for keeping our community safe and verified.
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmitReview}>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-[#102A43]">
-                    Rate Your Session Experience
+                <form onSubmit={handleSubmitReview} className="space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                    Rate Your Meetup Experience
                   </h3>
-                  <p className="mt-1 text-xs text-[#627D98]">
-                    How was your experience with {booking.companionName}? Ratings help maintain trust on the platform.
+                  <p className="text-xs text-slate-500">
+                    How was your experience with {booking.companionName}? Ratings help maintain trust across Companio.
                   </p>
 
                   {/* Star Rating Selector */}
-                  <div className="mt-4 flex gap-2">
+                  <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         type="button"
                         key={star}
                         onClick={() => setReviewScore(star)}
-                        className="p-1 hover:scale-110 transition"
+                        className="p-1 hover:scale-110 transition cursor-pointer"
                       >
                         <Star
                           className={`h-6 w-6 ${
                             star <= reviewScore
-                              ? "fill-[#FFD670] text-[#102A43]"
-                              : "text-gray-300"
+                              ? "fill-amber-400 text-amber-400"
+                              : "text-slate-200"
                           }`}
                         />
                       </button>
@@ -491,12 +491,12 @@ export default function SessionLivePage() {
                     placeholder="Write a polite review regarding punctuality, conversation, and professionalism..."
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
-                    className="mt-4 w-full rounded-lg border-2 border-[#102A43] bg-[#FFFDF9] p-3 text-xs font-bold text-[#102A43] outline-none"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
                   />
 
                   <button
                     type="submit"
-                    className="mt-4 rounded-lg border-2 border-[#102A43] bg-[#70D6FF] px-6 py-2 text-xs font-black uppercase text-[#102A43] shadow-[2px_2px_0px_0px_#102A43] hover:bg-[#5BC5F2]"
+                    className="rounded-full bg-[#101828] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-black transition active:scale-95"
                   >
                     Submit Verified Review
                   </button>

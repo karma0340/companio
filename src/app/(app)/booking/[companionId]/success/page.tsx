@@ -79,7 +79,7 @@ export default function BookingSuccessPage() {
 
   return (
     <div className="min-h-screen bg-[#FBFCFF] text-slate-900 pb-28 pt-6 px-4 sm:px-6">
-      <div className="mx-auto max-w-xl space-y-5">
+      <div className="mx-auto max-w-2xl space-y-6">
         {/* Success Header Card */}
         <div className="rounded-2xl border border-slate-200/80 bg-white p-6 text-center shadow-sm">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-3">
