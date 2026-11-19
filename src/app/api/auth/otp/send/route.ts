@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateAndStoreOtp } from "@/lib/otp-store";
+import { generateAndStoreOtp, TEST_SANDBOX_PHONES } from "@/lib/otp-store";
+import { sendSmsOtp } from "@/lib/sms";
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,14 +39,28 @@ export async function POST(req: NextRequest) {
     }
 
     const code = generateAndStoreOtp(identifier);
-    console.log(`[AUTH OTP DISPATCH] Sent OTP to ${identifier}: ${code}`);
+    let smsResult = null;
+
+    if (!isEmail) {
+      smsResult = await sendSmsOtp(identifier, code);
+    }
+
+    console.log(`[AUTH OTP DISPATCH] Target: ${identifier} | Code: ${code} | Provider: ${smsResult?.provider || "EMAIL"}`);
+
+    const isSandboxOrDev =
+      process.env.NODE_ENV !== "production" ||
+      smsResult?.isMock ||
+      TEST_SANDBOX_PHONES.has(identifier);
 
     return NextResponse.json({
       success: true,
-      message: `Sign-in code dispatched to ${identifier}`,
+      message: isEmail
+        ? `Sign-in code dispatched to ${identifier}`
+        : `Sign-in code dispatched via SMS to ${identifier}`,
       identifier,
       isEmail,
-      devCode: code,
+      provider: smsResult?.provider || (isEmail ? "EMAIL_DISPATCH" : "SMS_DISPATCH"),
+      devCode: isSandboxOrDev ? code : undefined,
     });
   } catch (error) {
     console.error("[AUTH OTP SEND ERROR]:", error);
