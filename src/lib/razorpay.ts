@@ -152,7 +152,10 @@ export function verifyRazorpayWebhookSignature(
   signature: string,
   webhookSecret?: string
 ): boolean {
-  const secret = webhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET?.trim();
+  const secret =
+    webhookSecret ||
+    process.env.RAZORPAY_WEBHOOK_SECRET?.trim() ||
+    process.env.RAZORPAY_KEY_SECRET?.trim();
   if (!secret || !signature) return false;
   try {
     const expectedSignature = crypto
