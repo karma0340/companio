@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 export const metadata: Metadata = {
   title: "Trust, ID Checks & Background Verification",
   description:
-    "Complete transparency on how made4companio authenticates government IDs, validates live facial selfies, and enforces public meetup rules.",
+    "Complete transparency on how Companio authenticates government IDs, validates live facial selfies, and enforces public meetup rules.",
 };
 
 export default function TrustPage() {

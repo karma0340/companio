@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 export const metadata: Metadata = {
   title: "Safety First — ID Verification, 4-Digit Codes & Escrow Protection",
   description:
-    "How made4companio keeps you safe: Government ID checks, live video selfies, public-place restrictions, 4-digit start codes, and 1-tap emergency SOS.",
+    "How Companio keeps you safe: Government ID checks, live video selfies, public-place restrictions, 4-digit start codes, and 1-tap emergency SOS.",
 };
 
 export default function SafetyPage() {

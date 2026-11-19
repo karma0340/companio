@@ -12,6 +12,9 @@ export default function ContactPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
 
+  const [ticketRef, setTicketRef] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const categories = [
     { id: "payment", label: "Escrow & Payments", icon: CreditCard },
     { id: "safety", label: "Safety & Grievance", icon: ShieldAlert },
@@ -22,12 +25,33 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
 
-    // Simulated support ticket dispatch
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: selectedCategory,
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+          message: form.message,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setErrorMessage(data.error || "Failed to submit ticket. Please try again.");
+      } else {
+        setTicketRef(data.referenceCode || `TIC-${Date.now().toString().slice(-6)}`);
+        setIsSent(true);
+      }
+    } catch {
+      setErrorMessage("Network error. Please check your connection and try again.");
+    } finally {
       setLoading(false);
-      setIsSent(true);
-    }, 600);
+    }
   };
 
   return (
@@ -59,7 +83,7 @@ export default function ContactPage() {
                   </div>
                   <h2 className="text-2xl font-black uppercase text-ink">Ticket Dispatched</h2>
                   <p className="text-xs font-bold text-ink/70 max-w-sm mx-auto">
-                    Your inquiry has been submitted. Reference ID #TIC-{Date.now().toString().slice(-6)}. A trust officer will reach out via email shortly.
+                    Your inquiry has been submitted. Reference ID #{ticketRef || "TIC-REGISTERED"}. A trust officer will reach out via email shortly.
                   </p>
                   <button
                     type="button"
@@ -74,6 +98,11 @@ export default function ContactPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  {errorMessage && (
+                    <div className="border-2 border-danger bg-danger/10 p-3 text-xs font-black text-danger">
+                      {errorMessage}
+                    </div>
+                  )}
                   {/* Category Selector */}
                   <div>
                     <label className="block text-xs font-black uppercase tracking-wider text-ink mb-2">

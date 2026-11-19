@@ -228,7 +228,7 @@ function BookPageContent({ params }: BookPageProps) {
 
             if (res.success && res.startCode) {
               setStartCode(res.startCode);
-              setConfirmedBookingId(res.bookingId ? `#TGR-${res.bookingId.slice(-6)}` : '#TGR-1029');
+              setConfirmedBookingId(res.bookingId ? `#CMP-${res.bookingId.slice(-6)}` : '#CMP-1029');
               setBookingSuccess(true);
               toast.success(
                 `Payment verified (${paymentResponse.razorpay_payment_id}). Locked in Safe Escrow!`,

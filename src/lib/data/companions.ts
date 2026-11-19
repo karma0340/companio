@@ -272,7 +272,7 @@ export const COMPANIONS: Companion[] = [
     gender: 'female',
     city: 'hyderabad',
     area: 'Jubilee Hills / Gachibowli',
-    tagline: 'Badminton doubles partner & weekend festival explorer 🪔',
+    tagline: 'Badminton doubles partner & weekend festival explorer',
     about:
       'Software engineer who hates spending weekends staring at screens. Happy to join for badminton matches at local clubs, food explorations around Charminar, or visiting local craft and tech expos.',
     avatarUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=600',

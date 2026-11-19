@@ -106,7 +106,7 @@ export default function HostKYCPage() {
         setAadhaarImageBase64(base64);
 
         try {
-          const res = await uploadImageAction(base64, 'made4companio/kyc');
+          const res = await uploadImageAction(base64, 'companio/kyc');
           if (res.success && res.url) {
             setUploadedImageUrl(res.url);
             toast.success('Your ID photo has been uploaded securely.', 'Photo Uploaded');
@@ -212,7 +212,7 @@ export default function HostKYCPage() {
       await refreshSession();
 
       setSubmitted(true);
-      setKycReference(json.kycReference || '#TGR-8921');
+      setKycReference(json.kycReference || '#CMP-8921');
       toast.success(
         'Congratulations! You are now an approved and verified Host on Companio.',
         'Profile Verified & Approved'

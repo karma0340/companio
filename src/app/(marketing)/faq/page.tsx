@@ -16,7 +16,7 @@ export default function FAQPage() {
     {
       id: 'g-1',
       category: 'general',
-      question: 'What is made4companio (Companio)?',
+      question: 'What is Companio?',
       answer:
         'Companio is an Indian on-demand platform that connects users with verified local hosts for strictly platonic, activity-based companionship in public places (e.g. gym spotter, movie buddy, city guide, cafe chats, shopping companion, or event plus-one).',
     },

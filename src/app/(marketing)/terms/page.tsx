@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
   title: "Terms of Service — Platonic Rules & User Agreement",
-  description: "Official terms and conditions governing the use of made4companio platonic companionship platform in India.",
+  description: "Official terms and conditions governing the use of Companio platonic companionship platform in India.",
 };
 
 export default function TermsPage() {
@@ -37,7 +37,7 @@ export default function TermsPage() {
                 1. Strictly Platonic Nature of the Platform
               </h2>
               <p>
-                Companio (operated under <strong>made4companio</strong>) is an intermediary technology platform connecting independent adult users for strictly platonic, social companionship in public venues. Companio is <strong>not</strong> an employer, dating service, matrimony bureau, or adult entertainment directory. Any solicitation of romantic or sexual favors constitutes a breach of contract and criminal conduct under applicable Indian penal provisions.
+                Companio is an intermediary technology platform connecting independent adult users for strictly platonic, social companionship in public venues. Companio is <strong>not</strong> an employer, dating service, matrimony bureau, or adult entertainment directory. Any solicitation of romantic or sexual favors constitutes a breach of contract and criminal conduct under applicable Indian penal provisions.
               </p>
             </section>
 

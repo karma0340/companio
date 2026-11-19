@@ -372,7 +372,7 @@ export default function HomePage() {
         </section>
 
         {/* =========================================================================
-            SECTION 4: HOW TOGETHR WORKS (5 STEPS SCROLL JOURNEY & LOTTIE)
+            SECTION 4: HOW COMPANIO WORKS (5 STEPS SCROLL JOURNEY & LOTTIE)
            ========================================================================= */}
         <section className="border-b-brutal bg-white py-10 sm:py-16">
           <HowItWorksJourney showHero={true} />

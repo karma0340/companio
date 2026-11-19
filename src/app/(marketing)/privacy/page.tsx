@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
   title: "Privacy Policy — DPDP Act 2023 Compliant",
-  description: "How made4companio securely handles ID verification, phone number masking, and data privacy in accordance with Indian data protection laws.",
+  description: "How Companio securely handles ID verification, phone number masking, and data privacy in accordance with Indian data protection laws.",
 };
 
 export default function PrivacyPage() {
@@ -64,8 +64,8 @@ export default function PrivacyPage() {
               </h2>
               <p>
                 Under the DPDP Act 2023, you have the right to request a copy of your personal data or request permanent deletion of your account by emailing{' '}
-                <a href="mailto:privacy@made4companio.com" className="font-bold underline text-ink">
-                  privacy@made4companio.com
+                <a href="mailto:privacy@companio.in" className="font-bold underline text-ink">
+                  privacy@companio.in
                 </a>
                 .
               </p>

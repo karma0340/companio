@@ -42,8 +42,29 @@ export default function ProfilePage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [activePass, setActivePass] = useState<any>(null);
+  const [loadingPass, setLoadingPass] = useState(true);
 
   const gender: GenderType = (memberProfile?.gender as GenderType) === 'male' ? 'male' : 'female';
+
+  useEffect(() => {
+    async function fetchPass() {
+      try {
+        const res = await fetch('/api/passes/active');
+        const data = await res.json();
+        if (data.isUnlocked && data.activePass) {
+          setActivePass(data.activePass);
+        }
+      } catch (e) {
+        // pass check optional
+      } finally {
+        setLoadingPass(false);
+      }
+    }
+    if (isAuthenticated) {
+      fetchPass();
+    }
+  }, [isAuthenticated]);
 
   const { register, handleSubmit, reset } = useForm<ProfileFormValues>({
     defaultValues: {
@@ -225,6 +246,60 @@ export default function ProfilePage() {
                 <span>{isEditing ? 'Cancel Editing' : 'Edit Profile'}</span>
               </Button>
             </div>
+          </div>
+
+          {/* Membership Pass Status Card */}
+          <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5 text-ink" />
+                  <h2 className="font-display text-lg font-black uppercase text-ink">
+                    Membership Access Status
+                  </h2>
+                </div>
+                <p className="text-xs font-bold text-ink-soft">
+                  {activePass
+                    ? `Your account is active with the ${activePass.name || activePass.tier} subscription pass.`
+                    : 'Get an access pass to unlock full companion contact info and book unlimited meetups.'}
+                </p>
+              </div>
+
+              <div className="shrink-0">
+                {activePass ? (
+                  <Badge variant="lime" size="md">
+                    Pass Active · {activePass.daysRemaining === 'Infinite' ? 'Lifetime Access' : `${activePass.daysRemaining} Days Left`}
+                  </Badge>
+                ) : (
+                  <Link href="/membership">
+                    <Button variant="primary" size="sm">
+                      <span>Get Access Pass →</span>
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {activePass && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t-2 border-ink/10 text-center">
+                <div className="border-2 border-ink bg-paper p-2.5">
+                  <div className="text-[10px] font-black uppercase text-ink-muted">Tier</div>
+                  <div className="font-display text-xs font-black text-ink">{activePass.tier.replace(/_/g, ' ')}</div>
+                </div>
+                <div className="border-2 border-ink bg-paper p-2.5">
+                  <div className="text-[10px] font-black uppercase text-ink-muted">Platform Fee</div>
+                  <div className="font-display text-xs font-black text-emerald-700">0% Waived</div>
+                </div>
+                <div className="border-2 border-ink bg-paper p-2.5">
+                  <div className="text-[10px] font-black uppercase text-ink-muted">Direct Bookings</div>
+                  <div className="font-display text-xs font-black text-ink">Unlimited</div>
+                </div>
+                <div className="border-2 border-ink bg-paper p-2.5">
+                  <div className="text-[10px] font-black uppercase text-ink-muted">Safety Support</div>
+                  <div className="font-display text-xs font-black text-ink">Priority 24/7</div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Edit Form or Details View */}
