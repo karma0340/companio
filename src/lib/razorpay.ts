@@ -136,3 +136,24 @@ export function verifyRazorpaySignature(
     reason: undefined,
   };
 }
+
+/**
+ * Verifies Razorpay server-to-server webhook HMAC-SHA256 signature
+ */
+export function verifyRazorpayWebhookSignature(
+  rawBody: string,
+  signature: string,
+  webhookSecret?: string
+): boolean {
+  const secret = webhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET?.trim();
+  if (!secret || !signature) return false;
+  try {
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
+    return expectedSignature === signature;
+  } catch (err) {
+    return false;
+  }
+}
