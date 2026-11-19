@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       isUnlocked: true,
-      message: `Successfully unlocked Companio Club with ${tierOption.name}!`,
+      message: `Successfully unlocked Togethr with ${tierOption.name}!`,
       pass: {
         tier: tierOption.tier,
         name: tierOption.name,

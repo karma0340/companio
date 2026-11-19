@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
             currency: 'INR',
             receipt: `rcpt_${Date.now().toString().slice(-8)}`,
             notes: {
-              platform: 'Companio',
+              platform: 'made4togethr',
               escrowType: 'safe_deposit',
             },
           }),

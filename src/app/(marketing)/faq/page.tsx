@@ -16,21 +16,21 @@ export default function FAQPage() {
     {
       id: 'g-1',
       category: 'general',
-      question: 'What is Companio?',
+      question: 'What is made4togethr (Togethr)?',
       answer:
-        'Companio is an Indian on-demand platform that connects users with verified local hosts for strictly platonic, activity-based companionship in public places (e.g. gym spotter, movie buddy, city guide, cafe chats, shopping companion, or event plus-one).',
+        'Togethr is an Indian on-demand platform that connects users with verified local hosts for strictly platonic, activity-based companionship in public places (e.g. gym spotter, movie buddy, city guide, cafe chats, shopping companion, or event plus-one).',
     },
     {
       id: 'g-2',
       category: 'general',
-      question: 'Is Companio a dating or matrimonial service?',
+      question: 'Is Togethr a dating or matrimonial service?',
       answer:
         'No. We are 100% platonic. We explicitly prohibit dating, romantic solicitation, adult services, or escorting. Any user attempting romantic advances is immediately banned from the platform with zero tolerance.',
     },
     {
       id: 'g-3',
       category: 'general',
-      question: 'Who can use Companio?',
+      question: 'Who can use Togethr?',
       answer:
         'Anyone aged 18 or older who holds a valid Indian government-issued photo ID (Aadhaar, Passport, or Voter ID) and agrees to our community standards and public-place meetup rules.',
     },
@@ -72,16 +72,16 @@ export default function FAQPage() {
     {
       id: 'p-3',
       category: 'payments',
-      question: 'What is the Companio Connection Fee and GST?',
+      question: 'What is the Togethr Connection Fee and GST?',
       answer:
-        'Companio charges an 18% connection fee on the host subtotal to cover ID verification, 24/7 trust desk support, and escrow banking infrastructure. Indian statutory GST (18%) is applied only to this connection fee, not to the host earnings.',
+        'Togethr charges an 18% connection fee on the host subtotal to cover ID verification, 24/7 trust desk support, and escrow banking infrastructure. Indian statutory GST (18%) is applied only to this connection fee, not to the host earnings.',
     },
     {
       id: 'h-1',
       category: 'hosts',
       question: 'How do hosts get paid?',
       answer:
-        'Once a meetup concludes, your earned amount is credited instantly to your Companio Host Wallet. You can withdraw funds directly to your verified bank account via UPI with one tap.',
+        'Once a meetup concludes, your earned amount is credited instantly to your Togethr Host Wallet. You can withdraw funds directly to your verified bank account via UPI with one tap.',
     },
     {
       id: 'h-2',
@@ -122,7 +122,7 @@ export default function FAQPage() {
           <div className="flex flex-wrap justify-center gap-2">
             {[
               { id: 'all', label: 'All Questions', icon: Sparkles },
-              { id: 'general', label: 'About Companio', icon: Info },
+              { id: 'general', label: 'About Togethr', icon: Info },
               { id: 'safety', label: 'Trust & Safety', icon: ShieldCheck },
               { id: 'payments', label: 'Payments & Escrow', icon: Lock },
               { id: 'hosts', label: 'Host Earnings', icon: Briefcase },
@@ -158,9 +158,9 @@ export default function FAQPage() {
               Our support and safety team is active 24/7 to assist with bookings, verification, or questions.
             </p>
             <div className="pt-2">
-              <a href="mailto:support@companio.in">
+              <a href="mailto:support@made4togethr.com">
                 <Button variant="primary" size="md">
-                  <span>Contact Companio Support →</span>
+                  <span>Contact Togethr Support →</span>
                 </Button>
               </a>
             </div>

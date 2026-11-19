@@ -28,7 +28,7 @@ export async function submitKycAction(input: SubmitKycInput) {
 
     if (input.aadhaarImage && input.aadhaarImage.startsWith('data:')) {
       try {
-        const uploadResult = await uploadToCloudinary(input.aadhaarImage, 'companio/kyc');
+        const uploadResult = await uploadToCloudinary(input.aadhaarImage, 'made4togethr/kyc');
         finalImageUrl = uploadResult.secure_url;
       } catch (uploadErr) {
         console.error('Failed to upload Aadhaar to Cloudinary:', uploadErr);

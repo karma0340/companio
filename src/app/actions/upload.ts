@@ -2,7 +2,7 @@
 
 import { uploadToCloudinary } from '@/lib/cloudinary';
 
-export async function uploadImageAction(fileData: string, folder: string = 'companio') {
+export async function uploadImageAction(fileData: string, folder: string = 'made4togethr') {
   try {
     if (!fileData) {
       return { success: false, error: 'No image data provided' };

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -44,9 +44,9 @@ export default function HomePage() {
   const faqItems = [
     {
       id: 'faq-1',
-      question: 'Is Companio a dating or matchmaking app?',
+      question: 'Is Togethr a dating or matchmaking app?',
       answer:
-        'Absolutely NOT. Companio is strictly for platonic, activity-based companionship. We exist to help you find a gym spotter, a movie buddy, a shopping guide, or a coffee companion. Any romantic advances, escorting requests, or inappropriate behavior result in an immediate permanent ban and forfeiture of escrow funds.',
+        'Absolutely NOT. Togethr is strictly for platonic, activity-based companionship. We exist to help you find a gym spotter, a movie buddy, a shopping guide, or a coffee companion. Any romantic advances, escorting requests, or inappropriate behavior result in an immediate permanent ban and forfeiture of escrow funds.',
     },
     {
       id: 'faq-2',
@@ -58,7 +58,7 @@ export default function HomePage() {
       id: 'faq-3',
       question: 'What is the 4-Digit Start Code and how does it work?',
       answer:
-        'When your booking is confirmed, a secret 4-digit numeric code is generated on your Companio screen. When you meet your companion at the agreed public venue, you share this code with them. Once they enter it, the meetup timer officially activates. No code = no meetup = zero payment released.',
+        'When your booking is confirmed, a secret 4-digit numeric code is generated on your Togethr screen. When you meet your companion at the agreed public venue, you share this code with them. Once they enter it, the meetup timer officially activates. No code = no meetup = zero payment released.',
     },
     {
       id: 'faq-4',
@@ -188,7 +188,7 @@ export default function HomePage() {
                       className="block w-full"
                     >
                       <Button variant="primary" size="md" fullWidth className="font-display font-black text-sm">
-                        <span>Find Companion â†’</span>
+                        <span>Find Companion →</span>
                       </Button>
                     </Link>
                   </div>
@@ -265,7 +265,7 @@ export default function HomePage() {
                           </div>
                           <div>
                             <h3 className="font-display text-2xl font-black text-ink">
-                              {COMPANIONS[0].name} Â· {COMPANIONS[0].age}
+                              {COMPANIONS[0].name} · {COMPANIONS[0].age}
                             </h3>
                             <p className="text-xs font-bold text-ink-soft">
                               Design Student & Indie Music Fan
@@ -294,11 +294,11 @@ export default function HomePage() {
                             <span className="text-[10px] uppercase font-black text-ink-muted block">
                               Hourly Rate
                             </span>
-                            <span className="font-display text-lg font-black text-ink">â‚¹599 /hr</span>
+                            <span className="font-display text-lg font-black text-ink">₹599 /hr</span>
                           </div>
                           <Link href={`/companions/${COMPANIONS[0].id}`}>
                             <Button variant="primary" size="sm" className="font-display font-black">
-                              <span>View Kashish â†’</span>
+                              <span>View Kashish →</span>
                             </Button>
                           </Link>
                         </div>
@@ -333,7 +333,7 @@ export default function HomePage() {
 
               <Link href="/explore?freeToday=true">
                 <Button variant="outline" size="sm" className="font-display font-black">
-                  <span>See all {freeTodayCompanions.length} hosts â†’</span>
+                  <span>See all {freeTodayCompanions.length} hosts →</span>
                 </Button>
               </Link>
             </div>
@@ -372,7 +372,7 @@ export default function HomePage() {
         </section>
 
         {/* =========================================================================
-            SECTION 4: HOW COMPANIO WORKS (5 STEPS SCROLL JOURNEY & LOTTIE)
+            SECTION 4: HOW TOGETHR WORKS (5 STEPS SCROLL JOURNEY & LOTTIE)
            ========================================================================= */}
         <section className="border-b-brutal bg-white py-10 sm:py-16">
           <HowItWorksJourney showHero={true} />
@@ -398,7 +398,7 @@ export default function HomePage() {
 
               <Link href="/explore">
                 <Button variant="dark" size="md" className="font-display font-black">
-                  <span>Browse All Companions â†’</span>
+                  <span>Browse All Companions →</span>
                 </Button>
               </Link>
             </div>
@@ -460,7 +460,7 @@ export default function HomePage() {
 
             <div className="text-center pt-4">
               <Link href="/faq" className="font-display text-sm font-extrabold text-lavender underline">
-                Have more questions? Read our full FAQ directory â†’
+                Have more questions? Read our full FAQ directory →
               </Link>
             </div>
           </div>
@@ -471,4 +471,3 @@ export default function HomePage() {
     </div>
   );
 }
-

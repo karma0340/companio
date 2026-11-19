@@ -61,7 +61,7 @@ export async function createBookingAction(input: CreateBookingInput) {
           data: {
             phone: cleanPhone,
             name: input.memberName,
-            email: input.memberEmail || `${cleanPhone.slice(-10)}@trycompanio.com`,
+            email: input.memberEmail || `${cleanPhone.slice(-10)}@member.togethr.in`,
             role: 'MEMBER',
           },
         });

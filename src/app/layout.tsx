@@ -24,8 +24,21 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Companio | Never go alone. Find a Buddy, Not a Date",
-  description: "Explore your city with verified local companions across India. Coffee, gym, walks, movies, and city tours. Strictly 100% platonic, escrow-protected, public venues only.",
+  title: {
+    default: "made4togethr — Find a Buddy, Not a Date | Hire Verified Local Companions",
+    template: "%s | made4togethr",
+  },
+  description:
+    "Looking for a gym partner, movie buddy, or coffee companion? Connect with ID-verified local buddies across India. 100% platonic, escrow-safe, public places only. Zero awkwardness.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({

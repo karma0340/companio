@@ -101,7 +101,7 @@ export default function MemberOnboardingPage() {
       }
 
       await refreshSession();
-      toast.success('Your profile is ready! Welcome to Companio.', 'Profile Completed');
+      toast.success('Your profile is ready! Welcome to Togethr.', 'Profile Completed');
       router.push('/profile');
     } catch (err) {
       const isNetwork = typeof navigator !== 'undefined' && (!navigator.onLine || (err instanceof Error && err.message.toLowerCase().includes('fetch')));

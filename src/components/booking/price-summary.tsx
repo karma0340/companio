@@ -74,7 +74,7 @@ export function PriceSummary({ companion }: PriceSummaryProps) {
 
         <div className="flex items-center justify-between font-medium">
           <span className="flex items-center gap-1">
-            <span>Companio Protection & Platform Fee</span>
+            <span>Togethr Protection & Platform Fee</span>
           </span>
           <span className="font-bold text-ink font-mono">{formatRupees(price.connectionFee)}</span>
         </div>

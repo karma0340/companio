@@ -239,11 +239,10 @@ function LoginContent() {
                   setAuthMethod('phone');
                   setError(null);
                 }}
-                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-display text-xs font-black uppercase transition ${
-                  authMethod === 'phone'
-                    ? 'bg-ink text-white shadow-brutal-sm'
-                    : 'text-ink-muted hover:text-ink'
-                }`}
+                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-display text-xs font-black uppercase transition ${authMethod === 'phone'
+                  ? 'bg-ink text-white shadow-brutal-sm'
+                  : 'text-ink-muted hover:text-ink'
+                  }`}
               >
                 <Phone className="h-3.5 w-3.5" />
                 <span>Mobile (+91)</span>
@@ -254,11 +253,10 @@ function LoginContent() {
                   setAuthMethod('email');
                   setError(null);
                 }}
-                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-display text-xs font-black uppercase transition ${
-                  authMethod === 'email'
-                    ? 'bg-ink text-white shadow-brutal-sm'
-                    : 'text-ink-muted hover:text-ink'
-                }`}
+                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-display text-xs font-black uppercase transition ${authMethod === 'email'
+                  ? 'bg-ink text-white shadow-brutal-sm'
+                  : 'text-ink-muted hover:text-ink'
+                  }`}
               >
                 <Mail className="h-3.5 w-3.5" />
                 <span>Email</span>

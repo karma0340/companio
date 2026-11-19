@@ -57,7 +57,7 @@ function BookPageContent({ params }: BookPageProps) {
     gender: 'female' as const,
     city: 'bengaluru',
     area: 'Central',
-    tagline: 'Verified Companio Host',
+    tagline: 'Verified Togethr Host',
     about: 'Experienced companion for city meetups.',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
     languages: ['English', 'Hindi'],
@@ -110,7 +110,7 @@ function BookPageContent({ params }: BookPageProps) {
     if (user || memberProfile) {
       const cleanPhone = user?.phone ? user.phone.replace(/\D/g, '').slice(-10) : '';
       const name =
-        memberProfile?.fullName && memberProfile.fullName !== 'Companio Member'
+        memberProfile?.fullName && memberProfile.fullName !== 'Togethr Member'
           ? memberProfile.fullName
           : '';
 
@@ -189,13 +189,13 @@ function BookPageContent({ params }: BookPageProps) {
         key: orderData.keyId,
         amount: orderData.amountPaise,
         currency: 'INR',
-        name: 'Companio Safe Escrow',
+        name: 'Togethr Safe Escrow',
         description: `${selectedActivity.replace(/-/g, ' ')} with ${companion.name}`,
         order_id: orderData.orderId,
         prefill: {
           name: data.memberName.trim(),
           contact: phoneRaw,
-          email: user?.phone ? `${user.phone}@member.trycompanio.com` : undefined,
+          email: user?.phone ? `${user.phone}@member.togethr.in` : undefined,
         },
         theme: {
           color: '#121212',
@@ -283,7 +283,7 @@ function BookPageContent({ params }: BookPageProps) {
               Meetup Confirmed with {companion.name}!
             </h1>
             <p className="font-body text-xs sm:text-sm text-ink-soft max-w-lg mx-auto leading-relaxed">
-              Your payment ({formatRupees(price.totalPayable)}) is held safely by Companio and only transferred to {companion.name} after you meet and share the code.
+              Your payment ({formatRupees(price.totalPayable)}) is held safely by Togethr and only transferred to {companion.name} after you meet and share the code.
             </p>
           </div>
 
@@ -359,7 +359,7 @@ function BookPageContent({ params }: BookPageProps) {
                   Book a Meetup with {companion.name}
                 </h1>
                 <p className="font-body text-xs sm:text-sm text-ink-soft">
-                  Fill in your preferred public location and timing. Your money stays safe with Companio until you meet in person.
+                  Fill in your preferred public location and timing. Your money stays safe with Togethr until you meet in person.
                 </p>
               </div>
 
@@ -530,7 +530,7 @@ function BookPageContent({ params }: BookPageProps) {
                     />
                     <div className="text-xs font-bold text-ink leading-relaxed">
                       <span>
-                        I confirm that this meetup is <strong>100% platonic and respectful</strong>, will occur strictly in a public place, and follows the Companio Community Guidelines.
+                        I confirm that this meetup is <strong>100% platonic and respectful</strong>, will occur strictly in a public place, and follows the Togethr Community Guidelines.
                       </span>
                     </div>
                   </label>
@@ -590,7 +590,7 @@ function BookPageContent({ params }: BookPageProps) {
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Companio Protection & Platform Fee</span>
+                  <span>Togethr Protection & Platform Fee</span>
                   <span className="font-bold text-ink font-mono">{formatRupees(price.connectionFee)}</span>
                 </div>
 

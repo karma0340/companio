@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 export const metadata: Metadata = {
   title: "Safety First — ID Verification, 4-Digit Codes & Escrow Protection",
   description:
-    "How Companio keeps you safe: Government ID checks, live video selfies, public-place restrictions, 4-digit start codes, and 1-tap emergency SOS.",
+    "How made4togethr keeps you safe: Government ID checks, live video selfies, public-place restrictions, 4-digit start codes, and 1-tap emergency SOS.",
 };
 
 export default function SafetyPage() {
@@ -46,7 +46,7 @@ export default function SafetyPage() {
             </h1>
 
             <p className="font-body text-base sm:text-lg text-ink-soft leading-relaxed">
-              Companio was designed from day one around safety, trust, and accountability. Every host, member, payment, and meetup is governed by strict, verified safeguards.
+              Togethr was designed from day one around safety, trust, and accountability. Every host, member, payment, and meetup is governed by strict, verified safeguards.
             </p>
           </div>
 
@@ -61,8 +61,8 @@ export default function SafetyPage() {
             </p>
             <p className="font-body text-xs sm:text-sm text-ink-soft">
               Our 24/7 Trust & Safety Desk is reachable directly at{' '}
-              <a href="mailto:safety@companio.in" className="font-bold underline text-ink">
-                safety@companio.in
+              <a href="mailto:safety@made4togethr.com" className="font-bold underline text-ink">
+                safety@made4togethr.com
               </a>{' '}
               with priority incident response within 15 minutes.
             </p>
@@ -72,7 +72,7 @@ export default function SafetyPage() {
           <div className="space-y-8">
             <div className="border-b-brutal pb-4">
               <h2 className="font-display text-3xl font-black text-ink">
-                The Companio Trust System
+                The Togethr Trust System
               </h2>
             </div>
 
@@ -139,7 +139,7 @@ export default function SafetyPage() {
                 </div>
                 <h3 className="font-display text-2xl font-black text-ink">6. Private by Default</h3>
                 <p className="font-body text-sm text-ink-soft leading-relaxed">
-                  Your phone number, email, and full legal address are never displayed publicly. All coordination happens through Companio’s in-app communication channels to protect your personal privacy.
+                  Your phone number, email, and full legal address are never displayed publicly. All coordination happens through Togethr’s in-app communication channels to protect your personal privacy.
                 </p>
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function SafetyPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                 <p>
-                  <strong>Never accept off-platform payments:</strong> If a host or member asks you to pay cash or UPI directly outside Companio, report them immediately. Off-platform transactions lose all escrow and safety protections.
+                  <strong>Never accept off-platform payments:</strong> If a host or member asks you to pay cash or UPI directly outside Togethr, report them immediately. Off-platform transactions lose all escrow and safety protections.
                 </p>
               </div>
 

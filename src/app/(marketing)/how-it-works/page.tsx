@@ -5,9 +5,9 @@ import { Footer } from '@/components/layout/footer';
 import { HowItWorksJourney } from '@/components/how-it-works/how-it-works-journey';
 
 export const metadata: Metadata = {
-  title: 'How It Works, Companio — In Five Steps',
+  title: 'How It Works, Togethr — In Five Steps',
   description:
-    'From the first browse to the second meetup. Strictly platonic, always in public. Learn how Companio works from discovery to safe completion in public venues.',
+    'From the first browse to the second meetup. Strictly platonic, always in public. Learn how Togethr works from discovery to safe completion in public venues.',
 };
 
 export default function HowItWorksPage() {

@@ -106,7 +106,7 @@ export default function HostKYCPage() {
         setAadhaarImageBase64(base64);
 
         try {
-          const res = await uploadImageAction(base64, 'companio/kyc');
+          const res = await uploadImageAction(base64, 'made4togethr/kyc');
           if (res.success && res.url) {
             setUploadedImageUrl(res.url);
             toast.success('Your ID photo has been uploaded securely.', 'Photo Uploaded');

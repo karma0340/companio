@@ -24,17 +24,17 @@ export function Logo({ size = 'md', className, href = '/' }: LogoProps) {
     <div className={cn('relative inline-flex items-center select-none', className)}>
       <Image
         src="/logo.png"
-        alt="Companio"
+        alt="made4togethr"
         width={width}
         height={height}
         priority
-        className="h-auto w-auto object-contain max-h-[56px] transition-transform duration-200 hover:scale-105"
+        className="h-auto w-auto object-contain max-h-[56px] transition-transform duration-200 hover:scale-105 mix-blend-multiply"
       />
     </div>
   );
 
   if (href) {
-    return <Link href={href} aria-label="Companio home">{content}</Link>;
+    return <Link href={href} aria-label="made4togethr home">{content}</Link>;
   }
 
   return content;

@@ -53,7 +53,7 @@ export async function fetchLiveBookings(filter?: {
           id: b.id,
           companion: comp,
           companionId: b.companionId,
-          memberName: b.member?.name || 'Companio Member',
+          memberName: b.member?.name || 'Togethr Member',
           memberPhone: b.member?.phone || '+91 98765 43210',
           activity: b.activity?.title || 'Meetup & Coffee',
           date: b.scheduledDate ? new Date(b.scheduledDate).toISOString().split('T')[0] : 'Today',

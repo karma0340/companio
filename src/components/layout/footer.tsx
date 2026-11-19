@@ -35,8 +35,8 @@ export function Footer() {
               </p>
               <p className="text-xs text-ink-soft">
                 Safety & Moderation Desk:{' '}
-                <a href="mailto:safety@trycompanio.com" className="font-bold underline text-ink">
-                  safety@trycompanio.com
+                <a href="mailto:safety@made4togethr.com" className="font-bold underline text-ink">
+                  safety@made4togethr.com
                 </a>
               </p>
             </div>
@@ -89,7 +89,7 @@ export function Footer() {
           {/* Column 4: Platform & Trust */}
           <div className="space-y-3">
             <h4 className="font-display text-sm font-black uppercase tracking-wider text-ink">
-              Companio
+              Togethr
             </h4>
             <ul className="space-y-2 font-display text-xs font-bold text-ink-soft">
               <li>
@@ -159,7 +159,7 @@ export function Footer() {
         {/* Bottom Bar: Copyright & Made in India */}
         <div className="mt-12 pt-8 border-t-brutal flex flex-col sm:flex-row items-center justify-between gap-4 font-display text-xs font-bold text-ink-soft">
           <div className="flex items-center gap-1.5">
-            <span>© 2026 Companio. Strictly platonic companionship.</span>
+            <span>© 2026 made4togethr Labs. Strictly platonic companionship.</span>
           </div>
 
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border-brutal-sm shadow-brutal-sm text-ink">
