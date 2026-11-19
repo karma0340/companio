@@ -47,10 +47,6 @@ export async function POST(req: NextRequest) {
 
     console.log(`[AUTH OTP DISPATCH] Target: ${identifier} | Code: ${code} | Provider: ${smsResult?.provider || "EMAIL"}`);
 
-    const isSandboxOrDev =
-      process.env.NODE_ENV !== "production" ||
-      Boolean(smsResult?.isMock);
-
     return NextResponse.json({
       success: true,
       message: isEmail
@@ -59,7 +55,6 @@ export async function POST(req: NextRequest) {
       identifier,
       isEmail,
       provider: smsResult?.provider || (isEmail ? "EMAIL_DISPATCH" : "SMS_DISPATCH"),
-      devCode: isSandboxOrDev ? code : undefined,
     });
   } catch (error) {
     console.error("[AUTH OTP SEND ERROR]:", error);

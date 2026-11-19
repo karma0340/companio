@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { X, Mail, Phone, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
-import { isFirebaseConfigured, getFirebaseAuth, initRecaptchaVerifier } from "@/lib/firebase";
+import { isFirebaseConfigured, getFirebaseAuth, initRecaptchaVerifier, formatFirebasePhoneError } from "@/lib/firebase";
 import { signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { validateIndianMobileNumber } from "@/lib/phone";
 
@@ -18,7 +18,6 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [devCode, setDevCode] = useState<string | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +33,6 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     setError(null);
 
     const isEmail = authMethod === "email";
-    let effectiveIdentifier = "";
 
     if (isEmail) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,58 +41,58 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         setLoading(false);
         return;
       }
-      effectiveIdentifier = email.trim().toLowerCase();
-    } else {
-      // Strict Indian Mobile Number Validation
-      const validation = validateIndianMobileNumber(phoneNumber);
-      if (!validation.isValid) {
-        setError(validation.error || "Please enter a valid 10-digit Indian mobile number.");
-        setLoading(false);
-        return;
-      }
-      effectiveIdentifier = validation.e164;
+      const effectiveIdentifier = email.trim().toLowerCase();
 
-      // 1. If Firebase is configured, dispatch real SMS OTP via Firebase Phone Auth
-      if (isFirebaseConfigured()) {
-        try {
-          const auth = getFirebaseAuth();
-          const recaptchaVerifier =
-            (window as any).recaptchaVerifier || initRecaptchaVerifier("modal-recaptcha-container");
-          (window as any).recaptchaVerifier = recaptchaVerifier;
+      try {
+        const res = await fetch("/api/auth/otp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier: effectiveIdentifier }),
+        });
+        const data = await res.json();
 
-          const confirmation = await signInWithPhoneNumber(
-            auth,
-            validation.e164,
-            recaptchaVerifier
-          );
-          setConfirmationResult(confirmation);
+        if (!res.ok || !data.success) {
+          setError(data.error || "Failed to send code. Please check your credentials.");
+        } else {
           setStep("code");
-          setLoading(false);
-          return;
-        } catch (fbErr) {
-          console.warn("[FIREBASE PHONE OTP FALLBACK]:", (fbErr as Error).message);
-          // Fallback to server REST dispatch
         }
+      } catch (err) {
+        setError("Network error. Please try again.");
+      } finally {
+        setLoading(false);
       }
+      return;
     }
 
-    // 2. Server REST dispatch (fallback or email)
-    try {
-      const res = await fetch("/api/auth/otp/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: effectiveIdentifier }),
-      });
-      const data = await res.json();
+    // Strict Indian Mobile Number Validation
+    const validation = validateIndianMobileNumber(phoneNumber);
+    if (!validation.isValid) {
+      setError(validation.error || "Please enter a valid 10-digit Indian mobile number.");
+      setLoading(false);
+      return;
+    }
 
-      if (!res.ok || !data.success) {
-        setError(data.error || "Failed to send code. Please check your credentials.");
-      } else {
-        setDevCode(data.devCode || null);
-        setStep("code");
-      }
-    } catch (err) {
-      setError("Network error. Please try again.");
+    if (!isFirebaseConfigured()) {
+      setError("Firebase Phone Auth configuration is missing. Please check your project settings.");
+      setLoading(false);
+      return;
+    }
+
+    // Direct Firebase Phone Auth dispatch (Real SMS)
+    try {
+      const auth = getFirebaseAuth();
+      const recaptchaVerifier = initRecaptchaVerifier("modal-recaptcha-container");
+
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        validation.e164,
+        recaptchaVerifier
+      );
+      setConfirmationResult(confirmation);
+      setStep("code");
+    } catch (fbErr: any) {
+      console.error("[FIREBASE PHONE AUTH FAILED]:", fbErr);
+      setError(formatFirebasePhoneError(fbErr));
     } finally {
       setLoading(false);
     }
@@ -242,12 +240,6 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           </div>
         )}
 
-        {devCode && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800 text-center font-mono font-bold">
-            Demo Code: {devCode}
-          </div>
-        )}
-
         {step === "input" ? (
           <form onSubmit={handleSendCode} className="mt-5 space-y-4">
             {authMethod === "phone" ? (
@@ -360,7 +352,6 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               type="button"
               onClick={() => {
                 setStep("input");
-                setDevCode(null);
                 setConfirmationResult(null);
                 setCode("");
                 setError(null);
