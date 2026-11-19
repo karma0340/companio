@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { X, Mail, ShieldCheck, ArrowRight, CheckCircle2, Lock } from "lucide-react";
+import { isFirebaseConfigured, getFirebaseAuth, initRecaptchaVerifier } from "@/lib/firebase";
+import { signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -14,6 +16,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [identifier, setIdentifier] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +27,30 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     setLoading(true);
     setError(null);
 
+    const isEmail = identifier.includes("@");
+
+    // 1. If phone number and Firebase is configured, use Firebase Phone Auth (10,000 free SMS/mo)
+    if (!isEmail && isFirebaseConfigured()) {
+      try {
+        const cleanPhone = identifier.replace(/[\s-]/g, "");
+        const formattedPhone = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
+        const auth = getFirebaseAuth();
+        const recaptchaVerifier =
+          (window as any).recaptchaVerifier || initRecaptchaVerifier("modal-recaptcha-container");
+        (window as any).recaptchaVerifier = recaptchaVerifier;
+
+        const confirmation = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier);
+        setConfirmationResult(confirmation);
+        setStep("code");
+        setLoading(false);
+        return;
+      } catch (fbErr) {
+        console.warn("[FIREBASE PHONE OTP FALLBACK]:", (fbErr as Error).message);
+        // Fallback to server REST dispatch
+      }
+    }
+
+    // 2. Server REST dispatch (Email or SMS gateway / sandbox)
     try {
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
@@ -50,6 +77,40 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     setLoading(true);
     setError(null);
 
+    // 1. If sent via Firebase Phone Auth
+    if (confirmationResult) {
+      try {
+        const cred = await confirmationResult.confirm(code);
+        const idToken = await cred.user.getIdToken();
+
+        const res = await fetch("/api/auth/otp/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            identifier,
+            code,
+            firebaseVerified: true,
+            idToken,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Verification failed");
+        }
+
+        if (onSuccess) onSuccess(data.user);
+        onClose();
+        window.location.reload();
+        return;
+      } catch (fbVerifyErr) {
+        setError((fbVerifyErr as Error).message || "Incorrect verification code. Please try again.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // 2. Standard REST OTP Verification
     try {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
@@ -77,6 +138,9 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
       style={{ backgroundColor: "rgba(20, 18, 42, 0.6)" }}
     >
+      {/* Invisible container for Firebase reCAPTCHA */}
+      <div id="modal-recaptcha-container" />
+
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 sm:p-8 text-slate-900 shadow-2xl border border-slate-200/80">
         <button
           onClick={onClose}
@@ -138,7 +202,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               disabled={loading}
               className="w-full rounded-xl bg-slate-900 py-3 text-xs font-bold text-white shadow-md hover:bg-black transition active:scale-95 disabled:opacity-50"
             >
-              {loading ? "Sending code..." : "Email me a sign-in code"}
+              {loading ? "Sending code..." : "Send sign-in code"}
             </button>
           </form>
         ) : (
@@ -171,6 +235,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               onClick={() => {
                 setStep("input");
                 setDevCode(null);
+                setConfirmationResult(null);
                 setCode("");
               }}
               className="w-full text-center text-xs text-slate-500 hover:text-slate-800 transition"

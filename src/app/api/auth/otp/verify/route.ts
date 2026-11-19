@@ -28,13 +28,17 @@ export async function POST(req: NextRequest) {
       identifier = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
     }
 
-    // Verify OTP code
-    const verification = verifyOtp(identifier, code);
-    if (!verification.success) {
-      return NextResponse.json(
-        { success: false, error: verification.error },
-        { status: 400 }
-      );
+    const isFirebaseVerified = Boolean(body.firebaseVerified);
+
+    // Verify OTP code if not already verified through Firebase Phone Auth
+    if (!isFirebaseVerified) {
+      const verification = verifyOtp(identifier, code);
+      if (!verification.success) {
+        return NextResponse.json(
+          { success: false, error: verification.error },
+          { status: 400 }
+        );
+      }
     }
 
     let userId = `user_${Date.now()}`;

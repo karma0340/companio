@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, ShieldCheck, ArrowRight, Heart } from "lucide-react";
+import { isFirebaseConfigured, getFirebaseAuth, initRecaptchaVerifier } from "@/lib/firebase";
+import { signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +13,7 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,6 +22,29 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+    const isEmail = identifier.includes("@");
+
+    // 1. Phone Auth via Firebase (10,000 free SMS/mo)
+    if (!isEmail && isFirebaseConfigured()) {
+      try {
+        const cleanPhone = identifier.replace(/[\s-]/g, "");
+        const formattedPhone = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
+        const auth = getFirebaseAuth();
+        const recaptchaVerifier =
+          (window as any).loginRecaptchaVerifier || initRecaptchaVerifier("login-recaptcha-container");
+        (window as any).loginRecaptchaVerifier = recaptchaVerifier;
+
+        const confirmation = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier);
+        setConfirmationResult(confirmation);
+        setStep("code");
+        setLoading(false);
+        return;
+      } catch (fbErr) {
+        console.warn("[FIREBASE PHONE OTP FALLBACK]:", (fbErr as Error).message);
+      }
+    }
+
+    // 2. Server REST dispatch (Email or SMS gateway / sandbox)
     try {
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
@@ -45,6 +71,38 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+    // 1. If sent via Firebase Phone Auth
+    if (confirmationResult) {
+      try {
+        const cred = await confirmationResult.confirm(code);
+        const idToken = await cred.user.getIdToken();
+
+        const res = await fetch("/api/auth/otp/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            identifier,
+            code,
+            firebaseVerified: true,
+            idToken,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Verification failed");
+        }
+
+        router.push("/explore");
+        return;
+      } catch (fbVerifyErr) {
+        setError((fbVerifyErr as Error).message || "Incorrect verification code. Please try again.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // 2. Standard REST OTP Verification
     try {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
@@ -67,11 +125,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 bg-[#FBFCFF]">
+      {/* Invisible container for Firebase reCAPTCHA */}
+      <div id="login-recaptcha-container" />
+
       <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200/80 p-8 shadow-xl text-slate-900">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-pink-500 to-indigo-600 shadow-sm">
-              <Heart className="h-4 w-4 fill-white text-white" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-purple-600 via-pink-500 to-amber-400 p-1.5 shadow-sm">
+              <Heart className="h-full w-full fill-white text-white" />
             </div>
             <span className="font-display text-2xl font-bold tracking-tight text-slate-900">
               Companio
@@ -125,7 +186,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full rounded-xl bg-slate-900 py-3.5 text-xs font-bold text-white shadow-md hover:bg-black transition active:scale-95 disabled:opacity-50"
             >
-              {loading ? "Sending code..." : "Email me a sign-in code"}
+              {loading ? "Sending code..." : "Send sign-in code"}
             </button>
           </form>
         ) : (
@@ -158,6 +219,7 @@ export default function LoginPage() {
               onClick={() => {
                 setStep("input");
                 setDevCode(null);
+                setConfirmationResult(null);
                 setCode("");
               }}
               className="w-full text-center text-xs text-slate-500 hover:text-slate-800 transition"
