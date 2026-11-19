@@ -39,16 +39,12 @@ export async function POST(req: NextRequest) {
 
     let userId = `user_${Date.now()}`;
     let role: UserRole = "MEMBER";
-    // Check if subscriber (e.g. user provided email)
-    const isSpecialSubscriber = identifier.toLowerCase() === "mohittyagi@gmail.com";
-    let isUnlocked = isSpecialSubscriber;
-    let activePassTier: string | null = isSpecialSubscriber ? "ONE_MONTH" : null;
-    let passExpiresAt: Date | null = isSpecialSubscriber
-      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      : null;
+    let isUnlocked = false;
+    let activePassTier: string | null = null;
+    let passExpiresAt: Date | null = null;
     let walletBalance = 0;
 
-    // Database upsert
+    // Database upsert based on verified credentials
     try {
       if (isEmail) {
         const dummyPhone = `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
@@ -56,13 +52,6 @@ export async function POST(req: NextRequest) {
           where: { email: identifier },
           update: {
             ...(name ? { name } : {}),
-            ...(isSpecialSubscriber
-              ? {
-                  isUnlocked: true,
-                  activePassTier: "ONE_MONTH",
-                  passExpiresAt,
-                }
-              : {}),
           },
           create: {
             email: identifier,
@@ -70,16 +59,23 @@ export async function POST(req: NextRequest) {
             name: name || "Member",
             role: "MEMBER",
             walletBalance: 0,
-            isUnlocked,
-            activePassTier: activePassTier as any,
-            passExpiresAt,
+            isUnlocked: false,
+          },
+          include: {
+            passes: {
+              where: { status: "ACTIVE" },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+            },
           },
         });
         userId = user.id;
         role = user.role;
-        isUnlocked = user.isUnlocked;
-        activePassTier = user.activePassTier;
-        passExpiresAt = user.passExpiresAt;
+        const latestPass = user.passes?.[0];
+        const isPassValid = latestPass && (!latestPass.validUntil || new Date(latestPass.validUntil) > new Date());
+        isUnlocked = Boolean(user.isUnlocked) || Boolean(isPassValid);
+        activePassTier = isUnlocked ? (user.activePassTier || (latestPass ? latestPass.tier as any : "ONE_MONTH")) : null;
+        passExpiresAt = latestPass?.validUntil || user.passExpiresAt;
         walletBalance = Number(user.walletBalance);
       } else {
         const user = await prisma.user.upsert({
@@ -90,13 +86,23 @@ export async function POST(req: NextRequest) {
             name: name || "Member",
             role: "MEMBER",
             walletBalance: 0,
+            isUnlocked: false,
+          },
+          include: {
+            passes: {
+              where: { status: "ACTIVE" },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+            },
           },
         });
         userId = user.id;
         role = user.role;
-        isUnlocked = user.isUnlocked;
-        activePassTier = user.activePassTier;
-        passExpiresAt = user.passExpiresAt;
+        const latestPass = user.passes?.[0];
+        const isPassValid = latestPass && (!latestPass.validUntil || new Date(latestPass.validUntil) > new Date());
+        isUnlocked = Boolean(user.isUnlocked) || Boolean(isPassValid);
+        activePassTier = isUnlocked ? (user.activePassTier || (latestPass ? latestPass.tier as any : "ONE_MONTH")) : null;
+        passExpiresAt = latestPass?.validUntil || user.passExpiresAt;
         walletBalance = Number(user.walletBalance);
       }
     } catch (dbErr) {

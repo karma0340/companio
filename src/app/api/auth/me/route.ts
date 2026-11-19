@@ -41,9 +41,7 @@ export async function GET() {
           (!latestPass.validUntil || new Date(latestPass.validUntil) > new Date());
 
         const isUserUnlocked =
-          dbUser.isUnlocked ||
-          Boolean(isPassValid) ||
-          dbUser.email?.toLowerCase() === "mohittyagi@gmail.com";
+          Boolean(dbUser.isUnlocked) || Boolean(isPassValid);
 
         userDetails = {
           id: dbUser.id,

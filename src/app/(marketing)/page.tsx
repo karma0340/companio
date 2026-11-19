@@ -22,13 +22,13 @@ export default function HomePage() {
           playsInline
           autoPlay
           preload="auto"
-          poster="https://cdn.trycompanio.in/hero-poster-v5.webp"
+          poster="/assets/landing/hero-poster-v5.webp"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 1, objectPosition: "50% 25%" }}
           aria-hidden="true"
         >
-          <source media="(orientation: portrait) and (max-width: 600px)" src="https://cdn.trycompanio.in/hero-phone-v5.mp4" type="video/mp4" />
-          <source src="https://cdn.trycompanio.in/hero-desktop-v4.mp4" type="video/mp4" />
+          <source media="(orientation: portrait) and (max-width: 600px)" src="/assets/landing/hero-phone-v5.mp4" type="video/mp4" />
+          <source src="/assets/landing/hero-desktop-v4.mp4" type="video/mp4" />
         </video>
 
         {/* Ambient Dark Atmospheric Overlays */}
@@ -37,12 +37,12 @@ export default function HomePage() {
           className="absolute inset-0"
           style={{
             zIndex: 10,
-            background: "linear-gradient(180deg, rgba(14, 12, 28, 0.20) 0%, rgba(14, 12, 28, 0.40) 30%, rgba(20, 18, 42, 0.75) 55%, rgba(20, 18, 42, 0.94) 80%, rgba(14, 12, 28, 0.98) 100%)",
+            background: "linear-gradient(180deg, rgba(14, 12, 28, 0.25) 0%, rgba(14, 12, 28, 0.45) 30%, rgba(20, 18, 42, 0.75) 55%, rgba(20, 18, 42, 0.94) 80%, rgba(14, 12, 28, 0.98) 100%)",
           }}
         />
 
-        {/* Hero Content (Image 2 Parity) */}
-        <div className="relative z-30 max-w-4xl mx-auto px-6 w-full pt-12 pb-16 text-center">
+        {/* Hero Content (Image 3 Desktop / Image 5 Mobile Parity) */}
+        <div className="relative z-30 max-w-4xl mx-auto px-6 w-full pt-16 pb-16 text-center">
           {/* Two-Line Pure White Headline */}
           <h1
             id="hero-heading"
@@ -63,22 +63,30 @@ export default function HomePage() {
             <span className="block">Every profile reviewed before it goes live. Strictly platonic.</span>
           </p>
 
-          {/* Primary Action Button (White Pill) */}
-          <div className="flex flex-col items-center justify-center gap-3.5 w-full max-w-xs mx-auto">
+          {/* Action Buttons: Responsive for Mobile (Image 5) and Desktop (Image 3) */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full max-w-sm sm:max-w-md mx-auto">
             <Link
               href="/explore"
-              className="w-full h-13 py-3.5 px-8 rounded-xl font-bold text-base bg-white text-slate-900 shadow-xl hover:bg-slate-100 transition active:scale-95 flex items-center justify-center text-center"
+              className="w-full sm:w-auto h-12 py-3 px-8 rounded-full font-bold text-sm sm:text-base bg-white text-slate-900 shadow-xl hover:bg-slate-100 transition active:scale-95 flex items-center justify-center text-center"
             >
               Find a companion
             </Link>
+            <Link
+              href="/how-it-works"
+              className="hidden sm:inline-flex items-center justify-center h-12 py-3 px-7 rounded-full font-bold text-sm sm:text-base bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/25 transition active:scale-95"
+            >
+              How it works &rarr;
+            </Link>
+          </div>
 
-            {/* Already a member? Sign in */}
+          {/* Already a member? Sign in */}
+          <div className="mt-4">
             <Link
               href="/explore"
-              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-white/90 hover:text-white transition mt-1"
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-white/90 hover:text-white transition"
             >
               <span>Already a member? Sign in</span>
-              <span>→</span>
+              <span>&rarr;</span>
             </Link>
           </div>
         </div>
