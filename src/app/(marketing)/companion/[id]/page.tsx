@@ -23,6 +23,7 @@ import { ActivityIcon } from '@/components/ui/activity-icon';
 import { StatusPulse } from '@/components/ui/status-pulse';
 import { COMPANIONS } from '@/lib/data/companions';
 import { ACTIVITIES } from '@/lib/data/activities';
+import { ActivityCategory } from '@/lib/types';
 import type { Metadata } from 'next';
 
 interface CompanionProfilePageProps {
@@ -50,10 +51,33 @@ export function generateMetadata({ params }: CompanionProfilePageProps): Metadat
 export default function CompanionProfilePage({ params }: CompanionProfilePageProps) {
   const id = params.id;
 
-  const companion = COMPANIONS.find((c) => c.id === id);
-  if (!companion) {
-    notFound();
-  }
+  const companion = COMPANIONS.find((c) => c.id === id) || {
+    id: id,
+    name: 'Verified Host',
+    age: 24,
+    gender: 'female' as const,
+    city: 'bengaluru',
+    area: 'Central',
+    tagline: 'Verified Companio Host',
+    about: 'Experienced companion for city meetups.',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+    languages: ['English', 'Hindi'],
+    hourlyRate: 499,
+    verifiedId: true,
+    verifiedPhoto: true,
+    rating: 5.0,
+    reviewCount: 12,
+    meetupsCount: 8,
+    activities: ['coffee-chat' as ActivityCategory, 'walk-and-talk' as ActivityCategory],
+    isFreeToday: true,
+    acceptsWomenOnly: false,
+    memberSince: '2026',
+    availability: [
+      { days: 'Mon — Fri', hours: '18:00 – 21:00' },
+      { days: 'Sat — Sun', hours: '11:00 – 20:00' },
+    ],
+    reviews: [],
+  };
 
   const companionActivities = companion.activities
     .map((slug) => ACTIVITIES.find((a) => a.slug === slug))

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAndStoreOtp } from "@/lib/otp-store";
 import { sendSmsOtp } from "@/lib/sms";
+import { sendEmailOtp } from "@/lib/email";
 import { validateIndianMobileNumber } from "@/lib/phone";
 
 export async function POST(req: NextRequest) {
@@ -39,13 +40,15 @@ export async function POST(req: NextRequest) {
     }
 
     const code = generateAndStoreOtp(identifier);
-    let smsResult = null;
+    let result = null;
 
-    if (!isEmail) {
-      smsResult = await sendSmsOtp(identifier, code);
+    if (isEmail) {
+      result = await sendEmailOtp(identifier, code);
+    } else {
+      result = await sendSmsOtp(identifier, code);
     }
 
-    console.log(`[AUTH OTP DISPATCH] Target: ${identifier} | Code: ${code} | Provider: ${smsResult?.provider || "EMAIL"}`);
+    console.log(`[AUTH OTP DISPATCH] Target: ${identifier} | Code: ${code} | Provider: ${result?.provider}`);
 
     return NextResponse.json({
       success: true,
@@ -54,7 +57,7 @@ export async function POST(req: NextRequest) {
         : `Sign-in code dispatched via SMS to ${identifier}`,
       identifier,
       isEmail,
-      provider: smsResult?.provider || (isEmail ? "EMAIL_DISPATCH" : "SMS_DISPATCH"),
+      provider: result?.provider || (isEmail ? "EMAIL_DISPATCH" : "SMS_DISPATCH"),
     });
   } catch (error) {
     console.error("[AUTH OTP SEND ERROR]:", error);

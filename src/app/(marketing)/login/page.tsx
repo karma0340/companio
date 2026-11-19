@@ -67,27 +67,41 @@ export default function LoginPage() {
       return;
     }
 
-    if (!isFirebaseConfigured()) {
-      setError("Firebase Phone Auth configuration is missing. Please check your project settings.");
-      setLoading(false);
-      return;
+    // Direct Firebase Phone Auth dispatch (Real SMS to Indian mobile)
+    if (isFirebaseConfigured()) {
+      try {
+        const auth = getFirebaseAuth();
+        const recaptchaVerifier = initRecaptchaVerifier("login-recaptcha-container");
+
+        const confirmation = await signInWithPhoneNumber(
+          auth,
+          validation.e164,
+          recaptchaVerifier
+        );
+        setConfirmationResult(confirmation);
+        setStep("code");
+        setLoading(false);
+        return;
+      } catch (fbErr: any) {
+        console.warn("[FIREBASE PHONE AUTH FAILED, ATTEMPTING REST SMS DISPATCH]:", fbErr);
+      }
     }
 
-    // Direct Firebase Phone Auth dispatch (Real SMS to Indian mobile)
+    // Direct REST SMS Dispatch fallback
     try {
-      const auth = getFirebaseAuth();
-      const recaptchaVerifier = initRecaptchaVerifier("login-recaptcha-container");
-
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        validation.e164,
-        recaptchaVerifier
-      );
-      setConfirmationResult(confirmation);
-      setStep("code");
-    } catch (fbErr: any) {
-      console.error("[FIREBASE PHONE AUTH FAILED]:", fbErr);
-      setError(formatFirebasePhoneError(fbErr));
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: validation.e164 }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error || "Failed to dispatch verification SMS. Please try again.");
+      } else {
+        setStep("code");
+      }
+    } catch (err) {
+      setError("Network error while dispatching verification code. Please try again.");
     } finally {
       setLoading(false);
     }
