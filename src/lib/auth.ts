@@ -5,6 +5,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "companio-production-secure-jwt-sec
 export interface UserTokenPayload {
   userId: string;
   phone: string;
+  email?: string | null;
+  name?: string | null;
   role: "MEMBER" | "COMPANION" | "ADMIN";
   isUnlocked: boolean;
   activePassTier?: string | null;

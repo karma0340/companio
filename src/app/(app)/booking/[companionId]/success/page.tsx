@@ -12,6 +12,8 @@ import {
   Calendar,
   MessageSquare,
   ArrowRight,
+  Copy,
+  Check,
 } from "lucide-react";
 import { BookingRecord } from "@/lib/bookings";
 
@@ -23,6 +25,7 @@ export default function BookingSuccessPage() {
 
   const [booking, setBooking] = useState<BookingRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number }>({
     hours: 11,
     minutes: 59,
@@ -65,142 +68,121 @@ export default function BookingSuccessPage() {
     return () => clearInterval(interval);
   }, [booking?.hostAcceptanceDeadline]);
 
-  const pinDigits = (booking?.verificationPin || "7492").split("");
+  const pin = booking?.verificationPin || "7492";
+  const pinDigits = pin.split("");
+
+  const handleCopyPin = () => {
+    navigator.clipboard.writeText(pin);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="mx-auto max-w-2xl py-8">
-      {/* Success Badge */}
-      <div className="rounded-xl border-2 border-[#102A43] bg-[#E9FF70] p-6 text-center shadow-[4px_4px_0px_0px_#102A43]">
-        <CheckCircle2 className="mx-auto h-12 w-12 text-[#102A43]" />
-        <span className="mt-2 inline-block rounded border border-[#102A43] bg-white px-2 py-0.5 text-xs font-black uppercase text-[#102A43]">
-          ESCROW SECURED
-        </span>
-        <h1 className="mt-2 text-2xl font-black text-[#102A43]">
-          Booking Request Dispatched!
-        </h1>
-        <p className="mt-1 text-xs font-bold text-[#102A43]">
-          Order #{booking?.bookingNumber || "CMP-2026-8941"} is now pending companion acceptance.
-        </p>
-      </div>
-
-      {/* 4-Digit Secret PIN Card */}
-      <div className="mt-6 rounded-xl border-2 border-[#102A43] bg-white p-6 shadow-[4px_4px_0px_0px_#102A43]">
-        <div className="flex items-center justify-between border-b-2 border-[#102A43] pb-3">
-          <div className="flex items-center gap-1.5">
-            <Lock className="h-4 w-4 text-[#102A43]" />
-            <h2 className="text-xs font-black uppercase tracking-wider text-[#102A43]">
-              Your Secret 4-Digit Handshake PIN
-            </h2>
+    <div className="min-h-screen bg-[#FBFCFF] text-slate-900 pb-28 pt-6 px-4 sm:px-6">
+      <div className="mx-auto max-w-xl space-y-5">
+        {/* Success Header Card */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-3">
+            <CheckCircle2 className="h-8 w-8" />
           </div>
-          <span className="rounded bg-[#FF7AC6] border border-[#102A43] px-2 py-0.5 text-[10px] font-black text-[#102A43]">
-            CRITICAL SAFETY CODE
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-200">
+            Escrow Secured
           </span>
+          <h1 className="mt-2 text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            Meetup Request Dispatched!
+          </h1>
+          <p className="mt-1 text-xs text-slate-500">
+            Booking #{booking?.bookingNumber || "CMP-2026-8941"} is now pending companion acceptance.
+          </p>
         </div>
 
-        <div className="mt-6 flex justify-center gap-3">
-          {pinDigits.map((digit, idx) => (
-            <div
-              key={idx}
-              className="flex h-16 w-14 items-center justify-center rounded-xl border-2 border-[#102A43] bg-[#70D6FF] text-3xl font-black text-[#102A43] shadow-[3px_3px_0px_0px_#102A43]"
+        {/* 4-Digit Secret PIN Card */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-blue-600" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                Secret 4-Digit Handshake PIN
+              </h2>
+            </div>
+            <span className="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700">
+              Safety Code
+            </span>
+          </div>
+
+          <p className="mt-3 text-xs text-slate-500">
+            Share this PIN with your companion <strong>only after meeting in person</strong> at the public venue to initiate the verified session.
+          </p>
+
+          <div className="mt-5 flex items-center justify-center gap-3">
+            {pinDigits.map((digit, i) => (
+              <div
+                key={i}
+                className="flex h-14 w-12 items-center justify-center rounded-xl bg-slate-900 text-2xl font-black text-white shadow-sm font-mono"
+              >
+                {digit}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={handleCopyPin}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
             >
-              {digit}
+              {copied ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>PIN Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5" />
+                  <span>Copy PIN</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* 12-Hour SLA Countdown Card */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-slate-600" />
+              <span className="text-xs font-bold text-slate-800">Host Acceptance Window</span>
             </div>
-          ))}
-        </div>
-
-        <div className="mt-6 rounded-lg border border-[#102A43] bg-[#FFF9E6] p-4 text-xs text-[#334E68]">
-          <p className="font-black text-[#102A43]">Important Meeting Protocol:</p>
-          <ul className="mt-1 list-disc list-inside space-y-1 text-[11px] font-medium">
-            <li>Never disclose this PIN over chat, phone, or messaging apps.</li>
-            <li>Give this 4-digit code to {booking?.companionName || "your companion"} ONLY in person once you sit down together at the venue.</li>
-            <li>Their entry of this PIN starts the session timer and validates that both parties arrived safely.</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* 12-Hour SLA Countdown Card */}
-      <div className="mt-6 rounded-xl border-2 border-[#102A43] bg-white p-6 shadow-[4px_4px_0px_0px_#102A43]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[#102A43]" />
-            <h2 className="text-xs font-black uppercase tracking-wider text-[#102A43]">
-              12-Hour Companion Acceptance SLA
-            </h2>
-          </div>
-          <span className="rounded bg-yellow-100 border border-yellow-400 px-2 py-0.5 text-[10px] font-black text-yellow-800">
-            AUTO-REFUND TIMER
-          </span>
-        </div>
-
-        <div className="mt-4 flex items-center justify-center gap-4 text-center">
-          <div className="rounded-lg border-2 border-[#102A43] bg-[#FFFDF9] px-4 py-2">
-            <div className="text-2xl font-black text-[#102A43]">
-              {String(timeLeft.hours).padStart(2, "0")}
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              <span>
+                {String(timeLeft.hours).padStart(2, "0")}:{String(timeLeft.minutes).padStart(2, "0")}:{String(timeLeft.seconds).padStart(2, "0")}
+              </span>
             </div>
-            <span className="text-[10px] font-bold uppercase text-[#627D98]">Hours</span>
           </div>
-          <span className="text-2xl font-black text-[#102A43]">:</span>
-          <div className="rounded-lg border-2 border-[#102A43] bg-[#FFFDF9] px-4 py-2">
-            <div className="text-2xl font-black text-[#102A43]">
-              {String(timeLeft.minutes).padStart(2, "0")}
-            </div>
-            <span className="text-[10px] font-bold uppercase text-[#627D98]">Mins</span>
-          </div>
-          <span className="text-2xl font-black text-[#102A43]">:</span>
-          <div className="rounded-lg border-2 border-[#102A43] bg-[#FFFDF9] px-4 py-2">
-            <div className="text-2xl font-black text-[#102A43]">
-              {String(timeLeft.seconds).padStart(2, "0")}
-            </div>
-            <span className="text-[10px] font-bold uppercase text-[#627D98]">Secs</span>
-          </div>
+
+          <p className="text-xs text-slate-500 leading-relaxed">
+            The companion has up to 12 hours to review and accept your meetup request. If they decline or do not respond in time, 100% of your escrow payment is instantly refunded back to your source account.
+          </p>
         </div>
 
-        <p className="mt-4 text-center text-xs text-[#627D98]">
-          {booking?.companionName || "The companion"} has 12 hours to accept your request. If they decline or the timer expires, 100% of your ₹{booking?.totalAmount.toFixed(2) || "706.00"} escrow hold is immediately returned to your original payment method.
-        </p>
-      </div>
+        {/* Action Buttons */}
+        <div className="space-y-2.5 pt-2">
+          <Link
+            href={`/chat/${bookingId || "bkg_seed_01"}`}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#101828] hover:bg-black py-3.5 text-xs font-bold text-white shadow-md transition active:scale-[0.99]"
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span>Open In-App Chat with {booking?.companionName || "Companion"}</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
 
-      {/* Meeting Details Summary Card */}
-      <div className="mt-6 rounded-xl border-2 border-[#102A43] bg-white p-6 shadow-[4px_4px_0px_0px_#102A43]">
-        <h2 className="text-xs font-black uppercase tracking-wider text-[#102A43] mb-4">
-          Session Summary
-        </h2>
-        <div className="space-y-3 text-xs font-bold text-[#334E68]">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-[#102A43] flex-shrink-0" />
-            <span>
-              <strong>Venue:</strong> {booking?.venueName || "Blue Tokai Coffee"}, {booking?.venueAddress || "Hauz Khas Village"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-[#102A43] flex-shrink-0" />
-            <span>
-              <strong>Scheduled Time:</strong> {booking?.scheduledDate ? new Date(booking.scheduledDate).toLocaleString() : "Tomorrow, 04:00 PM"} ({booking?.durationHours || 1} Hour)
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-green-600 flex-shrink-0" />
-            <span>
-              <strong>Escrow Hold:</strong> ₹{booking?.totalAmount.toFixed(2) || "706.00"} (Host Payout: ₹{booking?.companionFee.toFixed(2) || "499.00"})
-            </span>
-          </div>
+          <Link
+            href="/explore"
+            className="flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white py-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+          >
+            Explore More Companions
+          </Link>
         </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <Link
-          href={`/app/host/dashboard`}
-          className="flex-1 rounded-xl border-2 border-[#102A43] bg-[#70D6FF] py-3 text-center text-xs font-black uppercase text-[#102A43] shadow-[3px_3px_0px_0px_#102A43] hover:bg-[#5BC5F2]"
-        >
-          View in Host Dashboard (Simulation)
-        </Link>
-        <Link
-          href="/app/dashboard"
-          className="flex-1 rounded-xl border-2 border-[#102A43] bg-white py-3 text-center text-xs font-black uppercase text-[#102A43] shadow-[3px_3px_0px_0px_#102A43] hover:bg-[#F0EDE6]"
-        >
-          Return to Member Dashboard
-        </Link>
       </div>
     </div>
   );

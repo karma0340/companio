@@ -107,8 +107,12 @@ export async function POST(req: NextRequest) {
     const token = await setSessionCookie({
       userId,
       phone: identifier,
+      email: isEmail ? identifier : null,
+      name: name || "Member",
       role: role as any,
       isUnlocked,
+      activePassTier,
+      passExpiresAt: passExpiresAt ? passExpiresAt.toISOString() : null,
     });
 
     return NextResponse.json({

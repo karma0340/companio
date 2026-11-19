@@ -28,9 +28,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid pass tier." }, { status: 400 });
     }
 
+    const rawIdentifier = String(body.email || body.phone || body.identifier || "").trim();
+    const isEmailInput = rawIdentifier.includes("@");
+
     const session = await getSession();
     let userId = session?.userId;
-    let userPhone = session?.phone || phoneInput || "+919999999901";
+    let userPhone = session?.phone || (!isEmailInput && rawIdentifier ? rawIdentifier : "+919999999901");
+    let userEmail = session?.email || (isEmailInput ? rawIdentifier.toLowerCase() : null);
 
     // Calculate expiry date
     const expiryDate = tierOption.durationDays
@@ -38,7 +42,7 @@ export async function POST(req: NextRequest) {
       : null;
 
     try {
-      // 1. Upsert / update user to unlocked state
+      // 1. Upsert / update user to unlocked state in Neon PostgreSQL
       let user;
       if (userId) {
         user = await prisma.user.update({
@@ -47,8 +51,32 @@ export async function POST(req: NextRequest) {
             isUnlocked: true,
             activePassTier: tier as any,
             passExpiresAt: expiryDate,
+            ...(userEmail ? { email: userEmail } : {}),
           },
         });
+      } else if (isEmailInput) {
+        const cleanEmail = rawIdentifier.toLowerCase();
+        const dummyPhone = `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+        user = await prisma.user.upsert({
+          where: { email: cleanEmail },
+          update: {
+            isUnlocked: true,
+            activePassTier: tier as any,
+            passExpiresAt: expiryDate,
+          },
+          create: {
+            email: cleanEmail,
+            phone: dummyPhone,
+            name: "Member",
+            role: "MEMBER",
+            isUnlocked: true,
+            activePassTier: tier as any,
+            passExpiresAt: expiryDate,
+          },
+        });
+        userId = user.id;
+        userEmail = user.email;
+        userPhone = user.phone;
       } else {
         const cleanPhone = userPhone.replace(/[\s-]/g, "");
         const normalized = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
@@ -107,6 +135,7 @@ export async function POST(req: NextRequest) {
     const token = await setSessionCookie({
       userId: userId!,
       phone: userPhone,
+      email: userEmail,
       role: "MEMBER",
       isUnlocked: true,
       activePassTier: tier,

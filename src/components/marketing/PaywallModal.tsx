@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, ShieldCheck, Check, Sparkles, CheckCircle2, Lock } from "lucide-react";
 import { PASS_TIER_OPTIONS } from "@/lib/data";
 import { PassTier } from "@/types";
@@ -36,7 +36,30 @@ export function PaywallModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [unlockedSuccess, setUnlockedSuccess] = useState(false);
   const [agreedPlatonic, setAgreedPlatonic] = useState(true);
-  const [phone, setPhone] = useState("");
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    email?: string | null;
+    phone?: string | null;
+    name?: string | null;
+    isUnlocked?: boolean;
+  } | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+
+  // Check auth session on mount
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/auth/me")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.authenticated && data.user) {
+            setCurrentUser(data.user);
+            if (data.user.email) setEmailInput(data.user.email);
+            else if (data.user.phone) setEmailInput(data.user.phone);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -49,14 +72,26 @@ export function PaywallModal({
       return;
     }
 
+    const effectiveIdentifier = currentUser?.email || currentUser?.phone || emailInput.trim();
+    if (!effectiveIdentifier) {
+      alert("Please enter your email address so your access pass is securely saved to your account.");
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      // 1. Create Order
+      // 1. Create Order with linked account
+      const isEmail = effectiveIdentifier.includes("@");
       const orderRes = await fetch("/api/passes/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier, phone: phone || undefined }),
+        body: JSON.stringify({
+          tier,
+          email: isEmail ? effectiveIdentifier.toLowerCase() : undefined,
+          phone: !isEmail ? effectiveIdentifier : undefined,
+          identifier: effectiveIdentifier,
+        }),
       });
       const orderData = await orderRes.json();
 
@@ -85,7 +120,9 @@ export function PaywallModal({
                     paymentId: response.razorpay_payment_id,
                     signature: response.razorpay_signature,
                     tier,
-                    phone: phone || undefined,
+                    email: isEmail ? effectiveIdentifier.toLowerCase() : undefined,
+                    phone: !isEmail ? effectiveIdentifier : undefined,
+                    identifier: effectiveIdentifier,
                   }),
                 });
                 const verifyData = await verifyRes.json();
@@ -106,7 +143,8 @@ export function PaywallModal({
               },
             },
             prefill: {
-              contact: phone || "",
+              email: isEmail ? effectiveIdentifier.toLowerCase() : "",
+              contact: !isEmail ? effectiveIdentifier : "",
             },
             theme: {
               color: "#101828",
@@ -119,7 +157,7 @@ export function PaywallModal({
         }
       }
 
-      // 3. Zero-config Sandbox Fallback Simulation (instant test mode)
+      // 3. Sandbox Fallback Simulation with account persistence
       const paymentId = `pay_rzp_mock_${Date.now()}`;
       const verifyRes = await fetch("/api/passes/verify-payment", {
         method: "POST",
@@ -128,7 +166,9 @@ export function PaywallModal({
           orderId: orderData.order.orderId,
           paymentId,
           tier,
-          phone: phone || undefined,
+          email: isEmail ? effectiveIdentifier.toLowerCase() : undefined,
+          phone: !isEmail ? effectiveIdentifier : undefined,
+          identifier: effectiveIdentifier,
         }),
       });
       const verifyData = await verifyRes.json();
@@ -337,6 +377,41 @@ export function PaywallModal({
                 <span>Unlimited profile views while your pass lasts</span>
               </div>
             </div>
+
+            {/* Account Binding Card */}
+            {currentUser?.email || currentUser?.phone ? (
+              <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-slate-600">Active Account:</span>
+                  <span className="font-bold text-slate-900">
+                    {currentUser.email || currentUser.phone}
+                  </span>
+                </div>
+                <span className="text-[10px] text-blue-700 font-semibold bg-blue-100 px-2 py-0.5 rounded-full">
+                  Pass Synced
+                </span>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-900">
+                    Your Email or Mobile Number
+                  </label>
+                  <span className="text-[10px] text-blue-600 font-medium">To link pass across devices</span>
+                </div>
+                <input
+                  type="text"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="e.g. you@example.com or 10-digit mobile"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Your pass will be permanently bound to this account in our database so you can log in on any device.
+                </p>
+              </div>
+            )}
 
             {/* Platonic Agreement Checkbox */}
             <label className="flex items-start gap-2.5 pt-2 text-xs text-slate-600 cursor-pointer select-none">

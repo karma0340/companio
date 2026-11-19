@@ -201,14 +201,13 @@ export default function ChatRoomPage() {
         })
       );
     } else {
-      // Fallback to REST API
+      // REST fallback
       try {
         const res = await fetch(`/api/chat/${bookingId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             content: text,
-            senderId: currentUserId,
             senderName: currentUserId === booking?.companionId ? booking?.companionName : "Member",
             senderRole: currentUserId === booking?.companionId ? "COMPANION" : "MEMBER",
           }),
@@ -231,183 +230,196 @@ export default function ChatRoomPage() {
   ];
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-130px)] md:h-[calc(100vh-140px)] max-w-4xl flex-col rounded-xl border-2 border-[#102A43] bg-white shadow-[4px_4px_0px_0px_#102A43]">
-      {/* Top Header Bar */}
-      <div className="flex flex-col justify-between gap-3 border-b-2 border-[#102A43] bg-[#FFF9E6] p-4 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/app/dashboard"
-            className="rounded-md border-2 border-[#102A43] bg-white p-1 text-[#102A43] hover:bg-[#F0EDE6]"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Link>
+    <div className="min-h-screen bg-[#FBFCFF] text-slate-900 pb-28 pt-4 px-2 sm:px-6">
+      <div className="mx-auto flex h-[calc(100dvh-130px)] md:h-[calc(100vh-140px)] max-w-3xl flex-col rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+        {/* Top Header Bar */}
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/explore"
+              className="rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-black text-[#102A43]">
-                {booking?.companionName || "Vanshika Sharma"}
-              </h1>
-              <span className="rounded bg-[#E9FF70] border border-[#102A43] px-2 py-0.2 text-[10px] font-black uppercase text-[#102A43]">
-                CONFIRMED SESSION
-              </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-bold text-slate-900">
+                  {booking?.companionName || "Companion"}
+                </h1>
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">
+                  <ShieldCheck className="h-3 w-3" />
+                  Confirmed
+                </span>
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3 text-slate-400" />
+                  {booking?.venueName || "Public Cafe"}
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-slate-400" />
+                  {booking?.scheduledDate
+                    ? new Date(booking.scheduledDate).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "04:00 PM"}
+                </span>
+              </div>
             </div>
-            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs font-bold text-[#486581]">
-              <span className="flex items-center gap-1">
-                <MapPin className="h-3 w-3 text-[#102A43]" />
-                {booking?.venueName || "Blue Tokai Coffee"}
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3 text-[#102A43]" />
-                {booking?.scheduledDate ? new Date(booking.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "04:00 PM"}
-              </span>
+          </div>
+
+          {/* Connection Status & PIN Pill */}
+          <div className="flex items-center gap-2">
+            <div
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${
+                isConnected
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  : "bg-amber-50 text-amber-800 border-amber-200"
+              }`}
+            >
+              {isConnected ? (
+                <>
+                  <Wifi className="h-3 w-3 text-emerald-600" />
+                  <span>Live</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-3 w-3 text-amber-600" />
+                  <span>REST</span>
+                </>
+              )}
             </div>
+
+            <Link
+              href={`/app/booking/${booking?.companionId || "c-qkk6qfv6"}/success?bookingId=${bookingId}`}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 text-xs font-bold text-slate-800 transition"
+            >
+              <Lock className="h-3 w-3 text-slate-500" />
+              <span>PIN: {booking?.verificationPin || "7492"}</span>
+            </Link>
           </div>
         </div>
 
-        {/* WebSocket Connection Status Pill */}
-        <div className="flex items-center gap-2">
-          <div
-            className={`flex items-center gap-1.5 rounded-full border border-[#102A43] px-2.5 py-1 text-[10px] font-black uppercase ${
-              isConnected
-                ? "bg-green-100 text-green-800"
-                : "bg-yellow-100 text-yellow-800"
-            }`}
-          >
-            {isConnected ? (
-              <>
-                <Wifi className="h-3 w-3 text-green-600" />
-                <span>Live Gateway</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="h-3 w-3 text-yellow-600" />
-                <span>REST Mode</span>
-              </>
-            )}
+        {/* Safety & Contact Shielding Notice Strip */}
+        <div className="flex items-center justify-between border-b border-blue-100 bg-blue-50/70 px-4 py-2 text-[11px] text-blue-900">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-blue-700 shrink-0" />
+            <span className="truncate">
+              Contact Shield Active: Phone numbers and payment handles are automatically shielded for safety.
+            </span>
           </div>
-
-          <Link
-            href={`/app/booking/${booking?.companionId || "comp_01"}/success?bookingId=${bookingId}`}
-            className="rounded-lg border-2 border-[#102A43] bg-[#70D6FF] px-3 py-1 text-xs font-black text-[#102A43] shadow-[2px_2px_0px_0px_#102A43] hover:bg-[#5BC5F2]"
-          >
-            View PIN
-          </Link>
+          <div className="hidden sm:flex items-center gap-1 text-[10px] uppercase font-bold text-blue-700 tracking-wider shrink-0">
+            <Lock className="h-3 w-3" />
+            <span>Monitored</span>
+          </div>
         </div>
-      </div>
 
-      {/* Safety & Contact Shielding Notice Strip */}
-      <div className="flex items-center justify-between border-b-2 border-[#102A43] bg-[#70D6FF]/20 px-4 py-2 text-[11px] font-bold text-[#102A43]">
-        <div className="flex items-center gap-1.5">
-          <ShieldCheck className="h-3.5 w-3.5 text-green-700" />
-          <span>Contact Shielding Active: Phone numbers, external chat links, and UPI IDs are automatically shielded.</span>
-        </div>
-        <div className="hidden sm:flex items-center gap-1 text-[10px] uppercase text-[#627D98]">
-          <Lock className="h-3 w-3" />
-          <span>End-to-End Monitored</span>
-        </div>
-      </div>
+        {/* Message List */}
+        <div className="flex-1 space-y-3.5 overflow-y-auto p-4 bg-[#F8FAFC]">
+          {messages.map((msg) => {
+            const isMe = msg.senderId === currentUserId;
+            const isSystem = msg.senderRole === "SYSTEM";
 
-      {/* Message List */}
-      <div className="flex-1 space-y-4 overflow-y-auto p-4 bg-[#FFFDF9]">
-        {messages.map((msg) => {
-          const isMe = msg.senderId === currentUserId;
-          const isSystem = msg.senderRole === "SYSTEM";
+            if (isSystem) {
+              return (
+                <div
+                  key={msg.id}
+                  className="mx-auto my-2 max-w-md rounded-full bg-slate-100 border border-slate-200/80 px-4 py-1 text-center text-[11px] font-medium text-slate-600"
+                >
+                  {msg.content}
+                </div>
+              );
+            }
 
-          if (isSystem) {
             return (
               <div
                 key={msg.id}
-                className="mx-auto my-3 max-w-lg rounded-xl border-2 border-[#102A43] bg-[#FFF9E6] p-3 text-center text-xs font-bold text-[#102A43] shadow-[2px_2px_0px_0px_#102A43]"
+                className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
               >
-                <div className="flex items-center justify-center gap-1.5 text-[10px] uppercase text-[#627D98] mb-1">
-                  <Info className="h-3 w-3" />
-                  <span>Platform Protocol Notice</span>
+                <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400 mb-0.5 px-1">
+                  <span>{msg.senderName}</span>
+                  <span>•</span>
+                  <span>
+                    {new Date(msg.sentAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                 </div>
-                {msg.content}
+
+                <div
+                  className={`max-w-[80%] rounded-2xl p-3 text-xs leading-relaxed shadow-sm ${
+                    isMe
+                      ? "bg-[#101828] text-white rounded-tr-sm"
+                      : "bg-white text-slate-900 border border-slate-200/80 rounded-tl-sm"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+
+                  {/* Redaction Warning Indicator */}
+                  {msg.isRedacted && (
+                    <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-800">
+                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                      <span>Contact details redacted by safety shield.</span>
+                    </div>
+                  )}
+                </div>
               </div>
             );
-          }
-
-          return (
-            <div
-              key={msg.id}
-              className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
-            >
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#627D98] mb-0.5 px-1">
-                <span>{msg.senderName}</span>
-                <span>•</span>
-                <span>{new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-
-              <div
-                className={`max-w-[80%] rounded-xl border-2 border-[#102A43] p-3.5 text-xs font-bold shadow-[3px_3px_0px_0px_#102A43] ${
-                  isMe
-                    ? "bg-[#E9FF70] text-[#102A43]"
-                    : "bg-white text-[#102A43]"
-                }`}
-              >
-                <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-
-                {/* Redaction Warning Indicator */}
-                {msg.isRedacted && (
-                  <div className="mt-2.5 flex items-center gap-1.5 rounded border border-red-400 bg-red-100 px-2 py-1 text-[10px] font-black text-red-800">
-                    <AlertTriangle className="h-3 w-3 flex-shrink-0" />
-                    <span>Safety Notice: Content redacted by automated contact shield.</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Quick Reply Pills */}
-      <div className="flex gap-1.5 overflow-x-auto border-t-2 border-[#102A43] bg-white px-4 py-2">
-        {quickReplies.map((qr, idx) => (
-          <button
-            key={idx}
-            onClick={() => handleSendMessage(qr)}
-            className="whitespace-nowrap rounded-full border border-[#102A43] bg-[#F0EDE6] px-3 py-1 text-[11px] font-bold text-[#102A43] hover:bg-[#E9FF70] transition"
-          >
-            {qr}
-          </button>
-        ))}
-      </div>
-
-      {/* Pre-Flight Shielding Warning Banner (Appears as user types) */}
-      {preflightWarning && (
-        <div className="flex items-center gap-2 border-t border-yellow-400 bg-yellow-50 px-4 py-2 text-[11px] font-bold text-yellow-900 animate-in fade-in">
-          <AlertTriangle className="h-3.5 w-3.5 text-yellow-700 flex-shrink-0" />
-          <span>{preflightWarning}</span>
+          })}
+          <div ref={messagesEndRef} />
         </div>
-      )}
 
-      {/* Input Form Bar */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSendMessage();
-        }}
-        className="flex items-center gap-2 border-t-2 border-[#102A43] bg-[#FFF9E6] p-3"
-      >
-        <input
-          type="text"
-          placeholder="Coordinate public arrival, table location, or attire..."
-          value={inputContent}
-          onChange={(e) => handleInputChange(e.target.value)}
-          className="flex-1 rounded-xl border-2 border-[#102A43] bg-white px-4 py-2.5 text-xs font-bold text-[#102A43] placeholder-[#9FB3C8] outline-none"
-        />
-        <button
-          type="submit"
-          disabled={!inputContent.trim()}
-          className="flex items-center gap-1.5 rounded-xl border-2 border-[#102A43] bg-[#FF7AC6] px-5 py-2.5 text-xs font-black uppercase text-[#102A43] shadow-[2px_2px_0px_0px_#102A43] hover:bg-[#FF60B7] disabled:opacity-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+        {/* Quick Reply Pills */}
+        <div className="flex gap-1.5 overflow-x-auto border-t border-slate-100 bg-white px-3 py-2">
+          {quickReplies.map((qr, idx) => (
+            <button
+              type="button"
+              key={idx}
+              onClick={() => handleSendMessage(qr)}
+              className="whitespace-nowrap rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200/60 px-3 py-1 text-[11px] font-medium text-slate-700 transition shrink-0"
+            >
+              {qr}
+            </button>
+          ))}
+        </div>
+
+        {/* Pre-Flight Shielding Warning Banner */}
+        {preflightWarning && (
+          <div className="flex items-center gap-2 border-t border-amber-200 bg-amber-50 px-4 py-2 text-[11px] font-medium text-amber-900 animate-in fade-in">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+            <span>{preflightWarning}</span>
+          </div>
+        )}
+
+        {/* Input Form Bar */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSendMessage();
+          }}
+          className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
         >
-          <Send className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Send</span>
-        </button>
-      </form>
+          <input
+            type="text"
+            placeholder="Coordinate public arrival, table location, or attire..."
+            value={inputContent}
+            onChange={(e) => handleInputChange(e.target.value)}
+            className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+          />
+          <button
+            type="submit"
+            disabled={!inputContent.trim()}
+            className="flex items-center gap-1.5 rounded-xl bg-[#101828] hover:bg-black px-4 py-2.5 text-xs font-bold text-white shadow-sm transition active:scale-95 disabled:opacity-40"
+          >
+            <Send className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Send</span>
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

@@ -18,20 +18,33 @@ export async function POST(req: NextRequest) {
 
     const session = await getSession();
     let userId = session?.userId;
+    const rawInput = String(body.email || body.phone || body.identifier || "").trim();
 
-    // If guest checkout, upsert user by phone
-    if (!userId && guestPhone) {
-      const cleanPhone = guestPhone.replace(/[\s-]/g, "");
-      const normalizedPhone = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
+    // If guest checkout with identifier, upsert user by email or phone
+    if (!userId && rawInput) {
+      const isEmail = rawInput.includes("@");
       try {
-        const user = await prisma.user.upsert({
-          where: { phone: normalizedPhone },
-          update: {},
-          create: { phone: normalizedPhone, name: "Member", role: "MEMBER" },
-        });
-        userId = user.id;
+        if (isEmail) {
+          const cleanEmail = rawInput.toLowerCase();
+          const dummyPhone = `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+          const user = await prisma.user.upsert({
+            where: { email: cleanEmail },
+            update: {},
+            create: { email: cleanEmail, phone: dummyPhone, name: "Member", role: "MEMBER" },
+          });
+          userId = user.id;
+        } else {
+          const cleanPhone = rawInput.replace(/[\s-]/g, "");
+          const normalizedPhone = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
+          const user = await prisma.user.upsert({
+            where: { phone: normalizedPhone },
+            update: {},
+            create: { phone: normalizedPhone, name: "Member", role: "MEMBER" },
+          });
+          userId = user.id;
+        }
       } catch (e) {
-        userId = `guest_${Date.now()}`;
+        console.warn("[PASS ORDER USER UPSERT WARNING]:", (e as Error).message);
       }
     }
 
@@ -40,7 +53,12 @@ export async function POST(req: NextRequest) {
       amountInPaise,
       "INR",
       `pass_${Date.now()}`,
-      { tier, userId: userId || "guest" }
+      {
+        tier,
+        userId: userId || "guest",
+        email: session?.email || (rawInput.includes("@") ? rawInput.toLowerCase() : ""),
+        phone: session?.phone || (!rawInput.includes("@") ? rawInput : ""),
+      }
     );
 
     const orderId = rzpResult.orderId;
