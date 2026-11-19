@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, ShieldCheck, Check, Sparkles, CheckCircle2, Lock } from "lucide-react";
 import { PASS_TIER_OPTIONS } from "@/lib/data";
 import { PassTier } from "@/types";
+import { validateIndianMobileNumber } from "@/lib/phone";
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -74,8 +75,16 @@ export function PaywallModal({
 
     const effectiveIdentifier = currentUser?.email || currentUser?.phone || emailInput.trim();
     if (!effectiveIdentifier) {
-      alert("Please enter your email address so your access pass is securely saved to your account.");
+      alert("Please enter your email or 10-digit mobile number so your pass is securely linked to your account.");
       return;
+    }
+
+    if (!currentUser && !effectiveIdentifier.includes("@")) {
+      const phoneCheck = validateIndianMobileNumber(effectiveIdentifier);
+      if (!phoneCheck.isValid) {
+        alert(phoneCheck.error || "Please enter a valid 10-digit Indian mobile number.");
+        return;
+      }
     }
 
     setIsProcessing(true);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateAndStoreOtp, TEST_SANDBOX_PHONES } from "@/lib/otp-store";
+import { generateAndStoreOtp } from "@/lib/otp-store";
 import { sendSmsOtp } from "@/lib/sms";
+import { validateIndianMobileNumber } from "@/lib/phone";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,15 +28,14 @@ export async function POST(req: NextRequest) {
       }
       identifier = rawInput.toLowerCase();
     } else {
-      const cleanPhone = rawInput.replace(/[\s-]/g, "");
-      const isValidIndianPhone = /^(?:\+91)?[6-9]\d{9}$/.test(cleanPhone);
-      if (!isValidIndianPhone) {
+      const phoneValidation = validateIndianMobileNumber(rawInput);
+      if (!phoneValidation.isValid) {
         return NextResponse.json(
-          { success: false, error: "Please enter a valid 10-digit mobile number or email address." },
+          { success: false, error: phoneValidation.error || "Please enter a valid 10-digit Indian mobile number." },
           { status: 400 }
         );
       }
-      identifier = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
+      identifier = phoneValidation.e164;
     }
 
     const code = generateAndStoreOtp(identifier);
@@ -49,8 +49,7 @@ export async function POST(req: NextRequest) {
 
     const isSandboxOrDev =
       process.env.NODE_ENV !== "production" ||
-      smsResult?.isMock ||
-      TEST_SANDBOX_PHONES.has(identifier);
+      Boolean(smsResult?.isMock);
 
     return NextResponse.json({
       success: true,

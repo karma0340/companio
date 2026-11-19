@@ -11,21 +11,12 @@ interface OtpEntry {
 // In-memory phone -> OtpEntry map
 const otpMap = new Map<string, OtpEntry>();
 
-// Designated sandbox test phone numbers for automated testing and zero-SMS evaluation
-export const TEST_SANDBOX_PHONES = new Set([
-  "+919811223399",
-  "+919999999901",
-  "+919999999902",
-  "+919999999999",
-]);
-
 export function generateAndStoreOtp(phone: string): string {
   // Clean phone number (Indian format)
   const cleanPhone = phone.replace(/[\s-]/g, "");
-  
-  // In development, sandbox mode, or for designated test numbers, use static "123456"
-  const isDevOrTest = process.env.NODE_ENV !== "production" || TEST_SANDBOX_PHONES.has(cleanPhone);
-  const code = isDevOrTest ? "123456" : Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Generate authentic random 6-digit OTP
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
 
   otpMap.set(cleanPhone, {
     code,
@@ -56,8 +47,7 @@ export function verifyOtp(phone: string, submittedCode: string): { success: bool
 
   entry.attempts += 1;
 
-  const isTestBypass = TEST_SANDBOX_PHONES.has(cleanPhone) && submittedCode.trim() === "123456";
-  if (entry.code !== submittedCode.trim() && !isTestBypass) {
+  if (entry.code !== submittedCode.trim()) {
     return { success: false, error: "Incorrect OTP. Please check the code and try again." };
   }
 
@@ -65,4 +55,3 @@ export function verifyOtp(phone: string, submittedCode: string): { success: bool
   otpMap.delete(cleanPhone);
   return { success: true };
 }
-

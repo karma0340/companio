@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { validateIndianMobileNumber } from "@/lib/phone";
 import {
   ChevronLeft,
   ShieldCheck,
@@ -49,6 +50,15 @@ export default function CompanionApplyPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (step === 1) {
+      const phoneCheck = validateIndianMobileNumber(formData.phone);
+      if (!phoneCheck.isValid) {
+        alert(phoneCheck.error || "Please enter a valid 10-digit Indian mobile number.");
+        return;
+      }
+    }
+
     if (step < 3) {
       setStep(step + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -169,16 +179,25 @@ export default function CompanionApplyPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Mobile Number
+                        Mobile Number (+91 India)
                       </label>
-                      <input
-                        type="tel"
-                        required
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="e.g. 9876543210"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
-                      />
+                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50/70 overflow-hidden focus-within:bg-white focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-500/20 transition">
+                        <span className="bg-slate-100 px-3 py-2.5 text-xs font-bold text-slate-700 border-r border-slate-200 select-none">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          required
+                          maxLength={10}
+                          value={formData.phone}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                            setFormData({ ...formData, phone: val });
+                          }}
+                          placeholder="9812345678"
+                          className="w-full px-3 py-2 bg-transparent text-xs text-slate-900 focus:outline-none"
+                        />
+                      </div>
                     </div>
 
                     <div>
