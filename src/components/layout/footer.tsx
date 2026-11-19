@@ -93,6 +93,21 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 font-display text-xs font-bold text-ink-soft">
               <li>
+                <Link href="/about" className="hover:text-lavender hover:underline">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/membership" className="hover:text-lavender hover:underline">
+                  Membership Passes
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-lavender hover:underline">
+                  Contact &amp; Grievance
+                </Link>
+              </li>
+              <li>
                 <Link href="/how-it-works" className="hover:text-lavender hover:underline">
                   How It Works
                 </Link>
@@ -148,9 +163,7 @@ export function Footer() {
           </div>
 
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border-brutal-sm shadow-brutal-sm text-ink">
-            <span>Crafted with</span>
-            <Heart className="h-3.5 w-3.5 text-danger fill-danger" />
-            <span>in India 🇮🇳</span>
+            <span>Crafted with care in India</span>
           </div>
         </div>
       </div>

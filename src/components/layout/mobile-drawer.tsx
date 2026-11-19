@@ -89,6 +89,18 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
             <ArrowRight className="h-4 w-4" />
           </Link>
 
+          <Link
+            href="/membership"
+            onClick={onClose}
+            className="flex items-center justify-between rounded-xl border-brutal bg-white p-3.5 shadow-brutal-sm btn-press text-ink"
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-ink" />
+              <span>Membership Passes</span>
+            </div>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+
           {isAuthenticated && (
             <>
               <Link

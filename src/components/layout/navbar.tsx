@@ -73,6 +73,9 @@ export function Navbar() {
             <Link href="/explore" className="hover:text-lavender transition-colors">
               Explore
             </Link>
+            <Link href="/membership" className="hover:text-lavender transition-colors">
+              Membership
+            </Link>
             <Link href="/how-it-works" className="hover:text-lavender transition-colors">
               How It Works
             </Link>

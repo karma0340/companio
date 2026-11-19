@@ -1,148 +1,214 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mail, ShieldAlert, Wrench, CreditCard, HelpCircle, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Mail, ShieldAlert, CreditCard, HelpCircle, CheckCircle2, Phone, MapPin, Send } from "lucide-react";
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 
 export default function ContactPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("payment");
   const [isSent, setIsSent] = useState<boolean>(false);
-  const [form, setForm] = useState({ name: "", phone: "", message: "" });
+  const [loading, setLoading] = useState<boolean>(false);
+  const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
 
   const categories = [
-    { id: "safety", title: "Report a safety problem", icon: ShieldAlert, desc: "Harassment, inappropriate conduct, or emergency reports" },
-    { id: "tech", title: "Something isn't working", icon: Wrench, desc: "Sign-in, photo upload issues, or page crashes" },
-    { id: "payment", title: "Credits or a payment", icon: CreditCard, desc: "Pass activation, wallet cashout, refund requests" },
-    { id: "general", title: "Help using Companio", icon: HelpCircle, desc: "Booking rules, becoming a host, account details" },
+    { id: "payment", label: "Escrow & Payments", icon: CreditCard },
+    { id: "safety", label: "Safety & Grievance", icon: ShieldAlert },
+    { id: "verification", label: "Host Verification & KYC", icon: CheckCircle2 },
+    { id: "general", label: "General Inquiry", icon: HelpCircle },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSent(true);
+    setLoading(true);
+
+    // Simulated support ticket dispatch
+    setTimeout(() => {
+      setLoading(false);
+      setIsSent(true);
+    }, 600);
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-3 py-1 text-xs font-semibold text-[#D4AF37]">
-          <Mail className="h-3.5 w-3.5" />
-          <span>Support & Statutory Grievance Redressal</span>
-        </div>
-        <h1 className="mt-4 font-serif text-4xl font-extrabold text-white sm:text-5xl">
-          Contact Us
-        </h1>
-        <p className="mt-3 text-sm text-[#8E8E93] max-w-md mx-auto">
-          Choose a topic below to ensure your message reaches the appropriate support desk.
-        </p>
-      </div>
+    <div className="min-h-screen bg-paper text-ink font-sans flex flex-col justify-between">
+      <Navbar />
 
-      {/* Category Selector Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 mb-10">
-        {categories.map((cat) => {
-          const Icon = cat.icon;
-          const isSelected = selectedCategory === cat.id;
-          return (
-            <div
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`cursor-pointer rounded-2xl border p-5 transition ${
-                isSelected
-                  ? "border-[#D4AF37] bg-[#1A1A1A] shadow-md shadow-[#D4AF37]/10"
-                  : "border-[#262626] bg-[#121212] hover:border-[#383838]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Icon className={`h-5 w-5 ${isSelected ? "text-[#D4AF37]" : "text-[#8E8E93]"}`} />
-                <h3 className="font-serif text-base font-bold text-white">{cat.title}</h3>
-              </div>
-              <p className="mt-2 text-xs text-[#8E8E93] leading-relaxed">{cat.desc}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Contact Form */}
-      <div className="rounded-2xl border border-[#262626] bg-[#121212] p-8">
-        {isSent ? (
-          <div className="py-8 text-center">
-            <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
-            <h3 className="mt-3 font-serif text-xl font-bold text-white">Ticket Submitted Successfully</h3>
-            <p className="mt-2 text-xs text-[#8E8E93]">
-              Your support ticket reference #TKT-{Date.now().toString().slice(-6)} has been created. A support officer will respond via SMS/email within 24 hours.
+      <main className="flex-1 py-14 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl space-y-10">
+          {/* Header */}
+          <div className="border-brutal shadow-brutal bg-sunny p-8 sm:p-12 text-center">
+            <span className="inline-block border-2 border-ink bg-white px-3 py-1 text-xs font-black uppercase tracking-wider mb-4">
+              24/7 Support Desk
+            </span>
+            <h1 className="text-3xl sm:text-5xl font-black uppercase text-ink tracking-tight">
+              Contact &amp; Grievance Redressal
+            </h1>
+            <p className="mt-3 text-xs sm:text-sm font-bold text-ink/80 max-w-xl mx-auto">
+              Need assistance with an escrow booking, verification, or community safety concern? Our operations desk responds within 24 hours.
             </p>
-            <button
-              onClick={() => {
-                setIsSent(false);
-                setForm({ name: "", phone: "", message: "" });
-              }}
-              className="mt-6 rounded-full border border-[#333] px-6 py-2 text-xs font-semibold text-white hover:bg-[#202020]"
-            >
-              Submit another inquiry
-            </button>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs font-semibold text-[#8E8E93]">Your Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Aditya Mehta"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-[#2B2B2B] bg-[#181818] px-4 py-2.5 text-xs text-white placeholder-[#555] outline-none focus:border-[#D4AF37]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#8E8E93]">Registered Mobile Number</label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="+91 99XXXXXXXX"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="mt-1.5 w-full rounded-xl border border-[#2B2B2B] bg-[#181818] px-4 py-2.5 text-xs text-white placeholder-[#555] outline-none focus:border-[#D4AF37]"
-                />
-              </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Contact Form */}
+            <div className="md:col-span-2 border-brutal shadow-brutal bg-white p-6 sm:p-8">
+              {isSent ? (
+                <div className="py-12 text-center space-y-4">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center border-3 border-ink bg-lime shadow-brutal">
+                    <CheckCircle2 className="h-8 w-8 text-ink" />
+                  </div>
+                  <h2 className="text-2xl font-black uppercase text-ink">Ticket Dispatched</h2>
+                  <p className="text-xs font-bold text-ink/70 max-w-sm mx-auto">
+                    Your inquiry has been submitted. Reference ID #TIC-{Date.now().toString().slice(-6)}. A trust officer will reach out via email shortly.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSent(false);
+                      setForm({ name: "", phone: "", email: "", message: "" });
+                    }}
+                    className="border-2 border-ink bg-ink px-6 py-2.5 text-xs font-black uppercase text-white shadow-brutal btn-press"
+                  >
+                    Send Another Message
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Category Selector */}
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-ink mb-2">
+                      Topic Category
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {categories.map((cat) => {
+                        const Icon = cat.icon;
+                        const isSelected = selectedCategory === cat.id;
+                        return (
+                          <button
+                            type="button"
+                            key={cat.id}
+                            onClick={() => setSelectedCategory(cat.id)}
+                            className={`flex items-center gap-2 border-2 border-ink p-3 text-left transition ${
+                              isSelected
+                                ? "bg-lime font-black shadow-brutal"
+                                : "bg-paper font-bold hover:bg-black/5"
+                            }`}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="text-xs truncate">{cat.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-black uppercase text-ink mb-1">
+                        Your Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Rahul Sharma"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black uppercase text-ink mb-1">
+                        Mobile Number
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+91 98765 43210"
+                        value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black uppercase text-ink mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="you@domain.com"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black uppercase text-ink mb-1">
+                      Message Details
+                    </label>
+                    <textarea
+                      rows={4}
+                      required
+                      placeholder="Please provide complete context regarding your meetup ID, transaction reference, or inquiry..."
+                      value={form.message}
+                      onChange={(e) => setForm({ ...form, message: e.target.value })}
+                      className="w-full border-2 border-ink bg-paper p-3.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full border-2 border-ink bg-ink py-3.5 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    <span>{loading ? "Submitting Ticket..." : "Submit Support Ticket"}</span>
+                  </button>
+                </form>
+              )}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#8E8E93]">Message or Complaint Details</label>
-              <textarea
-                required
-                rows={4}
-                placeholder="Please describe your issue with specific booking IDs, payment IDs, or questions..."
-                value={form.message}
-                onChange={(e) => setForm({ ...form, message: e.target.value })}
-                className="mt-1.5 w-full rounded-xl border border-[#2B2B2B] bg-[#181818] px-4 py-2.5 text-xs text-white placeholder-[#555] outline-none focus:border-[#D4AF37]"
-              />
+            {/* Statutory Grievance Officer & Contact Cards */}
+            <div className="space-y-6">
+              <div className="border-brutal shadow-brutal bg-white p-6 space-y-3">
+                <span className="border border-ink bg-sunny px-2 py-0.5 text-[10px] font-black uppercase">
+                  IT Rules 2021 Compliance
+                </span>
+                <h3 className="text-sm font-black uppercase text-ink">Grievance Officer</h3>
+                <div className="text-xs font-bold text-ink/80 space-y-1">
+                  <p>Officer: Mohit Tyagi</p>
+                  <p>Designation: Grievance Redressal Officer</p>
+                  <p>Email: <a href="mailto:grievance@companio.in" className="underline">grievance@companio.in</a></p>
+                  <p>Response SLA: Within 24-48 hours</p>
+                </div>
+              </div>
+
+              <div className="border-brutal shadow-brutal bg-white p-6 space-y-3">
+                <h3 className="text-sm font-black uppercase text-ink">Registered Office</h3>
+                <div className="text-xs font-bold text-ink/80 space-y-1">
+                  <p>TRYCOMPANIOLABS LLP</p>
+                  <p>DPT 808B, DLF Prime Tower</p>
+                  <p>Okhla Phase-I, New Delhi – 110020</p>
+                  <p>LLPIN: ACY-1464</p>
+                </div>
+              </div>
+
+              <div className="border-brutal shadow-brutal bg-lime p-6">
+                <h3 className="text-xs font-black uppercase text-ink">Urgent Safety Assistance</h3>
+                <p className="mt-1 text-xs font-bold text-ink/80">
+                  For active in-person emergency situations, dial 112 directly or use the in-app SOS button on your session screen.
+                </p>
+              </div>
             </div>
-
-            <button
-              type="submit"
-              className="w-full sm:w-auto rounded-full bg-[#D4AF37] px-8 py-3 text-xs font-bold text-black hover:bg-[#E5C158] transition"
-            >
-              Submit Ticket to Support Team
-            </button>
-          </form>
-        )}
-      </div>
-
-      {/* Statutory Grievance Redressal Card */}
-      <div className="mt-12 rounded-2xl border border-[#262626] bg-[#0A0A0A] p-6 text-xs text-[#8E8E93]">
-        <div className="font-serif text-sm font-bold text-white mb-2">
-          Statutory Grievance Redressal Officer
+          </div>
         </div>
-        <p className="leading-relaxed">
-          In compliance with the Information Technology Act, 2000 and the Digital Personal Data Protection Act, 2023, the details of our Grievance Redressal Officer are published below:
-        </p>
-        <div className="mt-3 grid gap-1 text-[#BBB]">
-          <div><strong className="text-white">Officer Name:</strong> Suraj Choudhary</div>
-          <div><strong className="text-white">Entity:</strong> Companio Labs Operations Hub, Jaipur, Rajasthan</div>
-          <div><strong className="text-white">Email:</strong> grievance@trycompanio.in</div>
-          <div><strong className="text-white">SLA:</strong> Grievances acknowledged within 24 hours and resolved within 15 business days.</div>
-        </div>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }
