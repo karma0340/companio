@@ -87,7 +87,8 @@ export default function WalletPage() {
 
   useEffect(() => {
     const code = wallet?.referral.code || user?.referralCode || 'JOIN';
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://companio-eight.vercel.app';
+    const fallbackDomain = process.env.NEXT_PUBLIC_APP_URL || 'https://meetzy.club';
+    const origin = typeof window !== 'undefined' ? window.location.origin : fallbackDomain;
     setReferralLink(`${origin}/?ref=${code}`);
   }, [wallet?.referral.code, user?.referralCode]);
 
