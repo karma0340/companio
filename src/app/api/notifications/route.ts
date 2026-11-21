@@ -3,6 +3,8 @@ import { getSession } from "@/lib/session";
 import { getUserNotifications } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
