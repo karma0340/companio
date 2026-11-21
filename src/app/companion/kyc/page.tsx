@@ -371,8 +371,8 @@ export default function HostKYCPage() {
                         maxLength={14}
                         value={watch('aadhaarNumber')}
                         onChange={handleAadhaarChange}
-                        placeholder="XXXX XXXX XXXX"
-                        className={`w-full rounded-xl border-brutal bg-white px-3.5 py-3 font-mono text-sm sm:text-base font-bold tracking-wider text-ink placeholder:text-ink-muted/50 focus:outline-none focus:shadow-brutal ${
+                        placeholder="Enter Aadhaar number"
+                        className={`w-full rounded-xl border-brutal bg-white px-3.5 py-3 font-mono text-sm sm:text-base font-bold tracking-wider text-ink placeholder:text-ink-muted/50 placeholder:font-sans placeholder:font-medium placeholder:tracking-normal placeholder:text-xs sm:placeholder:text-sm focus:outline-none focus:shadow-brutal ${
                           aadhaarRawDigits.length === 12 ? 'border-emerald-700 bg-emerald-50/20' : ''
                         }`}
                       />

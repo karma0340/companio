@@ -810,10 +810,10 @@ function CompanionApplyForm() {
                           type={showMaskedAadhaar ? "password" : "text"}
                           required
                           maxLength={14}
-                          placeholder="8928 7787 1153"
+                          placeholder="Enter Aadhaar number"
                           value={showMaskedAadhaar && rawAadhaarDigits.length === 12 ? aadhaarValidation.masked : formattedAadhaar}
                           onChange={handleAadhaarChange}
-                          className="w-full border-2 border-ink bg-white px-4 py-3 pr-28 text-base sm:text-lg font-mono font-black tracking-widest text-ink placeholder:text-ink/30 focus:outline-none"
+                          className="w-full border-2 border-ink bg-white px-4 py-3 pr-28 text-base sm:text-lg font-mono font-black tracking-widest text-ink placeholder:text-ink/40 placeholder:font-sans placeholder:font-medium placeholder:tracking-normal placeholder:text-xs sm:placeholder:text-sm focus:outline-none"
                         />
                         <button
                           type="button"
