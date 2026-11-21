@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, MapPin, Navigation, Loader2 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
@@ -20,16 +20,32 @@ interface OnboardingFormValues {
   area: string;
   bio: string;
   emergencyContact: string;
+  referralCode?: string;
 }
+
+const POPULAR_QUICK_CITIES = [
+  { slug: 'chandigarh', label: 'Chandigarh' },
+  { slug: 'mohali', label: 'Mohali' },
+  { slug: 'bengaluru', label: 'Bengaluru' },
+  { slug: 'delhi', label: 'Delhi NCR' },
+  { slug: 'mumbai', label: 'Mumbai' },
+  { slug: 'pune', label: 'Pune' },
+  { slug: 'hyderabad', label: 'Hyderabad' },
+];
 
 export default function MemberOnboardingPage() {
   const router = useRouter();
   const toast = useToast();
   const { user, refreshSession } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [locationDetected, setLocationDetected] = useState<{
+    cityName: string;
+    area: string;
+  } | null>(null);
   const [selectedGender, setSelectedGender] = useState<GenderType>('female');
 
-  const { register, handleSubmit, setValue } = useForm<OnboardingFormValues>({
+  const { register, handleSubmit, setValue, watch } = useForm<OnboardingFormValues>({
     defaultValues: {
       fullName: '',
       gender: 'female',
@@ -37,12 +53,89 @@ export default function MemberOnboardingPage() {
       area: '',
       bio: '',
       emergencyContact: '',
+      referralCode: '',
     },
   });
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedRef = localStorage.getItem('companio_referral_code');
+      if (savedRef) {
+        setValue('referralCode', savedRef.toUpperCase());
+      }
+    }
+  }, [setValue]);
+
+  const currentCity = watch('city');
 
   const handleGenderSelect = (gender: 'female' | 'male') => {
     setSelectedGender(gender);
     setValue('gender', gender);
+  };
+
+  const handleQuickCitySelect = (slug: string) => {
+    setValue('city', slug, { shouldValidate: true });
+    setLocationDetected(null);
+  };
+
+  const handleDetectLiveLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser.', 'Location Error');
+      return;
+    }
+
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          const res = await fetch(`/api/location/detect?lat=${lat}&lng=${lng}`);
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            setValue('city', data.city, { shouldValidate: true });
+            if (data.area) {
+              setValue('area', data.area, { shouldValidate: true });
+            }
+            setLocationDetected({
+              cityName: data.cityName,
+              area: data.area || '',
+            });
+            toast.success(
+              `Live location set to ${data.cityName}${data.area ? ` (${data.area})` : ''}`,
+              'Location Detected'
+            );
+          } else {
+            toast.error(
+              'Could not pinpoint exact city from coordinates. Please select your city below.',
+              'Location Check'
+            );
+          }
+        } catch {
+          toast.error(
+            'Unable to resolve coordinates. Please select your city manually.',
+            'Location Error'
+          );
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (err) => {
+        setDetectingLocation(false);
+        let errorMsg = 'Please allow location permission in your browser or select your city manually.';
+        if (err.code === 1) {
+          errorMsg = 'Location permission denied. Please enable location access or select manually.';
+        }
+        toast.error(errorMsg, 'Location Permission');
+      },
+      {
+        timeout: 8000,
+        enableHighAccuracy: true,
+        maximumAge: 60000,
+      }
+    );
   };
 
   const onSubmit = async (data: OnboardingFormValues) => {
@@ -102,7 +195,7 @@ export default function MemberOnboardingPage() {
 
       await refreshSession();
       toast.success('Your profile is ready! Welcome to Togethr.', 'Profile Completed');
-      router.push('/profile');
+      router.push('/explore');
     } catch (err) {
       const isNetwork = typeof navigator !== 'undefined' && (!navigator.onLine || (err instanceof Error && err.message.toLowerCase().includes('fetch')));
       const friendlyMessage = isNetwork
@@ -124,6 +217,9 @@ export default function MemberOnboardingPage() {
             <div className="flex items-center justify-center sm:justify-start gap-2">
               <Badge variant="lime" size="sm">
                 Profile Setup
+              </Badge>
+              <Badge variant="sunny" size="sm">
+                +100 Coins Active
               </Badge>
             </div>
 
@@ -192,34 +288,96 @@ export default function MemberOnboardingPage() {
               </span>
             </div>
 
-            {/* City & Area */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="block font-display text-xs font-black uppercase text-ink">
-                  Your City
-                </label>
-                <select
-                  {...register('city')}
-                  className="w-full rounded-xl border-brutal bg-white px-3.5 py-3 font-display text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
+            {/* Live Location / City Section */}
+            <div className="space-y-3 rounded-2xl border-2 border-ink bg-paper/60 p-4 shadow-brutal-xs">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 font-display text-xs font-black uppercase text-ink">
+                  <MapPin className="h-4 w-4 text-ink shrink-0" />
+                  <span>Your Location</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDetectLiveLocation}
+                  disabled={detectingLocation}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-ink bg-[#D4F7A5] hover:bg-[#c3ec8d] font-display text-xs font-black text-ink shadow-brutal-xs active:scale-95 transition-all cursor-pointer disabled:opacity-60"
                 >
-                  {CITIES.map((c) => (
-                    <option key={c.slug} value={c.slug}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  {detectingLocation ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-ink" />
+                      <span>Detecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="h-3.5 w-3.5 text-ink" />
+                      <span>Detect Live Location</span>
+                    </>
+                  )}
+                </button>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block font-display text-xs font-black uppercase text-ink">
-                  Your Area
-                </label>
-                <input
-                  type="text"
-                  {...register('area')}
-                  placeholder="e.g. Indiranagar, HSR, Bandra"
-                  className="w-full rounded-xl border-brutal bg-paper-deep/30 px-3.5 py-3 font-display text-sm font-bold text-ink focus:bg-white focus:outline-none focus:shadow-brutal"
-                />
+              {locationDetected && (
+                <div className="flex items-center gap-2 rounded-xl border border-ink bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 animate-in fade-in">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+                  <span>
+                    Detected: {locationDetected.cityName}
+                    {locationDetected.area ? ` (${locationDetected.area})` : ''}
+                  </span>
+                </div>
+              )}
+
+              {/* Quick-tap City Pills */}
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-ink-muted">
+                  Quick Select City:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {POPULAR_QUICK_CITIES.map((c) => (
+                    <button
+                      key={c.slug}
+                      type="button"
+                      onClick={() => handleQuickCitySelect(c.slug)}
+                      className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                        currentCity === c.slug
+                          ? 'border-ink bg-ink text-paper shadow-brutal-xs'
+                          : 'border-ink/30 bg-white text-ink hover:border-ink hover:bg-paper-deep'
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* City Dropdown & Area Input */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1.5">
+                  <label className="block font-display text-[11px] font-black uppercase text-ink">
+                    City Dropdown
+                  </label>
+                  <select
+                    {...register('city')}
+                    className="w-full rounded-xl border-brutal bg-white px-3 py-2.5 font-display text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
+                  >
+                    {CITIES.map((c) => (
+                      <option key={c.slug} value={c.slug}>
+                        {c.name} ({c.state})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block font-display text-[11px] font-black uppercase text-ink">
+                    Neighbourhood / Area
+                  </label>
+                  <input
+                    type="text"
+                    {...register('area')}
+                    placeholder="e.g. Sector 17, Phase 7, Indiranagar"
+                    className="w-full rounded-xl border-brutal bg-white px-3 py-2.5 font-display text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
+                  />
+                </div>
               </div>
             </div>
 
@@ -249,26 +407,41 @@ export default function MemberOnboardingPage() {
                   type="tel"
                   maxLength={10}
                   {...register('emergencyContact')}
-                  placeholder="Enter 10-digit number"
+                  placeholder="10-digit mobile number"
                   className="w-full rounded-xl border-brutal bg-paper-deep/30 pl-12 pr-4 py-3 font-mono text-sm font-bold text-ink focus:bg-white focus:outline-none focus:shadow-brutal"
                 />
               </div>
               <span className="text-[11px] text-ink-muted">
-                Kept strictly private and only used in emergencies.
+                Kept strictly confidential. Used only if SOS is triggered during a meetup.
               </span>
             </div>
 
-            <div className="pt-2">
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                fullWidth
-                disabled={submitting}
-              >
-                <span>{submitting ? 'Saving your details...' : 'Save & Continue →'}</span>
-              </Button>
+            {/* Referral Code */}
+            <div className="space-y-1.5">
+              <label className="block font-display text-xs font-black uppercase text-ink">
+                Referral Code (Optional)
+              </label>
+              <input
+                type="text"
+                maxLength={10}
+                {...register('referralCode')}
+                placeholder="e.g. HLTCC8QF"
+                className="w-full rounded-xl border-brutal bg-paper-deep/30 px-3.5 py-3 font-mono text-sm font-bold text-ink uppercase focus:bg-white focus:outline-none focus:shadow-brutal"
+              />
+              <span className="text-[11px] text-ink-muted">
+                Were you invited by a friend? Enter their referral code so they earn 100 coins after your first meetup!
+              </span>
             </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              disabled={submitting}
+            >
+              {submitting ? 'Saving Profile...' : 'Complete Profile & Explore Companions →'}
+            </Button>
           </form>
         </div>
       </main>

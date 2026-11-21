@@ -27,7 +27,15 @@ export async function fetchLiveBookings(filter?: {
 }): Promise<BookingDisplayItem[]> {
   try {
     const where: any = {};
-    if (filter?.memberPhone) {
+    if (filter?.memberId && filter?.memberPhone) {
+      const cleanPhone = `+91${filter.memberPhone.replace(/\D/g, '').slice(-10)}`;
+      where.OR = [
+        { memberId: filter.memberId },
+        { member: { phone: cleanPhone } },
+      ];
+    } else if (filter?.memberId) {
+      where.memberId = filter.memberId;
+    } else if (filter?.memberPhone) {
       const cleanPhone = `+91${filter.memberPhone.replace(/\D/g, '').slice(-10)}`;
       where.member = { phone: cleanPhone };
     }
@@ -72,6 +80,7 @@ export async function fetchLiveBookings(filter?: {
         if (b.status === 'IN_PROGRESS') displayStatus = 'Active Meetup In Progress';
         else if (b.status === 'COMPLETED') displayStatus = 'Completed';
         else if (b.status === 'CANCELLED') displayStatus = 'Cancelled & Refunded';
+        else if (b.status === 'PENDING_ACCEPTANCE') displayStatus = 'Pending Acceptance';
 
         const rawStatus = b.status?.toLowerCase() || 'confirmed';
 
@@ -85,7 +94,7 @@ export async function fetchLiveBookings(filter?: {
           date: b.scheduledDate ? new Date(b.scheduledDate).toISOString().split('T')[0] : 'Today',
           time: b.scheduledDate ? new Date(b.scheduledDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '16:00',
           duration: `${b.durationHours || 1} Hour${(b.durationHours || 1) > 1 ? 's' : ''}`,
-          meetingPoint: b.venueAddress || b.venueName || 'Starbucks, Indiranagar',
+          meetingPoint: b.venueAddress || b.venueName || 'Public Venue',
           startCode: b.verificationPin || '7492',
           escrowAmount: Number(b.totalAmount || 1199),
           status: displayStatus,

@@ -179,15 +179,20 @@ export async function POST(req: NextRequest) {
     }
 
     const isMemberOnboarded = Boolean(
-      dbUser?.name &&
-      dbUser.name !== "Member" &&
-      dbUser.name.trim().length > 1
+      dbUser?.onboardingCompleted ||
+      (dbUser?.name &&
+       dbUser.name !== "Member" &&
+       dbUser.name.trim().length > 1)
     );
 
     const memberProfile = {
       id: userId,
       fullName: dbUser?.name || name || 'Member',
-      city: dbUser?.companion?.city?.slug || 'bengaluru',
+      gender: dbUser?.gender || 'female',
+      city: dbUser?.city || dbUser?.companion?.city?.slug || 'bengaluru',
+      area: dbUser?.area || '',
+      bio: dbUser?.bio || '',
+      emergencyContact: dbUser?.emergencyContact || '',
       onboardingCompleted: isMemberOnboarded,
     };
 

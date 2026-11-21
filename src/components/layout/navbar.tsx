@@ -17,6 +17,7 @@ import {
   X,
   Coins,
   Wallet,
+  Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +35,37 @@ export function Navbar() {
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifTab, setNotifTab] = useState<'alerts' | 'offers'>('alerts');
+  const [notifData, setNotifData] = useState<{
+    notifications: Array<{
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      badge?: string;
+      badgeVariant?: any;
+      ctaText?: string;
+      ctaUrl?: string;
+      createdAt: string;
+    }>;
+    offers: Array<{
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      badge?: string;
+      badgeVariant?: any;
+      ctaText?: string;
+      ctaUrl?: string;
+      createdAt: string;
+    }>;
+    unreadCount: number;
+  }>({
+    notifications: [],
+    offers: [],
+    unreadCount: 0,
+  });
 
   // Capture referral parameter anywhere across the platform
   useEffect(() => {
@@ -48,6 +80,29 @@ export function Navbar() {
 
   const { isAuthenticated, user, memberProfile, hostProfile, activeRole, logout, switchRole } =
     useAuth();
+
+  const fetchNotifications = () => {
+    fetch('/api/notifications')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setNotifData({
+            notifications: data.notifications || [],
+            offers: data.offers || [],
+            unreadCount: data.unreadCount || 0,
+          });
+        }
+      })
+      .catch((err) => console.warn('[NOTIF_FETCH_ERROR]:', err));
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, pathname]);
 
   const isApplyingHost = pathname?.startsWith('/become-a-companion') || pathname?.startsWith('/become-a-host');
   const isOnboarding = pathname?.startsWith('/onboarding');
@@ -184,6 +239,150 @@ export function Navbar() {
                   <Coins className="h-3.5 w-3.5 text-ink" />
                   <span>{user?.coinBalance ?? 100} Coins</span>
                 </Link>
+
+                {/* Notifications & Offers Bell */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setIsNotificationsOpen(!isNotificationsOpen);
+                      setIsUserMenuOpen(false);
+                    }}
+                    title="Notifications & Offers"
+                    className="relative flex h-8 w-8 items-center justify-center rounded-xl border-brutal bg-white shadow-brutal-xs hover:bg-paper-deep btn-press cursor-pointer"
+                  >
+                    <Bell className="h-4 w-4 text-ink" />
+                    {notifData.unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full border border-ink bg-danger px-1 text-[9px] font-black text-white">
+                        {notifData.unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {isNotificationsOpen && (
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border-brutal bg-white p-3 shadow-brutal-lg z-50 space-y-3 animate-in fade-in">
+                      {/* Dropdown Header */}
+                      <div className="flex items-center justify-between border-b-brutal-sm pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-xs font-black uppercase text-ink">
+                            Notifications &amp; Offers
+                          </span>
+                          {notifData.unreadCount > 0 && (
+                            <Badge variant="sunny" size="sm">
+                              {notifData.unreadCount} New
+                            </Badge>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setIsNotificationsOpen(false)}
+                          className="text-ink-muted hover:text-ink text-xs font-bold cursor-pointer"
+                        >
+                          Close
+                        </button>
+                      </div>
+
+                      {/* Dropdown Tabs */}
+                      <div className="grid grid-cols-2 gap-1 p-0.5 rounded-xl border border-ink bg-paper">
+                        <button
+                          type="button"
+                          onClick={() => setNotifTab('alerts')}
+                          className={`py-1 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                            notifTab === 'alerts'
+                              ? 'bg-ink text-paper shadow-brutal-xs'
+                              : 'text-ink hover:bg-black/5'
+                          }`}
+                        >
+                          Alerts ({notifData.notifications.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNotifTab('offers')}
+                          className={`py-1 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                            notifTab === 'offers'
+                              ? 'bg-ink text-paper shadow-brutal-xs'
+                              : 'text-ink hover:bg-black/5'
+                          }`}
+                        >
+                          Offers ({notifData.offers.length})
+                        </button>
+                      </div>
+
+                      {/* Tab Panels */}
+                      <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                        {notifTab === 'alerts' ? (
+                          notifData.notifications.length === 0 ? (
+                            <div className="py-6 text-center text-xs font-bold text-ink-muted">
+                              No active alerts. You are all set!
+                            </div>
+                          ) : (
+                            notifData.notifications.map((n) => (
+                              <div
+                                key={n.id}
+                                className="p-2.5 rounded-xl border border-ink bg-paper/60 space-y-1.5"
+                              >
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <span className="font-display text-xs font-black text-ink">
+                                    {n.title}
+                                  </span>
+                                  {n.badge && (
+                                    <Badge variant={(n.badgeVariant as any) || 'sunny'} size="sm">
+                                      {n.badge}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-[11px] font-bold text-ink-soft leading-tight">
+                                  {n.message}
+                                </p>
+                                {n.ctaText && n.ctaUrl && (
+                                  <Link
+                                    href={n.ctaUrl}
+                                    onClick={() => setIsNotificationsOpen(false)}
+                                    className="inline-block pt-0.5 font-display text-[11px] font-black text-ink underline hover:text-lavender"
+                                  >
+                                    {n.ctaText}
+                                  </Link>
+                                )}
+                              </div>
+                            ))
+                          )
+                        ) : notifData.offers.length === 0 ? (
+                          <div className="py-6 text-center text-xs font-bold text-ink-muted">
+                            No promotional offers right now.
+                          </div>
+                        ) : (
+                          notifData.offers.map((o) => (
+                            <div
+                              key={o.id}
+                              className="p-2.5 rounded-xl border border-ink bg-sunny/20 space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="font-display text-xs font-black text-ink">
+                                  {o.title}
+                                </span>
+                                {o.badge && (
+                                  <Badge variant={(o.badgeVariant as any) || 'lime'} size="sm">
+                                    {o.badge}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-[11px] font-bold text-ink-soft leading-tight">
+                                {o.message}
+                              </p>
+                              {o.ctaText && o.ctaUrl && (
+                                <Link
+                                  href={o.ctaUrl}
+                                  onClick={() => setIsNotificationsOpen(false)}
+                                  className="inline-block pt-0.5 font-display text-[11px] font-black text-ink underline hover:text-lavender"
+                                >
+                                  {o.ctaText}
+                                </Link>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="relative">
                   <button

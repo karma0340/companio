@@ -45,13 +45,8 @@ export async function sendSmsOtp(
     const fast2smsKey = apiKey || process.env.FAST2SMS_API_KEY?.trim();
     if (!fast2smsKey) {
       const errMsg = "Missing FAST2SMS_API_KEY in .env. Please sign up on fast2sms.com and add your API key.";
-      console.error("[FAST2SMS ERROR]:", errMsg);
-      return {
-        success: false,
-        provider: "FAST2SMS",
-        error: errMsg,
-        isMock: false,
-      };
+      console.warn("[FAST2SMS WARN]:", errMsg);
+      return mockSmsFallback("FAST2SMS", recipientPhone, otpCode, errMsg);
     }
 
     try {
@@ -88,12 +83,7 @@ export async function sendSmsOtp(
     } catch (err) {
       const errMsg = (err as Error).message || "Fast2SMS dispatch failed";
       console.error("[FAST2SMS ERROR]:", errMsg);
-      return {
-        success: false,
-        provider: "FAST2SMS",
-        error: errMsg,
-        isMock: false,
-      };
+      return mockSmsFallback("FAST2SMS", recipientPhone, otpCode, errMsg);
     }
   }
 

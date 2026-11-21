@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { getSession, setSessionCookie } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,12 +31,14 @@ export async function GET(req: NextRequest) {
         phone: user.phone,
         fullName: user.name || "Member",
         email: user.email || "",
-        gender: "other",
-        city: "bengaluru",
-        area: "",
-        bio: "",
-        emergencyContact: "",
+        gender: user.gender || "female",
+        city: user.city || "bengaluru",
+        area: user.area || "",
+        bio: user.bio || "",
+        emergencyContact: user.emergencyContact || "",
+        onboardingCompleted: Boolean(user.onboardingCompleted),
         isUnlocked: Boolean(user.isUnlocked) || user.passes.length > 0,
+        coinBalance: user.coinBalance ?? 100,
       },
     });
   } catch (error) {
@@ -57,7 +59,12 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const fullName = String(body?.fullName || "").trim();
+    const gender = String(body?.gender || "female").trim();
+    const city = String(body?.city || "bengaluru").trim();
+    const area = String(body?.area || "").trim();
+    const bio = String(body?.bio || "").trim();
     const emergencyContact = String(body?.emergencyContact || "").trim().replace(/\D/g, "");
+    const referralCode = String(body?.referralCode || "").trim();
 
     if (!fullName || fullName.length < 2) {
       return NextResponse.json(
@@ -66,11 +73,55 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Connect referral owner if referralCode provided and user not yet linked
+    if (referralCode) {
+      try {
+        const currentUser = await prisma.user.findUnique({
+          where: { id: session.userId },
+          select: { referredById: true },
+        });
+
+        if (!currentUser?.referredById) {
+          const referrer = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { referralCode: referralCode },
+                { referralCode: { equals: referralCode, mode: "insensitive" } },
+              ],
+              NOT: { id: session.userId },
+            },
+            select: { id: true, name: true },
+          });
+
+          if (referrer) {
+            await prisma.user.update({
+              where: { id: session.userId },
+              data: { referredById: referrer.id },
+            });
+          }
+        }
+      } catch (refErr) {
+        console.warn("[REFERRAL LINK WARN]:", refErr);
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: session.userId },
       data: {
         name: fullName,
+        gender: gender || "female",
+        city: city || "bengaluru",
+        area: area || null,
+        bio: bio || null,
+        emergencyContact: emergencyContact || null,
+        onboardingCompleted: true,
       },
+    });
+
+    // Refresh session cookie with the new name
+    await setSessionCookie({
+      ...session,
+      name: updatedUser.name || fullName,
     });
 
     return NextResponse.json({
@@ -80,6 +131,12 @@ export async function POST(req: NextRequest) {
         id: updatedUser.id,
         phone: updatedUser.phone,
         fullName: updatedUser.name,
+        gender: updatedUser.gender,
+        city: updatedUser.city,
+        area: updatedUser.area,
+        bio: updatedUser.bio,
+        emergencyContact: updatedUser.emergencyContact,
+        onboardingCompleted: true,
       },
     });
   } catch (error) {

@@ -212,7 +212,7 @@ function BookPageContent({ params }: BookPageProps) {
 
         if (res.success && res.startCode) {
           setStartCode(res.startCode);
-          setConfirmedBookingId(res.bookingId ? `#CMP-${res.bookingId.slice(-6)}` : '#CMP-1029');
+          setConfirmedBookingId(res.bookingId || '');
           setBookingSuccess(true);
           toast.success(
             `${price.totalPayable} coins deducted from wallet! Meetup is reserved in Safe Escrow.`,
@@ -290,7 +290,7 @@ function BookPageContent({ params }: BookPageProps) {
 
             if (res.success && res.startCode) {
               setStartCode(res.startCode);
-              setConfirmedBookingId(res.bookingId ? `#CMP-${res.bookingId.slice(-6)}` : '#CMP-1029');
+              setConfirmedBookingId(res.bookingId || '');
               setBookingSuccess(true);
               toast.success(
                 `Payment verified (${paymentResponse.razorpay_payment_id}). Locked in Safe Escrow!`,
@@ -393,14 +393,16 @@ function BookPageContent({ params }: BookPageProps) {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            {confirmedBookingId ? (
+              <Link href={`/session/${confirmedBookingId}`}>
+                <Button variant="primary" size="lg" fullWidth>
+                  Enter In-Person Session Room
+                </Button>
+              </Link>
+            ) : null}
             <Link href="/bookings">
-              <Button variant="primary" size="lg" fullWidth>
-                View in My Bookings Portal →
-              </Button>
-            </Link>
-            <Link href="/explore">
               <Button variant="outline" size="lg" fullWidth>
-                Browse More Companions
+                View in My Bookings Portal
               </Button>
             </Link>
           </div>

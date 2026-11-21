@@ -30,7 +30,7 @@ export async function GET() {
       id: session.userId,
       fullName: session.name || "Member",
       city: "bengaluru",
-      onboardingCompleted: true,
+      onboardingCompleted: Boolean(session.name && session.name !== "Member"),
     };
 
     try {
@@ -93,11 +93,20 @@ export async function GET() {
           };
         }
 
+        const isMemberCompleted = Boolean(
+          dbUser.onboardingCompleted ||
+          (dbUser.name && dbUser.name !== "Member" && dbUser.name.trim().length > 1)
+        );
+
         memberProfile = {
           id: dbUser.id,
           fullName: dbUser.name || "Member",
-          city: dbUser.companion?.city?.slug || "bengaluru",
-          onboardingCompleted: true,
+          gender: dbUser.gender || "female",
+          city: dbUser.city || dbUser.companion?.city?.slug || "bengaluru",
+          area: dbUser.area || "",
+          bio: dbUser.bio || "",
+          emergencyContact: dbUser.emergencyContact || "",
+          onboardingCompleted: isMemberCompleted,
         };
       }
 

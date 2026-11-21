@@ -254,6 +254,10 @@ export async function debitCoins(params: {
       select: { coinBalance: true },
     });
 
+    if (updatedUser.coinBalance < 0) {
+      throw new Error("Transaction rejected: Coin balance cannot be negative.");
+    }
+
     const transaction = await tx.coinTransaction.create({
       data: {
         userId,

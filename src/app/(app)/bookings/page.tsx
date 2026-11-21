@@ -65,7 +65,10 @@ export default function MemberBookingsPage() {
 
   // Tab Filtering
   const activeBookings = bookings.filter(
-    (b) => b.rawStatus === 'confirmed' || b.rawStatus === 'in_progress'
+    (b) =>
+      b.rawStatus === 'confirmed' ||
+      b.rawStatus === 'in_progress' ||
+      b.rawStatus === 'pending_acceptance'
   );
   const completedBookings = bookings.filter((b) => b.rawStatus === 'completed');
   const cancelledBookings = bookings.filter((b) => b.rawStatus === 'cancelled');
@@ -276,8 +279,9 @@ export default function MemberBookingsPage() {
                       </div>
 
                       <div className="rounded-xl border-brutal-sm bg-paper p-3.5 space-y-1">
-                        <span className="text-[10px] uppercase font-bold text-ink-muted block">
-                          ⏰ Date & Time
+                        <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-ink-muted">
+                          <Clock className="h-3 w-3 text-ink stroke-[2.25]" />
+                          <span>Date and Time</span>
                         </span>
                         <span className="block">
                           {booking.date} at {booking.time} ({booking.duration})
@@ -292,7 +296,15 @@ export default function MemberBookingsPage() {
                         <span>Protected Payment: {formatRupees(booking.escrowAmount)}</span>
                       </div>
 
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <Link
+                          href={`/session/${booking.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-sunny px-3.5 py-2 font-display text-xs font-black text-ink shadow-brutal-sm hover:bg-yellow-300 btn-press cursor-pointer"
+                        >
+                          <KeyRound className="h-3.5 w-3.5" />
+                          <span>Open Session Room</span>
+                        </Link>
+
                         {booking.rawStatus === 'in_progress' ? (
                           <button
                             onClick={() => setReviewModalBooking(booking)}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Phone, AlertCircle, CheckCircle2, Users, Sparkles, Clock, ArrowRight } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Users, Sparkles, Clock, Share2 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,8 @@ interface ProfileCheckResult {
   hourlyRate: number | null;
   hasMemberProfile: boolean;
   memberName: string | null;
+  coinBalance?: number;
+  onboardingCompleted?: boolean;
   suggestedRole: 'host' | 'member';
 }
 
@@ -30,7 +32,7 @@ function LoginContent() {
   const nextUrl = searchParams.get('next') || '/explore';
   const urlIntent = searchParams.get('intent') === 'host' ? 'host' : 'member';
   const toast = useToast();
-  const { isAuthenticated, memberProfile, hostProfile, refreshSession } = useAuth();
+  const { isAuthenticated, user, memberProfile, hostProfile, refreshSession, logout } = useAuth();
 
   const [intent, setIntent] = useState<'member' | 'host'>(urlIntent);
   const [phone, setPhone] = useState('');
@@ -55,12 +57,18 @@ function LoginContent() {
   // Real-time phone profile detection
   const [profileCheck, setProfileCheck] = useState<ProfileCheckResult | null>(null);
   const [checkingProfile, setCheckingProfile] = useState<boolean>(false);
+  const [showReferralInput, setShowReferralInput] = useState<boolean>(false);
+  const [referralInput, setReferralInput] = useState<string>('');
 
   // 1. Reactive synchronization with URL intent parameter and referral capture
   useEffect(() => {
-    const urlRef = searchParams.get('ref');
-    if (urlRef && typeof window !== 'undefined') {
-      localStorage.setItem('companio_referral_code', urlRef);
+    const urlRef = searchParams.get('ref') || (typeof window !== 'undefined' ? localStorage.getItem('companio_referral_code') : null);
+    if (urlRef) {
+      setReferralInput(urlRef);
+      setShowReferralInput(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('companio_referral_code', urlRef);
+      }
     }
     setIntent(urlIntent);
   }, [searchParams, urlIntent]);
@@ -87,7 +95,7 @@ function LoginContent() {
     };
   }, [step]);
 
-  // 2. Debounced phone lookup for real-time role detection
+  // 3. Debounced phone lookup for real-time role and account recognition
   useEffect(() => {
     const digits = phone.replace(/\D/g, '');
     if (digits.length === 10) {
@@ -117,8 +125,10 @@ function LoginContent() {
     router.replace(`/login?${params.toString()}`);
   };
 
-  const routePostAuth = (verifiedHostProfile?: any) => {
+  const routePostAuth = (verifiedHostProfile?: any, verifiedMemberProfile?: any) => {
     const activeHost = verifiedHostProfile || hostProfile;
+    const activeMember = verifiedMemberProfile || memberProfile;
+
     if (intent === 'host') {
       if (activeHost && activeHost.verificationStatus === 'approved') {
         router.push('/companion/dashboard');
@@ -128,20 +138,13 @@ function LoginContent() {
         router.push(`/become-a-companion/apply?phone=${encodeURIComponent(phone)}`);
       }
     } else {
-      if (!memberProfile?.onboardingCompleted) {
+      if (!activeMember?.onboardingCompleted) {
         router.push('/onboarding/member');
       } else {
         router.push(nextUrl && nextUrl !== '/login' ? nextUrl : '/explore');
       }
     }
   };
-
-  // If already authenticated, redirect
-  useEffect(() => {
-    if (isAuthenticated) {
-      routePostAuth();
-    }
-  }, [isAuthenticated, memberProfile, hostProfile, nextUrl, intent]);
 
   const phoneValidation = validateIndianMobileNumber(phone);
 
@@ -200,7 +203,7 @@ function LoginContent() {
 
     const savedRef = typeof window !== 'undefined' ? localStorage.getItem('companio_referral_code') : null;
     const urlRef = searchParams.get('ref');
-    const referralCode = urlRef || savedRef || undefined;
+    const referralCode = referralInput.trim() || urlRef || savedRef || undefined;
 
     try {
       const res = await fetch('/api/auth/otp/verify', {
@@ -224,8 +227,9 @@ function LoginContent() {
       }
 
       await refreshSession();
-      toast.success('Welcome to made4togethr! Signing you in...', 'Verified');
-      routePostAuth(data.hostProfile);
+      toast.success('Welcome back to made4togethr! Redirecting...', 'Verified');
+      // Directly and automatically redirect into app without manual clicks
+      routePostAuth(data.hostProfile, data.memberProfile);
     } catch {
       setError('Verification failed. Please check your connection.');
       toast.error('Verification failed. Please check your connection.', 'Error');
@@ -273,7 +277,7 @@ function LoginContent() {
       inputRefs[index + 1]?.current?.focus();
     }
 
-    // Auto-submit on 6th digit
+    // Auto-submit immediately on 6th digit
     if (joined.length === 6) {
       executeVerify(joined);
     }
@@ -337,6 +341,50 @@ function LoginContent() {
             <div className="flex items-start gap-2.5 rounded-xl border-2 border-danger bg-danger/10 p-3.5 text-xs font-bold text-danger animate-in fade-in">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {/* Active Session Notice & Switcher */}
+          {isAuthenticated && user && (
+            <div className="rounded-2xl border-2 border-ink bg-sunny/25 p-3.5 shadow-brutal-sm space-y-2.5 animate-in fade-in">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-ink bg-[#D4F7A5] text-ink font-black text-xs shrink-0">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-display font-black text-xs text-ink block truncate">
+                      Signed in as {user.name || memberProfile?.fullName || 'Member'}
+                    </span>
+                    <span className="font-mono text-[11px] font-bold text-ink-muted block truncate">
+                      +91 {user.phone.replace('+91', '')} · {user.coinBalance ?? 100} Coins
+                    </span>
+                  </div>
+                </div>
+                <Badge variant="lime" size="sm">
+                  Active
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => routePostAuth()}
+                  className="px-3 py-1.5 rounded-xl border-2 border-ink bg-ink text-paper font-display text-xs font-black shadow-brutal-xs hover:bg-black/80 transition-all cursor-pointer text-center"
+                >
+                  Go to Dashboard →
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await logout();
+                    toast.success('Signed out. You can now sign in with another number.', 'Logged Out');
+                  }}
+                  className="px-3 py-1.5 rounded-xl border-2 border-ink bg-white text-danger hover:bg-danger/10 font-display text-xs font-black shadow-brutal-xs transition-all cursor-pointer text-center"
+                >
+                  Sign Out / Switch
+                </button>
+              </div>
             </div>
           )}
 
@@ -409,15 +457,46 @@ function LoginContent() {
                     </Badge>
                   )}
                 </div>
+              ) : profileCheck.exists && profileCheck.hasMemberProfile ? (
+                <div className="flex items-center justify-between gap-2 bg-emerald-50 p-3 rounded-2xl border-2 border-ink shadow-brutal-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-[#D4F7A5] text-ink font-black text-xs shrink-0">
+                      <CheckCircle2 className="h-4 w-4 text-ink" />
+                    </div>
+                    <div>
+                      <span className="font-display font-black text-xs text-ink block leading-tight">
+                        Welcome back, {profileCheck.memberName || 'Member'}!
+                      </span>
+                      <span className="text-[10px] font-bold text-ink-soft">
+                        Account Recognized · {profileCheck.coinBalance ?? 100} Coins Active
+                      </span>
+                    </div>
+                  </div>
+                  <Badge variant="lime" size="sm">
+                    Account Exists
+                  </Badge>
+                </div>
               ) : profileCheck.hostStatus === 'pending' ? (
                 <div className="flex items-center gap-2 bg-pink/20 p-2.5 rounded-2xl border-2 border-ink font-bold text-xs text-ink">
                   <Clock className="h-4 w-4 text-ink shrink-0" />
                   <span>Host application under review for {profileCheck.hostDisplayName || 'applicant'}.</span>
                 </div>
-              ) : intent === 'host' ? (
-                <div className="flex items-center gap-2 bg-lime/20 p-2.5 rounded-2xl border-2 border-ink font-bold text-xs text-ink">
-                  <Sparkles className="h-4 w-4 text-ink shrink-0" />
-                  <span>New Host! Enter code to start host onboarding & earn ₹499-1,299/hr.</span>
+              ) : !profileCheck.exists ? (
+                <div className="flex items-center justify-between gap-2 bg-[#E8DEFF] p-3 rounded-2xl border-2 border-ink shadow-brutal-xs">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-ink shrink-0" />
+                    <div>
+                      <span className="font-display font-black text-xs text-ink block leading-tight">
+                        New Member Account
+                      </span>
+                      <span className="text-[10px] font-bold text-ink-soft">
+                        Enter verification code to get 100 Free Welcome Coins on signup!
+                      </span>
+                    </div>
+                  </div>
+                  <Badge variant="sunny" size="sm">
+                    +100 Coins
+                  </Badge>
                 </div>
               ) : null}
             </div>
@@ -472,6 +551,49 @@ function LoginContent() {
                 )}
               </div>
 
+              {/* Optional Referral Code Input */}
+              <div className="pt-0.5">
+                {!showReferralInput && !referralInput ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowReferralInput(true)}
+                    className="text-xs font-bold text-ink-muted hover:text-ink underline flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Share2 className="h-3 w-3" />
+                    <span>Have a referral code?</span>
+                  </button>
+                ) : (
+                  <div className="space-y-1.5 p-3 rounded-2xl border-2 border-ink bg-paper/60 shadow-brutal-xs">
+                    <div className="flex items-center justify-between">
+                      <label className="block font-display text-[11px] font-black uppercase text-ink">
+                        Referral Code (Optional)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowReferralInput(false);
+                          setReferralInput('');
+                        }}
+                        className="text-[10px] font-bold text-ink-muted hover:text-ink cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={10}
+                      value={referralInput}
+                      onChange={(e) => setReferralInput(e.target.value.toUpperCase().trim())}
+                      placeholder="e.g. HLTCC8QF"
+                      className="w-full rounded-xl border-2 border-ink bg-white px-3 py-2 font-mono text-xs font-black text-ink uppercase focus:outline-none focus:shadow-brutal-xs"
+                    />
+                    <span className="text-[10px] font-bold text-ink-soft block leading-tight">
+                      Enter a friend&apos;s code to connect accounts. They earn 100 coins once you complete your first meetup!
+                    </span>
+                  </div>
+                )}
+              </div>
+
               <Button
                 type="submit"
                 variant={intent === 'host' ? 'sunny' : 'primary'}
@@ -481,9 +603,11 @@ function LoginContent() {
               >
                 {loading
                   ? 'Dispatching Code...'
+                  : profileCheck?.exists
+                  ? 'Send Sign-In Code →'
                   : intent === 'host'
-                  ? 'Send Code to Start Hosting →'
-                  : 'Send Code to Find Company →'}
+                  ? 'Send Code to Apply as Host →'
+                  : 'Send Code to Register (+100 Coins) →'}
               </Button>
             </form>
           ) : (
@@ -575,7 +699,7 @@ function LoginContent() {
                   ? 'Verifying Code...'
                   : intent === 'host'
                   ? 'Verify & Open Host Portal →'
-                  : 'Verify & Find Company →'}
+                  : 'Verify & Enter Directly →'}
               </Button>
 
               <div className="text-center pt-1">

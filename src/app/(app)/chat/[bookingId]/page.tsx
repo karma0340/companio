@@ -425,7 +425,9 @@ export default function ChatRoomPage() {
             <div className="border-t-3 border-ink bg-[#FFF4F2] p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs font-bold text-ink">
                 <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
-                <span>Your 24-hour chat pass has expired. Previous messages are preserved.</span>
+                <span>
+                  Your 24-hour chat pass has expired. Previous messages are preserved. Available balance: {user?.coinBalance ?? 0} coins.
+                </span>
               </div>
               <button
                 type="button"
@@ -433,7 +435,11 @@ export default function ChatRoomPage() {
                 disabled={isRenewing}
                 className="border-2 border-ink bg-sunny px-4 py-2 text-xs font-black uppercase text-ink shadow-brutal-sm btn-press cursor-pointer shrink-0 disabled:opacity-50"
               >
-                {isRenewing ? "Renewing..." : "Renew Pass (69 Coins)"}
+                {isRenewing
+                  ? "Renewing..."
+                  : (user?.coinBalance ?? 0) < 69
+                  ? "Top Up Coins to Renew (Need 69)"
+                  : "Renew Pass (69 Coins)"}
               </button>
             </div>
           ) : (

@@ -240,16 +240,16 @@ export async function getBookingById(bookingId: string): Promise<BookingRecord |
         id: dbRecord.id,
         bookingNumber: dbRecord.bookingNumber,
         memberId: dbRecord.memberId,
-        memberName: dbRecord.member.name || "Member",
-        memberPhone: dbRecord.member.phone,
+        memberName: dbRecord.member?.name || "Member",
+        memberPhone: dbRecord.member?.phone || "",
         companionId: dbRecord.companionId,
-        companionName: dbRecord.companion.displayName,
-        companionAvatar: dbRecord.companion.avatarUrl,
+        companionName: dbRecord.companion?.displayName || "Companion",
+        companionAvatar: dbRecord.companion?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
         cityId: dbRecord.cityId,
-        cityName: dbRecord.city.name,
+        cityName: dbRecord.city?.name || "Bengaluru",
         activityId: dbRecord.activityId,
-        activityTitle: dbRecord.activity.title,
-        scheduledDate: dbRecord.scheduledDate.toISOString(),
+        activityTitle: dbRecord.activity?.title || "Meetup",
+        scheduledDate: dbRecord.scheduledDate ? dbRecord.scheduledDate.toISOString() : new Date().toISOString(),
         durationHours: dbRecord.durationHours,
         venueName: dbRecord.venueName,
         venueAddress: dbRecord.venueAddress,
@@ -481,12 +481,24 @@ export async function completeSession(
 
   bookingsStore.set(bookingId, booking);
 
+  let recipientUpi = "host@okhdfcbank";
+  let hostUserId = booking.companionId;
+
+  try {
+    const companionRecord = await prisma.companion.findUnique({
+      where: { id: booking.companionId },
+      select: { userId: true, upiId: true },
+    });
+    if (companionRecord?.userId) hostUserId = companionRecord.userId;
+    if (companionRecord?.upiId) recipientUpi = companionRecord.upiId;
+  } catch {}
+
   const payout: PayoutRecord = {
     transferId: `cf_payout_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     utr: `CF2026${Math.floor(100000 + Math.random() * 900000)}`,
     gateway: "CASHFREE",
     amount: booking.companionFee,
-    recipientUpiId: "vanshika@okhdfcbank",
+    recipientUpiId: recipientUpi,
     timestamp: nowIso,
     status: "SUCCESS",
   };
@@ -506,7 +518,7 @@ export async function completeSession(
     await prisma.transaction.create({
       data: {
         bookingId,
-        userId: booking.companionId,
+        userId: hostUserId,
         type: "HOST_PAYOUT",
         amount: booking.companionFee,
         feeAmount: 0,
@@ -516,6 +528,43 @@ export async function completeSession(
         status: "SUCCESS",
       },
     });
+
+    // Check if the member was referred by someone; award 100 coins on their first completed meetup
+    try {
+      const member = await prisma.user.findUnique({
+        where: { id: booking.memberId },
+        select: { id: true, name: true, referredById: true },
+      });
+
+      if (member?.referredById) {
+        const completedCount = await prisma.booking.count({
+          where: {
+            memberId: member.id,
+            status: "COMPLETED",
+          },
+        });
+
+        if (completedCount === 1) {
+          const referrer = await prisma.user.findUnique({
+            where: { id: member.referredById },
+            select: { id: true },
+          });
+
+          if (referrer) {
+            const { creditCoins } = await import("@/lib/wallet");
+            await creditCoins({
+              userId: referrer.id,
+              amount: 100,
+              type: "REFERRAL_BONUS" as any,
+              description: `Referral reward: ${member.name || "Your friend"} completed their first meetup!`,
+              referenceId: bookingId,
+            });
+          }
+        }
+      }
+    } catch (refErr) {
+      console.warn("[REFERRAL REWARD ERROR]:", refErr);
+    }
   } catch (err) {
     console.warn("[COMPLETE SESSION PRISMA FALLBACK]:", (err as Error).message);
   }

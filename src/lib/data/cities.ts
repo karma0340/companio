@@ -64,4 +64,11 @@ export const CITIES: City[] = [
     popularAreas: ['Sector 17', 'Sector 26', 'Sector 35', 'Elante Mall'],
     activeCount: 6,
   },
+  {
+    slug: 'mohali',
+    name: 'Mohali',
+    state: 'Punjab',
+    popularAreas: ['Phase 7', 'Phase 3B2', 'Sector 70', 'Airport Road', 'Phase 5', 'Sector 82'],
+    activeCount: 5,
+  },
 ];

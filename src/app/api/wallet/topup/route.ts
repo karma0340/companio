@@ -75,35 +75,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Direct Simulation (for local dev testing without Razorpay keys)
+    // 2. Direct Simulation (Strictly disabled - coins require real payment)
     if (action === "simulate" || isSimulation) {
-      // Credit base coins
-      await creditCoins({
-        userId,
-        amount: bonus.baseCoins,
-        type: CoinTransactionType.TOPUP,
-        description: `Wallet top-up (INR ${numAmount})`,
-        referenceId: `sim_${Date.now()}`,
-      });
-
-      // Credit bonus coins if applicable
-      if (bonus.bonusCoins > 0) {
-        await creditCoins({
-          userId,
-          amount: bonus.bonusCoins,
-          type: CoinTransactionType.TOPUP_BONUS,
-          description: bonus.label || `Top-up bonus (+${bonus.bonusPercent}%)`,
-          referenceId: `sim_bonus_${Date.now()}`,
-        });
-      }
-
-      const updatedWallet = await getWalletDetails(userId);
-      return NextResponse.json({
-        success: true,
-        simulated: true,
-        wallet: updatedWallet,
-        bonus,
-      });
+      return NextResponse.json(
+        { success: false, error: "Direct simulation disabled. Real payment verification via Razorpay required." },
+        { status: 403 }
+      );
     }
 
     // 3. Razorpay Signature Verification

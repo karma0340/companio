@@ -474,16 +474,6 @@ export default function WalletPage() {
             >
               {isProcessing ? 'Processing...' : `Pay INR ${numAmount} with Razorpay`}
             </button>
-
-            {/* Dev Sandbox Instant Top-Up Button */}
-            <button
-              onClick={() => handleTopup(true)}
-              disabled={isProcessing || numAmount < 10}
-              className="w-full py-2.5 px-4 rounded-xl border-brutal-sm bg-sunny-soft text-ink text-xs font-bold shadow-brutal-xs hover:bg-sunny transition-all btn-press cursor-pointer flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Simulate Instant Top-up (Test Simulation)</span>
-            </button>
           </div>
         </div>
 

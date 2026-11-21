@@ -78,6 +78,10 @@ export async function GET(req: NextRequest) {
       hourlyRate,
       hasMemberProfile,
       memberName: user?.name || null,
+      coinBalance: user?.coinBalance ?? 100,
+      onboardingCompleted: Boolean(user?.onboardingCompleted),
+      userCity: user?.city || null,
+      userGender: user?.gender || null,
       suggestedRole,
     });
   } catch (error) {

@@ -148,6 +148,12 @@ model User {
   activePassTier  PassTier?
   passExpiresAt   DateTime?
   isKycVerified   Boolean     @default(false)
+  gender          String?
+  city            String?
+  area            String?
+  bio             String?     @db.Text
+  emergencyContact String?
+  onboardingCompleted Boolean @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 

@@ -50,6 +50,11 @@ export default function ProfilePage() {
   const [loadingPass, setLoadingPass] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
 
+  const cleanPhone = (user?.phone || '').replace(/^\+91/, '').trim();
+  const displayPhone = cleanPhone.length === 10
+    ? `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`
+    : (user?.phone || '');
+
   const gender: GenderType = (memberProfile?.gender as GenderType) === 'male' ? 'male' : 'female';
 
   useEffect(() => {
@@ -215,7 +220,7 @@ export default function ProfilePage() {
                     Verified Member
                   </Badge>
                   <span className="text-xs font-mono font-bold text-ink-muted">
-                    +91 {user?.phone}
+                    {displayPhone}
                   </span>
                 </div>
 
@@ -315,6 +320,9 @@ export default function ProfilePage() {
                   </button>
                 </div>
                 <div className="text-[10px] font-medium text-ink-soft">Earn 100 coins per meetup</div>
+                <Link href="/wallet" className="text-[10px] font-black text-ink underline hover:text-ink-soft block pt-0.5">
+                  View Invite Stats and Ledger →
+                </Link>
               </div>
             </div>
           </div>
@@ -494,7 +502,7 @@ export default function ProfilePage() {
             <div>
               <h4 className="font-display text-sm font-black text-ink">Account Security</h4>
               <p className="text-xs text-ink-muted">
-                Logged in on this device via verified phone number +91 {user?.phone}.
+                Logged in on this device via verified phone number {displayPhone}.
               </p>
             </div>
 
