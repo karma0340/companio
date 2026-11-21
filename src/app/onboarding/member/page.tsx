@@ -49,7 +49,7 @@ export default function MemberOnboardingPage() {
     defaultValues: {
       fullName: '',
       gender: 'female',
-      city: 'bengaluru',
+      city: '',
       area: '',
       bio: '',
       emergencyContact: '',
@@ -356,9 +356,10 @@ export default function MemberOnboardingPage() {
                     City Dropdown
                   </label>
                   <select
-                    {...register('city')}
+                    {...register('city', { required: true })}
                     className="w-full rounded-xl border-brutal bg-white px-3 py-2.5 font-display text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
                   >
+                    <option value="">Select city</option>
                     {CITIES.map((c) => (
                       <option key={c.slug} value={c.slug}>
                         {c.name} ({c.state})

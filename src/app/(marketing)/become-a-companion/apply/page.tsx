@@ -81,20 +81,20 @@ function CompanionApplyForm() {
   const [applicationRef, setApplicationRef] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Form states
+  // Form states - completely empty defaults with no prefilled dummy values
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     phone: "",
-    city: "Bengaluru",
+    city: "",
     locality: "",
     travelRadiusKm: 10,
-    age: "24",
+    age: "",
     displayName: "",
     bio: "",
-    hourlyRate: "399",
-    languages: "English, Hindi",
-    activities: ["Coffee & Conversations", "Cafe Hopping"],
+    hourlyRate: "",
+    languages: "",
+    activities: [] as string[],
     idType: "Aadhaar Card",
     idNumber: "",
     agreePlatonic: true,
@@ -243,6 +243,14 @@ function CompanionApplyForm() {
         setErrorMessage("Please enter your full legal name as printed on your Aadhaar card.");
         return;
       }
+      if (!formData.city) {
+        setErrorMessage("Please select your primary metropolitan city.");
+        return;
+      }
+      if (!formData.age || Number(formData.age) < 18) {
+        setErrorMessage("Please enter your age (must be 18 or older).");
+        return;
+      }
       setStep(2);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -256,6 +264,14 @@ function CompanionApplyForm() {
       }
       if (!formData.bio.trim() || formData.bio.trim().length < 20) {
         setErrorMessage("Please write a short bio of at least 20 characters.");
+        return;
+      }
+      if (!formData.hourlyRate || Number(formData.hourlyRate) < 49) {
+        setErrorMessage("Please enter an hourly rate between INR 49 and INR 1,999.");
+        return;
+      }
+      if (!formData.languages.trim()) {
+        setErrorMessage("Please enter spoken languages.");
         return;
       }
       if (formData.activities.length === 0) {
@@ -533,10 +549,14 @@ function CompanionApplyForm() {
                           Primary Metropolitan City
                         </label>
                         <select
+                          required
                           value={formData.city}
                           onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                           className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
                         >
+                          <option value="">Select your city</option>
+                          <option value="Chandigarh">Chandigarh</option>
+                          <option value="Mohali">Mohali</option>
                           <option value="Bengaluru">Bengaluru</option>
                           <option value="Delhi NCR">Delhi NCR</option>
                           <option value="Mumbai">Mumbai</option>
@@ -544,7 +564,6 @@ function CompanionApplyForm() {
                           <option value="Hyderabad">Hyderabad</option>
                           <option value="Kolkata">Kolkata</option>
                           <option value="Jaipur">Jaipur</option>
-                          <option value="Chandigarh">Chandigarh</option>
                         </select>
                       </div>
 
@@ -557,9 +576,10 @@ function CompanionApplyForm() {
                           min={18}
                           max={70}
                           required
+                          placeholder="Enter your age (e.g. 21)"
                           value={formData.age}
                           onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
+                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
                         />
                       </div>
                     </div>
@@ -726,9 +746,10 @@ function CompanionApplyForm() {
                           min={49}
                           max={1999}
                           required
+                          placeholder="e.g. 499"
                           value={formData.hourlyRate}
                           onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
+                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
                         />
                         <p className="mt-1 text-[11px] font-bold text-ink/60">
                           INR 49 - INR 1,999. You keep 90% &mdash; up to 95% as a Top host.
@@ -745,7 +766,7 @@ function CompanionApplyForm() {
                           placeholder="e.g. English, Hindi, Punjabi"
                           value={formData.languages}
                           onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
-                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
+                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
                         />
                       </div>
                     </div>
