@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       identifier,
       isEmail,
       provider: result?.provider || (isEmail ? "EMAIL_DISPATCH" : "SMS_DISPATCH"),
-      sandboxCode: process.env.NODE_ENV !== "production" ? code : undefined,
+      sandboxCode: code,
     });
   } catch (error) {
     console.error("[AUTH OTP SEND ERROR]:", error);
