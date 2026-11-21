@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Caveat, Outfit, Fraunces, Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import { AuthProvider } from "@/context/auth-context";
 import { ToastProvider } from "@/components/ui/toast";
@@ -52,6 +53,7 @@ export default function RootLayout({
       className={`${inter.variable} ${caveat.variable} ${outfit.variable} ${fraunces.variable} ${bricolage.variable} ${dmSans.variable}`}
     >
       <body className="min-h-screen bg-paper text-ink antialiased font-sans">
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
         <AuthProvider>
           <ToastProvider>
             {children}

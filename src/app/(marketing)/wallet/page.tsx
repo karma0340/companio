@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/components/ui/toast';
+import { loadRazorpayScript } from '@/lib/payments/razorpay';
 
 interface WalletDetails {
   user: {
@@ -138,33 +139,58 @@ export default function WalletPage() {
     try {
       setIsProcessing(true);
 
-      const res = await fetch('/api/wallet/topup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: simulate ? 'simulate' : 'create-order',
-          amount: numAmount,
-          isSimulation: simulate,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to process top-up.');
-      }
-
       if (simulate) {
+        const res = await fetch('/api/wallet/topup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'simulate',
+            amount: numAmount,
+            isSimulation: true,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to simulate top-up.');
+        }
         toast({
           title: 'Top-up Successful',
           description: `Added ${data.bonus.totalCoins} coins to your wallet.`,
         });
         await fetchWallet();
         await refreshSession();
+        setIsProcessing(false);
         return;
       }
 
-      // Check if Razorpay script is present
+      // 1. Ensure Razorpay checkout script is loaded
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded || typeof window === 'undefined' || !(window as any).Razorpay) {
+        toast({
+          title: 'Payment Gateway Error',
+          description: 'Could not load Razorpay checkout script. Please disable ad-blockers and try again.',
+          variant: 'destructive',
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      // 2. Create the real Razorpay Order on server
+      const res = await fetch('/api/wallet/topup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-order',
+          amount: numAmount,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create payment order.');
+      }
+
+      // 3. Open real Razorpay Checkout Popup
       const options = {
         key: data.keyId,
         amount: data.amount,
@@ -174,6 +200,7 @@ export default function WalletPage() {
         order_id: data.orderId,
         handler: async function (response: any) {
           try {
+            setIsProcessing(true);
             const verifyRes = await fetch('/api/wallet/topup', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -203,38 +230,43 @@ export default function WalletPage() {
           } catch (vErr) {
             toast({
               title: 'Error',
-              description: 'Error confirming payment.',
+              description: 'Error confirming payment with server.',
               variant: 'destructive',
             });
+          } finally {
+            setIsProcessing(false);
           }
         },
         prefill: {
-          contact: wallet?.user.phone || '',
-          email: wallet?.user.email || '',
+          contact: wallet?.user.phone || user?.phone || '',
+          email: wallet?.user.email || user?.email || '',
         },
         theme: {
           color: '#141414',
         },
+        modal: {
+          ondismiss: function () {
+            setIsProcessing(false);
+          },
+        },
       };
 
-      if (typeof window !== 'undefined' && (window as any).Razorpay) {
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
-      } else {
-        // Fallback to simulation if Razorpay SDK script is blocked or missing in local environment
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (resp: any) {
         toast({
-          title: 'Razorpay SDK Unavailable',
-          description: 'Executing sandbox test simulation for immediate credit.',
+          title: 'Payment Failed',
+          description: resp.error?.description || 'Payment was unsuccessful.',
+          variant: 'destructive',
         });
-        await handleTopup(true);
-      }
+        setIsProcessing(false);
+      });
+      rzp.open();
     } catch (err: any) {
       toast({
         title: 'Top-up Error',
         description: err.message || 'Could not process top-up request.',
         variant: 'destructive',
       });
-    } finally {
       setIsProcessing(false);
     }
   };

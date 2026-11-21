@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { X, Coins, ShieldCheck, Clock, Infinity, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/components/ui/toast';
+import { loadRazorpayScript } from '@/lib/payments/razorpay';
 
 interface MessageHostModalProps {
   isOpen: boolean;
@@ -99,15 +100,24 @@ export function MessageHostModal({
 
     try {
       setIsToppingUp(true);
-      const hasRzp = typeof window !== 'undefined' && Boolean((window as any).Razorpay);
+
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded || typeof window === 'undefined' || !(window as any).Razorpay) {
+        toast({
+          title: 'Payment Gateway Error',
+          description: 'Could not load Razorpay checkout script. Please disable ad-blockers and try again.',
+          variant: 'destructive',
+        });
+        setIsToppingUp(false);
+        return;
+      }
 
       const res = await fetch('/api/wallet/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: hasRzp ? 'create-order' : 'simulate',
+          action: 'create-order',
           amount: 100,
-          isSimulation: !hasRzp,
         }),
       });
 
@@ -116,64 +126,69 @@ export function MessageHostModal({
         throw new Error(data.error || 'Failed to initiate top-up.');
       }
 
-      if (data.simulated) {
-        toast({
-          title: 'Top-up Successful',
-          description: `Added ${data.bonus?.totalCoins || 100} coins to your wallet.`,
-        });
-        await refreshSession();
-        return;
-      }
-
-      if (hasRzp) {
-        const options = {
-          key: data.keyId,
-          amount: data.amount,
-          currency: data.currency,
-          name: 'made4togethr',
-          description: 'Instant Chat Recharge (100 Coins)',
-          order_id: data.orderId,
-          handler: async function (response: any) {
-            try {
-              const verifyRes = await fetch('/api/wallet/topup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  action: 'verify',
-                  amount: 100,
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                }),
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'made4togethr',
+        description: 'Instant Chat Recharge (100 Coins)',
+        order_id: data.orderId,
+        handler: async function (response: any) {
+          try {
+            setIsToppingUp(true);
+            const verifyRes = await fetch('/api/wallet/topup', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'verify',
+                amount: 100,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              }),
+            });
+            const vData = await verifyRes.json();
+            if (vData.success) {
+              toast({
+                title: 'Payment Successful',
+                description: `Successfully added ${vData.bonus?.totalCoins || 100} coins!`,
               });
-              const vData = await verifyRes.json();
-              if (vData.success) {
-                toast({
-                  title: 'Payment Successful',
-                  description: `Successfully added ${vData.bonus?.totalCoins || 100} coins!`,
-                });
-                await refreshSession();
-              }
-            } catch (err) {
-              console.error('Verify error:', err);
+              await refreshSession();
             }
+          } catch (err) {
+            console.error('Verify error:', err);
+          } finally {
+            setIsToppingUp(false);
+          }
+        },
+        prefill: {
+          contact: user?.phone || '',
+          email: user?.email || '',
+        },
+        theme: { color: '#141414' },
+        modal: {
+          ondismiss: function () {
+            setIsToppingUp(false);
           },
-          prefill: {
-            contact: user?.phone || '',
-            email: user?.email || '',
-          },
-          theme: { color: '#141414' },
-        };
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
-      }
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (resp: any) {
+        toast({
+          title: 'Payment Failed',
+          description: resp.error?.description || 'Payment was unsuccessful.',
+          variant: 'destructive',
+        });
+        setIsToppingUp(false);
+      });
+      rzp.open();
     } catch (err: any) {
       toast({
         title: 'Top-up Failed',
         description: err.message || 'Could not complete top-up.',
         variant: 'destructive',
       });
-    } finally {
       setIsToppingUp(false);
     }
   };
