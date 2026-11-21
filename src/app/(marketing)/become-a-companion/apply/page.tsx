@@ -13,22 +13,17 @@ import {
   ArrowRight,
   Upload,
   Lock,
-  Camera,
   FileText,
   Trash2,
-  Scan,
   UserCheck,
-  Eye,
-  EyeOff,
-  Maximize2,
-  X,
+  Instagram,
+  Check,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { submitHostApplicationAction } from "@/app/actions/host-application";
 import { useAuth } from "@/context/auth-context";
-import { LiveFaceMatcher } from "@/components/kyc/live-face-matcher";
-import { validateAadhaarNumber } from "@/lib/kyc";
+import { CITIES } from "@/lib/data/cities";
 
 /**
  * Compresses an image client-side via HTML5 Canvas before base64 encoding.
@@ -81,22 +76,23 @@ function CompanionApplyForm() {
   const [applicationRef, setApplicationRef] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Form states - completely empty defaults with no prefilled dummy values
+  // Form states - empty defaults, Chandigarh priority, neutral placeholders
   const [formData, setFormData] = useState({
     fullName: "",
-    email: "",
+    gender: "female",
     phone: "",
-    city: "",
+    city: "Chandigarh",
     locality: "",
     travelRadiusKm: 10,
     age: "",
     displayName: "",
     bio: "",
-    hourlyRate: "",
-    languages: "",
-    activities: [] as string[],
-    idType: "Aadhaar Card",
+    hourlyRate: "499",
+    languages: "English, Hindi, Punjabi",
+    activities: ["Coffee & Conversations", "Cafe Hopping"],
+    idType: "Aadhaar Card (Masked)",
     idNumber: "",
+    socialHandle: "",
     agreePlatonic: true,
   });
 
@@ -105,26 +101,12 @@ function CompanionApplyForm() {
   const [avatarFileName, setAvatarFileName] = useState<string>("");
   const [isAvatarProcessing, setIsAvatarProcessing] = useState<boolean>(false);
 
-  const [aadhaarFrontBase64, setAadhaarFrontBase64] = useState<string>("");
-  const [aadhaarFrontFileName, setAadhaarFrontFileName] = useState<string>("");
-  const [isAadhaarFrontProcessing, setIsAadhaarFrontProcessing] = useState<boolean>(false);
-
-  const [aadhaarBackBase64, setAadhaarBackBase64] = useState<string>("");
-  const [aadhaarBackFileName, setAadhaarBackFileName] = useState<string>("");
-  const [isAadhaarBackProcessing, setIsAadhaarBackProcessing] = useState<boolean>(false);
-
-  // Automated Live Video Face Match States
-  const [liveSelfieBase64, setLiveSelfieBase64] = useState<string>("");
-  const [faceMatchScore, setFaceMatchScore] = useState<number>(0);
-  const [isFaceMatched, setIsFaceMatched] = useState<boolean>(false);
-
-  // Mask & Modal Photo Preview States
-  const [showMaskedAadhaar, setShowMaskedAadhaar] = useState<boolean>(false);
-  const [previewImageModal, setPreviewImageModal] = useState<{ src: string; title: string } | null>(null);
+  const [idDocBase64, setIdDocBase64] = useState<string>("");
+  const [idDocFileName, setIdDocFileName] = useState<string>("");
+  const [isIdDocProcessing, setIsIdDocProcessing] = useState<boolean>(false);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const aadhaarFrontInputRef = useRef<HTMLInputElement>(null);
-  const aadhaarBackInputRef = useRef<HTMLInputElement>(null);
+  const idDocInputRef = useRef<HTMLInputElement>(null);
 
   // Pre-fill phone and name from URL or authenticated session
   useEffect(() => {
@@ -179,53 +161,22 @@ function CompanionApplyForm() {
     }
   };
 
-  // Aadhaar Front handler with compression
-  const handleAadhaarFrontFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ID Document handler with compression
+  const handleIdDocFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      setIsAadhaarFrontProcessing(true);
-      setAadhaarFrontFileName(file.name);
-      const compressed = await compressImage(file, 1280, 0.8);
-      setAadhaarFrontBase64(compressed);
+      setIsIdDocProcessing(true);
+      setIdDocFileName(file.name);
+      const compressed = await compressImage(file, 1280, 0.85);
+      setIdDocBase64(compressed);
     } catch (err) {
-      console.error("[AADHAAR FRONT ERROR]:", err);
-      alert("Failed to process Aadhaar front photo. Please select a valid image.");
+      console.error("[ID DOC COMPRESSION ERROR]:", err);
+      alert("Failed to process document image. Please try another photo.");
     } finally {
-      setIsAadhaarFrontProcessing(false);
+      setIsIdDocProcessing(false);
     }
-  };
-
-  // Aadhaar Back handler with compression
-  const handleAadhaarBackFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsAadhaarBackProcessing(true);
-      setAadhaarBackFileName(file.name);
-      const compressed = await compressImage(file, 1280, 0.8);
-      setAadhaarBackBase64(compressed);
-    } catch (err) {
-      console.error("[AADHAAR BACK ERROR]:", err);
-      alert("Failed to process Aadhaar back photo. Please select a valid image.");
-    } finally {
-      setIsAadhaarBackProcessing(false);
-    }
-  };
-
-  // Aadhaar input formatting & Verhoeff checksum validation
-  const aadhaarValidation = validateAadhaarNumber(formData.idNumber);
-  const rawAadhaarDigits = aadhaarValidation.rawDigits;
-  const formattedAadhaar = aadhaarValidation.formatted;
-
-  const handleAadhaarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 12);
-    setFormData((prev) => ({
-      ...prev,
-      idNumber: digitsOnly,
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -240,15 +191,12 @@ function CompanionApplyForm() {
         return;
       }
       if (!formData.fullName.trim()) {
-        setErrorMessage("Please enter your full legal name as printed on your Aadhaar card.");
+        setErrorMessage("Please enter your full legal name.");
         return;
       }
-      if (!formData.city) {
-        setErrorMessage("Please select your primary metropolitan city.");
-        return;
-      }
-      if (!formData.age || Number(formData.age) < 18) {
-        setErrorMessage("Please enter your age (must be 18 or older).");
+      const ageNum = parseInt(formData.age, 10);
+      if (!formData.age || isNaN(ageNum) || ageNum < 18 || ageNum > 70) {
+        setErrorMessage("Please enter a valid age (must be at least 18 years old).");
         return;
       }
       setStep(2);
@@ -262,16 +210,12 @@ function CompanionApplyForm() {
         setErrorMessage("Please enter a public display name.");
         return;
       }
-      if (!formData.bio.trim() || formData.bio.trim().length < 20) {
-        setErrorMessage("Please write a short bio of at least 20 characters.");
+      if (!avatarBase64) {
+        setErrorMessage("Please upload a clear profile photo so members know who they are meeting.");
         return;
       }
-      if (!formData.hourlyRate || Number(formData.hourlyRate) < 49) {
-        setErrorMessage("Please enter an hourly rate between INR 49 and INR 1,999.");
-        return;
-      }
-      if (!formData.languages.trim()) {
-        setErrorMessage("Please enter spoken languages.");
+      if (!formData.bio.trim() || formData.bio.trim().length < 15) {
+        setErrorMessage("Please write a short bio of at least 15 characters.");
         return;
       }
       if (formData.activities.length === 0) {
@@ -283,71 +227,51 @@ function CompanionApplyForm() {
       return;
     }
 
-    // STEP 3 VALIDATION (Aadhaar & Documents)
+    // STEP 3 VALIDATION & FINAL SUBMISSION
     if (step === 3) {
-      if (rawAadhaarDigits.length !== 12) {
-        setErrorMessage("Please enter a complete 12-digit Aadhaar number.");
-        return;
-      }
-      if (!aadhaarFrontBase64) {
-        setErrorMessage("Please upload a clear photo of the Front Side of your Aadhaar card.");
-        return;
-      }
-      if (!aadhaarBackBase64) {
-        setErrorMessage("Please upload a clear photo of the Back Side of your Aadhaar card.");
-        return;
-      }
       if (!formData.agreePlatonic) {
         setErrorMessage("You must agree to the strictly platonic code and public venues policy.");
         return;
       }
-      setStep(4);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
 
-    // STEP 4 VALIDATION (Live Face Match)
-    if (!isFaceMatched || !liveSelfieBase64) {
-      setErrorMessage("Please complete the live video face match check before submitting.");
-      return;
-    }
+      setIsSubmitting(true);
+      try {
+        const res = await submitHostApplicationAction({
+          fullName: formData.fullName.trim(),
+          displayName: formData.displayName.trim(),
+          phone: formData.phone.trim(),
+          gender: formData.gender,
+          age: parseInt(formData.age, 10) || 18,
+          city: formData.city,
+          locality: formData.locality.trim() || undefined,
+          travelRadiusKm: Number(formData.travelRadiusKm) || 10,
+          bio: formData.bio.trim(),
+          hourlyRate: parseInt(formData.hourlyRate, 10) || 499,
+          activities: formData.activities,
+          spokenLanguages: formData.languages.split(",").map((s) => s.trim()).filter(Boolean),
+          idType: formData.idType,
+          idNumber: formData.idNumber.trim() || undefined,
+          socialHandle: formData.socialHandle.trim() || undefined,
+          avatarImage: avatarBase64 || undefined,
+          idDocumentImage: idDocBase64 || undefined,
+          registrationFeePaid: true,
+          paymentId: `free_submission_${Date.now()}`,
+        });
 
-    setIsSubmitting(true);
-    try {
-      const res = await submitHostApplicationAction({
-        fullName: formData.fullName.trim(),
-        displayName: formData.displayName.trim(),
-        phone: formData.phone.trim(),
-        city: formData.city,
-        locality: formData.locality.trim() || undefined,
-        travelRadiusKm: Number(formData.travelRadiusKm) || 10,
-        bio: formData.bio.trim(),
-        hourlyRate: parseInt(formData.hourlyRate, 10) || 399,
-        activities: formData.activities,
-        spokenLanguages: formData.languages.split(",").map((s) => s.trim()).filter(Boolean),
-        idNumber: rawAadhaarDigits,
-        avatarImage: avatarBase64 || undefined,
-        aadhaarImage: aadhaarFrontBase64 || undefined,
-        aadhaarBackImage: aadhaarBackBase64 || undefined,
-        liveSelfieImage: liveSelfieBase64 || undefined,
-        faceMatchScore: faceMatchScore || 94.5,
-        registrationFeePaid: true,
-        paymentId: `fee_${Date.now()}`,
-      });
-
-      if (res.success) {
-        setApplicationRef(res.applicationId || "HST-2026-REG");
-        setIsSubmitted(true);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        await refreshSession();
-      } else {
-        setErrorMessage(res.error || "Failed to submit host application. Please check details.");
+        if (res.success) {
+          setApplicationRef(res.applicationId || "HST-2026-REG");
+          setIsSubmitted(true);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          await refreshSession();
+        } else {
+          setErrorMessage(res.error || "Failed to submit host application. Please check details.");
+        }
+      } catch (err) {
+        console.error("[HOST APPLICATION SUBMIT ERROR]:", err);
+        setErrorMessage("Submission error. Please verify your connection and try again.");
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (err) {
-      console.error("[HOST APPLICATION SUBMIT ERROR]:", err);
-      setErrorMessage("Submission error. Please verify your connection and try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -361,6 +285,7 @@ function CompanionApplyForm() {
     "Morning Run",
     "Food Walks",
     "Shopping & Styling",
+    "City Walk",
   ];
 
   return (
@@ -368,52 +293,49 @@ function CompanionApplyForm() {
       <Navbar />
 
       <main className="flex-1 py-10 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl space-y-6">
+        <div className="mx-auto max-w-2xl space-y-6">
           {/* Back Navigation */}
           <Link
             href="/become-a-companion"
             className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-black text-ink hover:underline tracking-tight"
           >
             <ChevronLeft className="h-4 w-4" />
-            <span>Back to Become a Companion</span>
+            <span>Back to Companion Overview</span>
           </Link>
 
+          {/* APPLICATION SUBMITTED SUCCESS VIEW */}
           {isSubmitted ? (
-            /* SUBMISSION SUCCESS SCREEN */
-            <div className="border-brutal shadow-brutal bg-lime p-8 sm:p-12 text-center space-y-6 animate-in fade-in">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center border-3 border-ink bg-white shadow-brutal">
-                <CheckCircle2 className="h-10 w-10 text-ink" />
-              </div>
-
-              <div className="space-y-2">
-                <span className="border-2 border-ink bg-white px-3 py-1 text-xs font-black uppercase tracking-wider inline-block">
-                  Registration Successful
-                </span>
-                <h1 className="text-3xl sm:text-4xl font-black uppercase text-ink tracking-tight">
-                  Application Submitted
-                </h1>
-                <p className="text-xs sm:text-sm font-bold text-ink/80 max-w-md mx-auto leading-relaxed">
-                  Thank you for applying, {formData.displayName || formData.fullName}! Your application reference number is:
-                </p>
-                <div className="border-2 border-ink bg-white py-2 px-4 inline-block font-mono text-sm sm:text-base font-black tracking-wider shadow-brutal-sm">
-                  {applicationRef}
+            <div className="border-brutal shadow-brutal bg-white p-6 sm:p-10 space-y-6 animate-in zoom-in-95">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-ink bg-[#D4F7A5] text-ink font-black text-xl shadow-brutal-xs">
+                  <CheckCircle2 className="h-7 w-7 text-ink" />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black uppercase text-ink">
+                    Application Submitted Successfully!
+                  </h2>
+                  <p className="text-xs font-bold text-ink-muted">
+                    Reference ID: <span className="font-mono font-black text-ink">{applicationRef}</span>
+                  </p>
                 </div>
               </div>
 
-              <div className="border-2 border-ink bg-white p-5 text-left space-y-3 max-w-lg mx-auto shadow-brutal-sm">
-                <h2 className="text-xs font-black uppercase tracking-wider text-ink flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                  <span>Automated Verification Audit Status</span>
-                </h2>
-                <ul className="text-xs font-bold text-ink/80 space-y-2 list-disc list-inside">
-                  <li>
-                    <span className="text-emerald-700 font-black">Live Video Face Match Passed:</span> Biometric similarity ({faceMatchScore}%) matched against uploaded government records.
+              <div className="border-2 border-ink bg-paper p-5 space-y-3 shadow-brutal-sm">
+                <h3 className="text-xs font-black uppercase tracking-wider text-ink">
+                  Welcome to Made4Togethr Host Community!
+                </h3>
+                <ul className="text-xs font-medium space-y-2 text-ink-soft">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Your host profile has been created and saved in our verified system.</span>
                   </li>
-                  <li>
-                    <span className="text-emerald-700 font-black">Aadhaar Front &amp; Back Received:</span> Stored with AES-256 vault encryption under DPDP Act 2023.
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Our trust &amp; safety team will send a quick WhatsApp message to greet you and verify your preferences.</span>
                   </li>
-                  <li>
-                    <span className="text-ink font-black">Final Step:</span> Our trust &amp; safety desk will send a WhatsApp message to schedule a brief 5-minute welcome video greeting.
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>You can now open your Host Dashboard to manage your availability, hourly rates, and bio.</span>
                   </li>
                 </ul>
               </div>
@@ -430,7 +352,7 @@ function CompanionApplyForm() {
                   href="/explore"
                   className="w-full sm:w-auto inline-flex items-center justify-center border-2 border-ink bg-white text-ink px-7 py-3 text-xs font-black uppercase tracking-wider shadow-brutal btn-press"
                 >
-                  <span>Explore Current Companions</span>
+                  <span>Explore Companions</span>
                 </Link>
               </div>
             </div>
@@ -445,19 +367,19 @@ function CompanionApplyForm() {
                   </span>
                   <span className="border-2 border-ink bg-pink/25 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-ink inline-flex items-center gap-1">
                     <Lock className="h-3 w-3" />
-                    <span>UIDAI &amp; DPDP Compliant</span>
+                    <span>Private &amp; Confidential</span>
                   </span>
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-ink">
+                <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-ink">
                   Become a Verified Companion
                 </h1>
                 <p className="mt-1 text-xs sm:text-sm font-medium text-ink/70">
                   Earn INR 499 - 1,299/hour sharing your city. Strictly platonic, public venues only.
                 </p>
 
-                {/* Step Indicators: 4 Steps */}
-                <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                {/* Step Indicators: 3 Clean Steps */}
+                <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs">
                   <div
                     className={`border-2 border-ink p-2 font-black uppercase transition ${
                       step >= 1 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
@@ -470,21 +392,14 @@ function CompanionApplyForm() {
                       step >= 2 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
                     }`}
                   >
-                    2. Persona
+                    2. Persona &amp; Photo
                   </div>
                   <div
                     className={`border-2 border-ink p-2 font-black uppercase transition ${
                       step >= 3 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
                     }`}
                   >
-                    3. ID Proof
-                  </div>
-                  <div
-                    className={`border-2 border-ink p-2 font-black uppercase transition ${
-                      step >= 4 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
-                    }`}
-                  >
-                    4. Face Match
+                    3. Simple Verification
                   </div>
                 </div>
               </div>
@@ -505,12 +420,12 @@ function CompanionApplyForm() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-black uppercase text-ink mb-1">
-                          Full Legal Name (as per Aadhaar Card)
+                          Full Legal Name
                         </label>
                         <input
                           type="text"
                           required
-                          placeholder="e.g. Ramesh Kumar Verma"
+                          placeholder="Enter your full legal name"
                           value={formData.fullName}
                           onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                           className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
@@ -529,7 +444,7 @@ function CompanionApplyForm() {
                             type="tel"
                             required
                             maxLength={10}
-                            placeholder="98XXXXXXXX"
+                            placeholder="Enter 10-digit mobile number"
                             value={formData.phone}
                             onChange={(e) =>
                               setFormData({
@@ -543,50 +458,84 @@ function CompanionApplyForm() {
                       </div>
                     </div>
 
+                    {/* Gender Selection */}
+                    <div>
+                      <label className="block text-xs font-black uppercase text-ink mb-1.5">
+                        Gender
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "female", label: "Female" },
+                          { id: "male", label: "Male" },
+                          { id: "other", label: "Other" },
+                        ].map((g) => (
+                          <button
+                            type="button"
+                            key={g.id}
+                            onClick={() => setFormData({ ...formData, gender: g.id })}
+                            className={`border-2 border-ink p-2.5 text-center text-xs font-black uppercase transition-all cursor-pointer ${
+                              formData.gender === g.id
+                                ? "bg-pink text-ink shadow-brutal-sm"
+                                : "bg-paper text-ink hover:bg-paper-deep"
+                            }`}
+                          >
+                            {g.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-black uppercase text-ink mb-1">
                           Primary Metropolitan City
                         </label>
                         <select
-                          required
                           value={formData.city}
                           onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                           className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
                         >
-                          <option value="">Select your city</option>
-                          <option value="Chandigarh">Chandigarh</option>
-                          <option value="Mohali">Mohali</option>
-                          <option value="Bengaluru">Bengaluru</option>
-                          <option value="Delhi NCR">Delhi NCR</option>
-                          <option value="Mumbai">Mumbai</option>
-                          <option value="Pune">Pune</option>
-                          <option value="Hyderabad">Hyderabad</option>
-                          <option value="Kolkata">Kolkata</option>
-                          <option value="Jaipur">Jaipur</option>
+                          {CITIES.map((c) => (
+                            <option key={c.slug} value={c.name}>
+                              {c.name} ({c.state})
+                            </option>
+                          ))}
                         </select>
                       </div>
 
                       <div>
                         <label className="block text-xs font-black uppercase text-ink mb-1">
-                          Your Age (Must be 18+)
+                          Preferred Locality / Area
                         </label>
                         <input
-                          type="number"
-                          min={18}
-                          max={70}
-                          required
-                          placeholder="Enter your age (e.g. 21)"
-                          value={formData.age}
-                          onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                          type="text"
+                          placeholder="e.g. Sector 17, Phase 3B2, etc."
+                          value={formData.locality}
+                          onChange={(e) => setFormData({ ...formData, locality: e.target.value })}
                           className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
                         />
                       </div>
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-black uppercase text-ink mb-1">
+                        Your Age (Must be 18+)
+                      </label>
+                      <input
+                        type="number"
+                        min={18}
+                        max={70}
+                        required
+                        placeholder="Enter age (18+)"
+                        value={formData.age}
+                        onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                        className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                      />
+                    </div>
                   </div>
                 )}
 
-                {/* STEP 2: Companion Persona & Hourly Rate */}
+                {/* STEP 2: Companion Persona & Photo */}
                 {step === 2 && (
                   <div className="space-y-5 animate-in fade-in">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -597,13 +546,13 @@ function CompanionApplyForm() {
                         <input
                           type="text"
                           required
-                          placeholder="e.g. Ramesh K."
+                          placeholder="Enter display name (e.g. First name)"
                           value={formData.displayName}
                           onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
+                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
                         />
                         <p className="mt-1 text-[11px] font-bold text-ink/60">
-                          This is the name visible to verified members on your public card.
+                          This is the name visible on your public companion profile card.
                         </p>
                       </div>
 
@@ -619,37 +568,25 @@ function CompanionApplyForm() {
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={avatarBase64}
-                                alt="Avatar preview"
-                                onClick={() => setPreviewImageModal({ src: avatarBase64, title: "Host Profile Photo Preview" })}
-                                className="h-12 w-12 rounded-lg border-2 border-ink object-cover shadow-brutal-sm cursor-pointer hover:opacity-90"
-                                title="Click to view full photo"
+                                alt="Profile Avatar Preview"
+                                className="w-12 h-12 rounded-full border-2 border-ink object-cover"
                               />
                               <div>
-                                <span className="block text-xs font-black text-ink">
-                                  {avatarFileName || "Profile Photo"}
+                                <span className="text-xs font-black text-ink block truncate max-w-[150px]">
+                                  {avatarFileName || "profile-photo.jpg"}
                                 </span>
-                                <span className="block text-[10px] font-bold text-emerald-600 uppercase">
-                                  Optimized &amp; Ready
+                                <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                                  <Check className="h-3 w-3" /> Ready
                                 </span>
                               </div>
                             </div>
-
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setPreviewImageModal({ src: avatarBase64, title: "Host Profile Photo Preview" })}
-                                className="border border-ink bg-white px-2 py-1 text-[11px] font-black uppercase hover:bg-paper-deep inline-flex items-center gap-1"
-                                title="Enlarge preview"
-                              >
-                                <Maximize2 className="h-3 w-3" />
-                                <span>View</span>
-                              </button>
+                            <div className="flex items-center gap-1">
                               <button
                                 type="button"
                                 onClick={() => avatarInputRef.current?.click()}
-                                className="border border-ink bg-white px-2.5 py-1 text-[11px] font-black uppercase hover:bg-paper-deep"
+                                className="border border-ink bg-white px-2 py-1 text-[10px] font-black uppercase hover:bg-paper-deep"
                               >
-                                Change
+                                Replace
                               </button>
                               <button
                                 type="button"
@@ -665,10 +602,10 @@ function CompanionApplyForm() {
                             </div>
                           </div>
                         ) : (
-                          <label className="flex items-center justify-center gap-2 border-2 border-dashed border-ink bg-paper p-3 cursor-pointer hover:bg-paper-deep transition text-center shadow-brutal-sm">
-                            <Camera className="h-4 w-4 text-ink shrink-0" />
+                          <label className="flex items-center justify-center gap-2 border-2 border-dashed border-ink bg-paper p-3 cursor-pointer hover:bg-paper-deep transition text-center">
+                            <Upload className="h-4 w-4 text-ink/70" />
                             <span className="text-xs font-black text-ink">
-                              {isAvatarProcessing ? "Optimizing photo..." : "Upload Profile Photo"}
+                              {isAvatarProcessing ? "Compressing photo..." : "Upload Profile Photo"}
                             </span>
                           </label>
                         )}
@@ -683,76 +620,27 @@ function CompanionApplyForm() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-black uppercase text-ink mb-1">
-                        Short Bio / Tagline (Minimum 20 characters)
-                      </label>
-                      <textarea
-                        rows={3}
-                        required
-                        placeholder="Introduce yourself. What kind of places do you love exploring? What are your hobbies, favorite cafes, and conversation topics?"
-                        value={formData.bio}
-                        onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                        className="w-full border-2 border-ink bg-paper p-3 text-xs font-bold text-ink focus:outline-none"
-                      />
-                    </div>
-
-                    {/* Locality & Travel Radius */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-black uppercase text-ink mb-1">
-                          Locality or Area (Members See This)
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. a locality in Mohali / Indiranagar"
-                          value={formData.locality}
-                          onChange={(e) => setFormData({ ...formData, locality: e.target.value })}
-                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
-                        />
-                        <p className="mt-1 text-[11px] font-bold text-ink/60">
-                          Locality or a well-known place near you &mdash; never your home address. Members see it.
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-black uppercase text-ink mb-1">
-                          How far will you travel?
-                        </label>
-                        <select
-                          value={formData.travelRadiusKm}
-                          onChange={(e) => setFormData({ ...formData, travelRadiusKm: Number(e.target.value) })}
-                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
-                        >
-                          <option value={5}>Up to 5 km</option>
-                          <option value={10}>Up to 10 km (Recommended)</option>
-                          <option value={25}>Up to 25 km</option>
-                          <option value={50}>Anywhere in city</option>
-                        </select>
-                        <p className="mt-1 text-[11px] font-bold text-ink/60">
-                          Maximum distance you are willing to travel for public meetups.
-                        </p>
-                      </div>
-                    </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-black uppercase text-ink mb-1">
                           Hourly Rate (INR)
                         </label>
-                        <input
-                          type="number"
-                          min={49}
-                          max={1999}
-                          required
-                          placeholder="e.g. 499"
-                          value={formData.hourlyRate}
-                          onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
-                        />
+                        <div className="relative">
+                          <span className="absolute left-3 top-2.5 font-bold text-xs text-ink-muted">
+                            INR
+                          </span>
+                          <input
+                            type="number"
+                            min={399}
+                            max={1299}
+                            required
+                            value={formData.hourlyRate}
+                            onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                            className="w-full border-2 border-ink bg-paper pl-12 pr-3.5 py-2.5 text-xs font-mono font-bold text-ink focus:outline-none"
+                          />
+                        </div>
                         <p className="mt-1 text-[11px] font-bold text-ink/60">
-                          INR 49 - INR 1,999. You keep 90% &mdash; up to 95% as a Top host.
+                          Recommended: INR 499 – 799/hour for new companions.
                         </p>
                       </div>
 
@@ -795,265 +683,149 @@ function CompanionApplyForm() {
                         })}
                       </div>
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-black uppercase text-ink mb-1">
+                        Short Bio / About You
+                      </label>
+                      <textarea
+                        required
+                        rows={3}
+                        placeholder="Tell verified members about yourself, your hobbies, favorite spots in your city, and what topics you enjoy talking about..."
+                        value={formData.bio}
+                        onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                        className="w-full border-2 border-ink bg-paper p-3 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                      />
+                    </div>
                   </div>
                 )}
 
-                {/* STEP 3: Identity & Safety Checks */}
+                {/* STEP 3: Simple & Private Verification */}
                 {step === 3 && (
-                  <div className="space-y-6 animate-in fade-in">
-                    {/* DPDP Act 2023 Statutory Privacy Compliance Box */}
-                    <div className="border-2 border-ink bg-pink/20 p-4 space-y-2 shadow-brutal-sm">
+                  <div className="space-y-5 animate-in fade-in">
+                    {/* Privacy Reassurance Banner */}
+                    <div className="border-2 border-ink bg-[#E8DEFF] p-4 space-y-2 shadow-brutal-sm">
                       <div className="flex items-center gap-2">
                         <Lock className="h-4 w-4 text-ink shrink-0" />
                         <h3 className="text-xs font-black uppercase tracking-wider text-ink">
-                          Statutory Government Identity Verification (DPDP Act 2023)
+                          Private &amp; Confidential Verification
                         </h3>
                       </div>
-                      <p className="text-xs font-bold text-ink/80 leading-relaxed">
-                        Under Indian trust, safety, and background check protocols, submitting your 12-digit Aadhaar UID and document photos is mandatory. Documents are stored with AES-256 cloud encryption and UIDAI data-minimisation compliance. Your documents are strictly confidential, inspected only by verified human verification officers, and NEVER displayed to members or third parties.
+                      <p className="text-xs font-medium text-ink-soft leading-relaxed">
+                        To maintain a trusted and safe community, we ask for a simple identity proof. Your document is stored with 256-bit encryption and is NEVER displayed to members or on your public profile.
                       </p>
                     </div>
 
-                    {/* Aadhaar Number with Authentic 4-digit Spacing */}
-                    <div className="border-2 border-ink bg-paper p-4 space-y-2 shadow-brutal-sm">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-xs font-black uppercase text-ink flex items-center gap-1.5">
-                          <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                          <span>12-Digit Aadhaar UID Number</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-black uppercase text-ink mb-1">
+                          Document Type
                         </label>
-                        <span className="text-[11px] font-mono font-bold text-ink-muted">
-                          {rawAadhaarDigits.length} / 12 Digits
-                        </span>
-                      </div>
-
-                      <div className="relative">
-                        <input
-                          type={showMaskedAadhaar ? "password" : "text"}
-                          required
-                          maxLength={14}
-                          placeholder="Enter Aadhaar number"
-                          value={showMaskedAadhaar && rawAadhaarDigits.length === 12 ? aadhaarValidation.masked : formattedAadhaar}
-                          onChange={handleAadhaarChange}
-                          className="w-full border-2 border-ink bg-white px-4 py-3 pr-28 text-base sm:text-lg font-mono font-black tracking-widest text-ink placeholder:text-ink/40 placeholder:font-sans placeholder:font-medium placeholder:tracking-normal placeholder:text-xs sm:placeholder:text-sm focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowMaskedAadhaar(!showMaskedAadhaar)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2.5 py-1 text-[11px] font-black uppercase border border-ink bg-paper hover:bg-paper-deep rounded cursor-pointer select-none"
+                        <select
+                          value={formData.idType}
+                          onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
+                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
                         >
-                          {showMaskedAadhaar ? (
-                            <>
-                              <Eye className="h-3.5 w-3.5 text-ink" />
-                              <span>Show</span>
-                            </>
-                          ) : (
-                            <>
-                              <EyeOff className="h-3.5 w-3.5 text-ink" />
-                              <span>Mask</span>
-                            </>
-                          )}
-                        </button>
+                          <option value="Aadhaar Card (Masked)">Aadhaar Card (Masked)</option>
+                          <option value="Driving License">Driving License</option>
+                          <option value="Student / College ID">Student / College ID</option>
+                          <option value="Work / Employee ID">Work / Employee ID</option>
+                          <option value="Voter ID">Voter ID</option>
+                        </select>
                       </div>
 
-                      {/* Live Validation Indicator */}
-                      <div className="pt-1 flex items-center justify-between text-xs font-bold">
-                        {rawAadhaarDigits.length === 0 ? (
-                          <span className="text-ink/60">
-                            Enter the 12-digit number as printed on your Aadhaar card.
-                          </span>
-                        ) : rawAadhaarDigits.length < 12 ? (
-                          <span className="text-amber-700 flex items-center gap-1.5">
-                            <span className="inline-block h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                            <span>Entering number: {12 - rawAadhaarDigits.length} more digits needed</span>
-                          </span>
-                        ) : aadhaarValidation.isChecksumValid ? (
-                          <span className="text-emerald-700 flex items-center gap-1.5 font-black">
-                            <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                            <span>UIDAI Checksum Verified: Genuine 12-digit UID</span>
-                          </span>
-                        ) : (
-                          <span className="text-emerald-700 flex items-center gap-1.5 font-black">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                            <span>Format Verified: 12-digit UID format</span>
-                          </span>
-                        )}
-                        <span className="text-[10px] font-bold text-ink-muted">
-                          AES-256 Encrypted
-                        </span>
+                      <div>
+                        <label className="block text-xs font-black uppercase text-ink mb-1">
+                          ID Number / Last 4 Digits (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={16}
+                          placeholder="e.g. Last 4 digits (1234)"
+                          value={formData.idNumber}
+                          onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                        />
                       </div>
                     </div>
 
-                    {/* Aadhaar Card Front & Back Photo Upload with Live Previews */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-black uppercase tracking-wider text-ink">
-                          Aadhaar Document Upload (Front &amp; Back Sides Required)
-                        </h4>
-                        <span className="text-[10px] font-bold text-ink-muted">
-                          Original Photo / Color Scan
-                        </span>
-                      </div>
+                    {/* Single Document Upload */}
+                    <div>
+                      <label className="block text-xs font-black uppercase text-ink mb-1">
+                        Upload ID Photo (Clear Photo of Card)
+                      </label>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* AADHAAR FRONT SIDE */}
-                        <div className="border-2 border-ink bg-paper p-3.5 space-y-2 shadow-brutal-sm">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-black uppercase text-ink">
-                              Front Side (Photo &amp; Name)
-                            </span>
-                            <span className="text-[10px] font-black uppercase bg-sunny px-1.5 py-0.5 border border-ink">
-                              Side 1
-                            </span>
-                          </div>
-
-                          {aadhaarFrontBase64 ? (
-                            <div className="space-y-2">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={aadhaarFrontBase64}
-                                alt="Aadhaar Front Preview"
-                                onClick={() => setPreviewImageModal({ src: aadhaarFrontBase64, title: "Aadhaar Card - Front Side Preview" })}
-                                className="w-full h-36 rounded border-2 border-ink object-cover shadow-brutal-sm cursor-pointer hover:opacity-90"
-                                title="Click to enlarge"
-                              />
-                              <div className="flex items-center justify-between pt-1">
-                                <span className="text-[10px] font-black text-emerald-600 uppercase flex items-center gap-1">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  <span>Front Side Ready</span>
-                                </span>
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => setPreviewImageModal({ src: aadhaarFrontBase64, title: "Aadhaar Card - Front Side Preview" })}
-                                    className="border border-ink bg-white px-2 py-0.5 text-[10px] font-black uppercase hover:bg-paper-deep inline-flex items-center gap-1"
-                                    title="View full image"
-                                  >
-                                    <Maximize2 className="h-3 w-3" />
-                                    <span>View</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => aadhaarFrontInputRef.current?.click()}
-                                    className="border border-ink bg-white px-2 py-0.5 text-[10px] font-black uppercase hover:bg-paper-deep"
-                                  >
-                                    Replace
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setAadhaarFrontBase64("");
-                                      setAadhaarFrontFileName("");
-                                    }}
-                                    className="p-1 text-danger hover:bg-danger/10 rounded"
-                                    title="Remove document"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              </div>
+                      {idDocBase64 ? (
+                        <div className="border-2 border-ink bg-paper p-3 flex items-center justify-between shadow-brutal-sm">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-6 w-6 text-ink" />
+                            <div>
+                              <span className="text-xs font-black text-ink block truncate max-w-[200px]">
+                                {idDocFileName || "id-document.jpg"}
+                              </span>
+                              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                                <Check className="h-3 w-3" /> Document Ready
+                              </span>
                             </div>
-                          ) : (
-                            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-ink bg-white p-5 cursor-pointer hover:bg-paper-deep transition text-center min-h-[144px]">
-                              <FileText className="h-6 w-6 text-ink/70" />
-                              <span className="text-xs font-black text-ink">
-                                {isAadhaarFrontProcessing ? "Compressing document..." : "Upload Front Side Photo"}
-                              </span>
-                              <span className="text-[10px] font-bold text-ink/60">
-                                Side with your photo, name, and 12-digit number
-                              </span>
-                            </label>
-                          )}
-
-                          <input
-                            ref={aadhaarFrontInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAadhaarFrontFile}
-                            className="hidden"
-                          />
-                        </div>
-
-                        {/* AADHAAR BACK SIDE */}
-                        <div className="border-2 border-ink bg-paper p-3.5 space-y-2 shadow-brutal-sm">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-black uppercase text-ink">
-                              Back Side (Address &amp; QR)
-                            </span>
-                            <span className="text-[10px] font-black uppercase bg-sunny px-1.5 py-0.5 border border-ink">
-                              Side 2
-                            </span>
                           </div>
-
-                          {aadhaarBackBase64 ? (
-                            <div className="space-y-2">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={aadhaarBackBase64}
-                                alt="Aadhaar Back Preview"
-                                onClick={() => setPreviewImageModal({ src: aadhaarBackBase64, title: "Aadhaar Card - Back Side Preview" })}
-                                className="w-full h-36 rounded border-2 border-ink object-cover shadow-brutal-sm cursor-pointer hover:opacity-90"
-                                title="Click to enlarge"
-                              />
-                              <div className="flex items-center justify-between pt-1">
-                                <span className="text-[10px] font-black text-emerald-600 uppercase flex items-center gap-1">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  <span>Back Side Ready</span>
-                                </span>
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => setPreviewImageModal({ src: aadhaarBackBase64, title: "Aadhaar Card - Back Side Preview" })}
-                                    className="border border-ink bg-white px-2 py-0.5 text-[10px] font-black uppercase hover:bg-paper-deep inline-flex items-center gap-1"
-                                    title="View full image"
-                                  >
-                                    <Maximize2 className="h-3 w-3" />
-                                    <span>View</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => aadhaarBackInputRef.current?.click()}
-                                    className="border border-ink bg-white px-2 py-0.5 text-[10px] font-black uppercase hover:bg-paper-deep"
-                                  >
-                                    Replace
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setAadhaarBackBase64("");
-                                      setAadhaarBackFileName("");
-                                    }}
-                                    className="p-1 text-danger hover:bg-danger/10 rounded"
-                                    title="Remove document"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-ink bg-white p-5 cursor-pointer hover:bg-paper-deep transition text-center min-h-[144px]">
-                              <FileText className="h-6 w-6 text-ink/70" />
-                              <span className="text-xs font-black text-ink">
-                                {isAadhaarBackProcessing ? "Compressing document..." : "Upload Back Side Photo"}
-                              </span>
-                              <span className="text-[10px] font-bold text-ink/60">
-                                Side with your residential address and QR code
-                              </span>
-                            </label>
-                          )}
-
-                          <input
-                            ref={aadhaarBackInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAadhaarBackFile}
-                            className="hidden"
-                          />
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => idDocInputRef.current?.click()}
+                              className="border border-ink bg-white px-2 py-1 text-[10px] font-black uppercase hover:bg-paper-deep"
+                            >
+                              Replace
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIdDocBase64("");
+                                setIdDocFileName("");
+                              }}
+                              className="p-1 text-danger hover:bg-danger/10 rounded"
+                              title="Remove document"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-ink bg-white p-5 cursor-pointer hover:bg-paper-deep transition text-center min-h-[90px]">
+                          <Upload className="h-5 w-5 text-ink/70" />
+                          <span className="text-xs font-black text-ink">
+                            {isIdDocProcessing ? "Compressing document..." : "Upload Document Photo"}
+                          </span>
+                          <span className="text-[10px] font-bold text-ink-muted">
+                            Aadhaar, Driving License, Student ID or Work ID
+                          </span>
+                        </label>
+                      )}
+
+                      <input
+                        ref={idDocInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleIdDocFile}
+                        className="hidden"
+                      />
                     </div>
 
-                    {/* Strict Platonic Guarantee & Legal Policy Checkbox */}
+                    {/* Optional Social Profile */}
+                    <div>
+                      <label className="block text-xs font-black uppercase text-ink mb-1 flex items-center gap-1.5">
+                        <Instagram className="h-3.5 w-3.5 text-pink-600" />
+                        <span>Social Profile (Optional for Faster Approval)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. @your_instagram or linkedin.com/in/username"
+                        value={formData.socialHandle}
+                        onChange={(e) => setFormData({ ...formData, socialHandle: e.target.value })}
+                        className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Strict Platonic Policy Checkbox */}
                     <div className="border-2 border-ink bg-white p-4 shadow-brutal-sm">
                       <label className="flex items-start gap-3 cursor-pointer">
                         <input
@@ -1064,59 +836,9 @@ function CompanionApplyForm() {
                           className="mt-0.5 h-4 w-4 border-2 border-ink accent-ink"
                         />
                         <span className="text-xs font-bold text-ink leading-relaxed">
-                          I confirm that all uploaded documents are genuine and belong to me. I agree to Made4Togethr&apos;s Strictly Platonic &amp; Public Venues policy. I understand that all meetups must be 100% platonic in open public venues only; that romantic or sexual propositions are strictly prohibited; and that violations result in immediate permanent account termination and legal action.
+                          I agree to Made4Togethr&apos;s Strictly Platonic &amp; Public Venues policy. All meetups are 100% platonic in open public places only; romantic or sexual propositions are strictly prohibited and result in immediate ban.
                         </span>
                       </label>
-                    </div>
-                  </div>
-                )}
-
-                {/* STEP 4: Automated Live Video Face Match & Fee */}
-                {step === 4 && (
-                  <div className="space-y-5 animate-in fade-in">
-                    <LiveFaceMatcher
-                      referencePhotoBase64={avatarBase64 || aadhaarFrontBase64}
-                      onMatchComplete={(res) => {
-                        setLiveSelfieBase64(res.liveSelfieBase64);
-                        setFaceMatchScore(res.similarityScore);
-                        setIsFaceMatched(res.isMatched);
-                      }}
-                      onReset={() => {
-                        setLiveSelfieBase64("");
-                        setFaceMatchScore(0);
-                        setIsFaceMatched(false);
-                      }}
-                    />
-
-                    {/* Registration Fee Box (from getcompanio.in reference) */}
-                    <div className="border-2 border-ink bg-[#FFE2EC] p-5 shadow-brutal-sm space-y-3">
-                      <div className="flex items-center justify-between border-b-2 border-ink/30 pb-2">
-                        <span className="text-xs font-black uppercase text-ink">
-                          One-Time Host Registration Fee
-                        </span>
-                        <span className="text-[10px] font-black uppercase bg-white px-2 py-0.5 border border-ink">
-                          Safety Screening
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5 text-xs font-bold text-ink">
-                        <div className="flex justify-between">
-                          <span>Registration fee:</span>
-                          <span className="font-mono">INR 99</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>GST (18%):</span>
-                          <span className="font-mono">INR 18</span>
-                        </div>
-                        <div className="flex justify-between border-t-2 border-ink pt-1.5 text-sm font-black">
-                          <span>To pay:</span>
-                          <span className="font-mono text-base">INR 117</span>
-                        </div>
-                      </div>
-
-                      <p className="text-[11px] font-medium text-ink-muted leading-relaxed">
-                        Includes AES-256 encrypted UIDAI Aadhaar verification, DPDP Act compliance audit, and automated biometric live face validation.
-                      </p>
                     </div>
                   </div>
                 )}
@@ -1130,7 +852,7 @@ function CompanionApplyForm() {
                         setErrorMessage(null);
                         setStep(step - 1);
                       }}
-                      className="border-2 border-ink bg-paper px-6 py-2.5 text-xs font-black uppercase shadow-brutal btn-press"
+                      className="border-2 border-ink bg-paper px-6 py-2.5 text-xs font-black uppercase shadow-brutal btn-press cursor-pointer"
                     >
                       Back
                     </button>
@@ -1140,16 +862,14 @@ function CompanionApplyForm() {
 
                   <button
                     type="submit"
-                    disabled={isSubmitting || (step === 4 && !isFaceMatched)}
+                    disabled={isSubmitting}
                     className="border-2 border-ink bg-ink px-8 py-3 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-50 inline-flex items-center gap-2 cursor-pointer"
                   >
                     <span>
-                      {step === 4
+                      {step === 3
                         ? isSubmitting
-                          ? "Processing Payment & Submission..."
-                          : isFaceMatched
-                          ? "Pay INR 117 & Submit Application"
-                          : "Complete Face Match to Submit"
+                          ? "Submitting Application..."
+                          : "Submit Application →"
                         : "Next Step"}
                     </span>
                     <ArrowRight className="h-4 w-4" />
@@ -1161,63 +881,17 @@ function CompanionApplyForm() {
         </div>
       </main>
 
-      {/* Lightbox / High-Res Preview Modal for Uploaded Documents & Photos */}
-      {previewImageModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setPreviewImageModal(null)}
-        >
-          <div
-            className="relative max-w-2xl w-full border-4 border-ink bg-white p-4 shadow-brutal-lg space-y-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b-2 border-ink pb-2">
-              <h3 className="text-xs sm:text-sm font-black uppercase text-ink flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                <span>{previewImageModal.title}</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setPreviewImageModal(null)}
-                className="p-1 border border-ink bg-paper hover:bg-paper-deep rounded cursor-pointer"
-                title="Close preview"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="overflow-hidden rounded border-2 border-ink bg-black/5 flex items-center justify-center max-h-[70vh]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={previewImageModal.src}
-                alt={previewImageModal.title}
-                className="max-h-[65vh] w-auto max-w-full object-contain"
-              />
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold text-ink-muted">
-              <span>Encrypted for Verification &middot; Strictly Confidential</span>
-              <button
-                type="button"
-                onClick={() => setPreviewImageModal(null)}
-                className="border border-ink bg-ink text-white px-3 py-1 font-black uppercase hover:bg-ink/80 rounded"
-              >
-                Close Preview
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <Footer />
     </div>
   );
 }
 
-export default function CompanionApplyPage() {
+export default function ApplyPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-paper flex items-center justify-center font-display text-sm font-black uppercase text-ink">
-          Loading Application...
+        <div className="min-h-screen bg-paper flex items-center justify-center font-display font-black text-ink">
+          Loading companion application...
         </div>
       }
     >

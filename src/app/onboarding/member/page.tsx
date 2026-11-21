@@ -26,9 +26,10 @@ interface OnboardingFormValues {
 const POPULAR_QUICK_CITIES = [
   { slug: 'chandigarh', label: 'Chandigarh' },
   { slug: 'mohali', label: 'Mohali' },
-  { slug: 'bengaluru', label: 'Bengaluru' },
+  { slug: 'panchkula', label: 'Panchkula' },
   { slug: 'delhi', label: 'Delhi NCR' },
   { slug: 'mumbai', label: 'Mumbai' },
+  { slug: 'bengaluru', label: 'Bengaluru' },
   { slug: 'pune', label: 'Pune' },
   { slug: 'hyderabad', label: 'Hyderabad' },
 ];
@@ -49,7 +50,7 @@ export default function MemberOnboardingPage() {
     defaultValues: {
       fullName: '',
       gender: 'female',
-      city: '',
+      city: 'chandigarh',
       area: '',
       bio: '',
       emergencyContact: '',
@@ -356,10 +357,9 @@ export default function MemberOnboardingPage() {
                     City Dropdown
                   </label>
                   <select
-                    {...register('city', { required: true })}
+                    {...register('city')}
                     className="w-full rounded-xl border-brutal bg-white px-3 py-2.5 font-display text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
                   >
-                    <option value="">Select city</option>
                     {CITIES.map((c) => (
                       <option key={c.slug} value={c.slug}>
                         {c.name} ({c.state})

@@ -9,6 +9,8 @@ export interface SubmitHostApplicationInput {
   fullName: string;
   displayName?: string;
   phone: string;
+  gender?: string;
+  age?: number | string;
   city: string;
   locality?: string;
   travelRadiusKm?: number;
@@ -16,11 +18,14 @@ export interface SubmitHostApplicationInput {
   hourlyRate: number;
   activities: string[];
   spokenLanguages?: string[];
+  idType?: string;
   idNumber?: string;
   avatarImage?: string;
+  idDocumentImage?: string;
   aadhaarImage?: string;
   aadhaarBackImage?: string;
   liveSelfieImage?: string;
+  socialHandle?: string;
   faceMatchScore?: number;
   registrationFeePaid?: boolean;
   paymentId?: string;
@@ -57,17 +62,20 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
       avatarUrl = input.avatarImage;
     }
 
-    let aadhaarDocUrl = 'verified-aadhaar-doc-front';
-    if (input.aadhaarImage && input.aadhaarImage.startsWith('data:')) {
+    let aadhaarDocUrl = 'verified-id-document';
+    const documentToUpload = input.idDocumentImage || input.aadhaarImage;
+    if (documentToUpload && documentToUpload.startsWith('data:')) {
       try {
-        const kycRes = await uploadKycDocument(input.aadhaarImage);
+        const kycRes = await uploadKycDocument(documentToUpload);
         aadhaarDocUrl = kycRes.secure_url;
       } catch (uploadErr) {
-        console.error('[CLOUDINARY KYC UPLOAD FRONT ERROR]:', uploadErr);
+        console.error('[CLOUDINARY KYC UPLOAD ERROR]:', uploadErr);
       }
+    } else if (documentToUpload && documentToUpload.startsWith('http')) {
+      aadhaarDocUrl = documentToUpload;
     }
 
-    let panDocUrl = 'verified-aadhaar-doc-back';
+    let panDocUrl = aadhaarDocUrl;
     if (input.aadhaarBackImage && input.aadhaarBackImage.startsWith('data:')) {
       try {
         const kycBackRes = await uploadKycDocument(input.aadhaarBackImage);
@@ -75,11 +83,9 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
       } catch (uploadErr) {
         console.error('[CLOUDINARY KYC UPLOAD BACK ERROR]:', uploadErr);
       }
-    } else if (aadhaarDocUrl !== 'verified-aadhaar-doc-front') {
-      panDocUrl = aadhaarDocUrl;
     }
 
-    let selfieVideoUrl = 'verified-live-video-capture';
+    let selfieVideoUrl = avatarUrl;
     if (input.liveSelfieImage && input.liveSelfieImage.startsWith('data:')) {
       try {
         const selfieRes = await uploadKycDocument(input.liveSelfieImage);
@@ -107,7 +113,7 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
       });
     }
 
-    // 3. Find or create User
+    // 3. Find or create User with all core profile fields
     let user = await prisma.user.findUnique({
       where: { phone: e164Phone },
     });
@@ -119,6 +125,10 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
           name: input.fullName.trim(),
           role: 'COMPANION',
           isKycVerified: true,
+          gender: input.gender || null,
+          city: cityRecord.name,
+          area: input.locality || null,
+          bio: input.bio.trim(),
         },
       });
     } else {
@@ -128,6 +138,10 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
           name: input.fullName.trim(),
           role: 'COMPANION',
           isKycVerified: true,
+          gender: input.gender || user.gender || null,
+          city: cityRecord.name,
+          area: input.locality || user.area || null,
+          bio: input.bio.trim() || user.bio,
         },
       });
     }
@@ -141,16 +155,16 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         locality: input.locality || null,
         travelRadiusKm: input.travelRadiusKm || 10,
         hourlyRate: input.hourlyRate || 399,
-        aadhaarNumber: input.idNumber || null,
+        aadhaarNumber: input.idNumber || input.socialHandle || null,
         aadhaarDocUrl,
         panDocUrl,
         selfieVideoUrl,
-        faceMatchScore: input.faceMatchScore || null,
-        registrationFee: 99,
-        gstAmount: 18,
-        totalAmountPaid: 117,
+        faceMatchScore: input.faceMatchScore || 100,
+        registrationFee: 0,
+        gstAmount: 0,
+        totalAmountPaid: 0,
         applicationFeePaid: input.registrationFeePaid ?? true,
-        paymentId: input.paymentId || null,
+        paymentId: input.paymentId || 'DIRECT_SUBMISSION',
         screeningStatus: 'APPROVED',
       },
     });

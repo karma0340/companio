@@ -107,7 +107,7 @@ export default function ExplorePage() {
             name: c.displayName || c.name,
             age: 24,
             gender: 'female' as const,
-            city: (c.citySlug || (c.city ? c.city.toLowerCase() : 'bengaluru')).trim(),
+            city: (c.citySlug || (c.city ? c.city.toLowerCase() : 'chandigarh')).trim(),
             area: c.city || 'Central Area',
             tagline: c.shortBio || 'Verified local companion',
             about: c.bio || c.shortBio || 'Engaging companion for genuine public meetups.',

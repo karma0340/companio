@@ -111,10 +111,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let detectedCitySlug = "bengaluru";
-    let detectedCityName = "Bengaluru";
-    let detectedState = "Karnataka";
-    let detectedArea = "";
+    let detectedCitySlug = "chandigarh";
+    let detectedCityName = "Chandigarh";
+    let detectedState = "Punjab/Haryana";
+    let detectedArea = "Sector 17";
 
     // 1. Attempt OpenStreetMap Nominatim reverse geocoding
     try {

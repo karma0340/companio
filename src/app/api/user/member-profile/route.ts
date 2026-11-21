@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         fullName: user.name || "Member",
         email: user.email || "",
         gender: user.gender || "female",
-        city: user.city || "bengaluru",
+        city: user.city || "chandigarh",
         area: user.area || "",
         bio: user.bio || "",
         emergencyContact: user.emergencyContact || "",
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const fullName = String(body?.fullName || "").trim();
     const gender = String(body?.gender || "female").trim();
-    const city = String(body?.city || "bengaluru").trim();
+    const city = String(body?.city || "chandigarh").trim();
     const area = String(body?.area || "").trim();
     const bio = String(body?.bio || "").trim();
     const emergencyContact = String(body?.emergencyContact || "").trim().replace(/\D/g, "");

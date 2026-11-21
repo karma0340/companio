@@ -71,16 +71,16 @@ function mapToActivityCategories(activities: string[] = []): ActivityCategory[] 
 }
 
 const DEFAULT_HERO_COMPANION: Companion = {
-  id: 'kashish-blr',
+  id: 'kashish-chd',
   name: 'Kashish',
   age: 22,
   gender: 'female',
-  city: 'bengaluru',
-  area: 'Indiranagar, BLR',
-  tagline: 'Show me around? No - let me show you around Bengaluru',
-  about: 'Design Student & Indie Music Fan in Indiranagar.',
+  city: 'chandigarh',
+  area: 'Sector 35, CHD',
+  tagline: 'Show me around? No - let me show you around Chandigarh & Tricity',
+  about: 'Architecture Student & Coffee Enthusiast in Chandigarh.',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
-  languages: ['English', 'Hindi', 'Kannada'],
+  languages: ['English', 'Hindi', 'Punjabi'],
   hourlyRate: 599,
   verifiedId: true,
   verifiedPhoto: true,
@@ -98,7 +98,7 @@ const DEFAULT_HERO_COMPANION: Companion = {
 };
 
 export default function HomePage() {
-  const [heroCity, setHeroCity] = useState('bengaluru');
+  const [heroCity, setHeroCity] = useState('chandigarh');
   const [heroActivity, setHeroActivity] = useState('all');
   const [liveCompanions, setLiveCompanions] = useState<Companion[]>([]);
 
