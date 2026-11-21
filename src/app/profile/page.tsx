@@ -16,6 +16,10 @@ import {
   Save,
   ArrowRight,
   KeyRound,
+  Coins,
+  Wallet,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
@@ -44,6 +48,7 @@ export default function ProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [activePass, setActivePass] = useState<any>(null);
   const [loadingPass, setLoadingPass] = useState(true);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const gender: GenderType = (memberProfile?.gender as GenderType) === 'male' ? 'male' : 'female';
 
@@ -248,58 +253,70 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Membership Pass Status Card */}
+          {/* Wallet & Coins Card */}
           <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <KeyRound className="h-5 w-5 text-ink" />
+                  <Coins className="h-5 w-5 text-ink" />
                   <h2 className="font-display text-lg font-black uppercase text-ink">
-                    Membership Access Status
+                    Wallet &amp; Coin Balance
                   </h2>
                 </div>
                 <p className="text-xs font-bold text-ink-soft">
-                  {activePass
-                    ? `Your account is active with the ${activePass.name || activePass.tier} subscription pass.`
-                    : 'Get an access pass to unlock full companion contact info and book unlimited meetups.'}
+                  Coins power direct messaging with verified hosts and meetup escrow. 1 Coin = INR 1.
                 </p>
               </div>
 
-              <div className="shrink-0">
-                {activePass ? (
-                  <Badge variant="lime" size="md">
-                    Pass Active · {activePass.daysRemaining === 'Infinite' ? 'Lifetime Access' : `${activePass.daysRemaining} Days Left`}
-                  </Badge>
-                ) : (
-                  <Link href="/membership">
-                    <Button variant="primary" size="sm">
-                      <span>Get Access Pass →</span>
-                    </Button>
-                  </Link>
-                )}
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl border-brutal-sm bg-[#D4F7A5] px-4 py-2 text-ink shadow-brutal-xs">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-ink/70">Balance</div>
+                  <div className="font-display text-lg font-black">{user?.coinBalance ?? 100} Coins</div>
+                </div>
+
+                <Link href="/wallet">
+                  <Button variant="primary" size="sm">
+                    <span>Top Up Wallet →</span>
+                  </Button>
+                </Link>
               </div>
             </div>
 
-            {activePass && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t-2 border-ink/10 text-center">
-                <div className="border-2 border-ink bg-paper p-2.5">
-                  <div className="text-[10px] font-black uppercase text-ink-muted">Tier</div>
-                  <div className="font-display text-xs font-black text-ink">{activePass.tier.replace(/_/g, ' ')}</div>
-                </div>
-                <div className="border-2 border-ink bg-paper p-2.5">
-                  <div className="text-[10px] font-black uppercase text-ink-muted">Platform Fee</div>
-                  <div className="font-display text-xs font-black text-emerald-700">0% Waived</div>
-                </div>
-                <div className="border-2 border-ink bg-paper p-2.5">
-                  <div className="text-[10px] font-black uppercase text-ink-muted">Direct Bookings</div>
-                  <div className="font-display text-xs font-black text-ink">Unlimited</div>
-                </div>
-                <div className="border-2 border-ink bg-paper p-2.5">
-                  <div className="text-[10px] font-black uppercase text-ink-muted">Safety Support</div>
-                  <div className="font-display text-xs font-black text-ink">Priority 24/7</div>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t-2 border-ink/10">
+              <div className="rounded-xl border-2 border-ink bg-paper p-3 space-y-1">
+                <div className="text-[10px] font-black uppercase text-ink-muted">24h Host Chat</div>
+                <div className="font-display text-sm font-black text-ink">69 Coins / host</div>
+                <div className="text-[10px] font-medium text-ink-soft">Auto-refund if no reply in 48h</div>
               </div>
-            )}
+
+              <div className="rounded-xl border-2 border-ink bg-paper p-3 space-y-1">
+                <div className="text-[10px] font-black uppercase text-ink-muted">Forever Chat</div>
+                <div className="font-display text-sm font-black text-ink">499 Coins / host</div>
+                <div className="text-[10px] font-medium text-ink-soft">Unlimited messaging anytime</div>
+              </div>
+
+              <div className="rounded-xl border-2 border-ink bg-paper p-3 space-y-1">
+                <div className="text-[10px] font-black uppercase text-ink-muted">Your Referral Code</div>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-black tracking-wider text-ink">{user?.referralCode || 'COMPANIO'}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (user?.referralCode && typeof navigator !== 'undefined') {
+                        navigator.clipboard.writeText(user.referralCode);
+                        setCopiedCode(true);
+                        setTimeout(() => setCopiedCode(false), 2000);
+                      }
+                    }}
+                    className="p-1 rounded hover:bg-paper-deep text-ink cursor-pointer"
+                    title="Copy code"
+                  >
+                    {copiedCode ? <Check className="h-3.5 w-3.5 text-emerald-700" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+                <div className="text-[10px] font-medium text-ink-soft">Earn 100 coins per meetup</div>
+              </div>
+            </div>
           </div>
 
           {/* Edit Form or Details View */}

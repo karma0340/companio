@@ -7,9 +7,11 @@ export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface ToastItem {
   id: string;
-  type: ToastType;
+  type?: ToastType;
   title?: string;
-  message: string;
+  message?: string;
+  description?: string;
+  variant?: 'default' | 'destructive';
 }
 
 interface ToastContextType {
@@ -30,16 +32,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addToast = useCallback(
-    ({ type, title, message }: Omit<ToastItem, 'id'>) => {
+    ({ type, title, message, description, variant }: Omit<ToastItem, 'id'>) => {
+      const resolvedMessage = message || description || '';
+      const resolvedType: ToastType = type || (variant === 'destructive' ? 'error' : 'success');
+
       // Prevent duplicate toasts with the exact same message
       setToasts((prev) => {
-        if (prev.some((t) => t.message === message)) {
+        if (prev.some((t) => (t.message || t.description) === resolvedMessage)) {
           return prev;
         }
         const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
         // Keep maximum 3 toasts visible at once
         const trimmed = prev.length >= 3 ? prev.slice(prev.length - 2) : prev;
-        return [...trimmed, { id, type, title, message }];
+        return [...trimmed, { id, type: resolvedType, title, message: resolvedMessage, description: resolvedMessage }];
       });
 
       // Auto dismiss after 4 seconds

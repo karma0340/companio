@@ -98,6 +98,36 @@ enum TicketStatus {
   RESOLVED
 }
 
+enum HostLevel {
+  NEW
+  RISING
+  TOP
+}
+
+enum CoinTransactionType {
+  WELCOME_CREDIT
+  TOPUP
+  TOPUP_BONUS
+  CHAT_UNLOCK_24H
+  CHAT_UNLOCK_FOREVER
+  CHAT_REFUND_TIMEOUT
+  MEETUP_PAYMENT
+  MEETUP_REFUND
+  REFERRAL_BONUS
+}
+
+enum ChatTier {
+  TWENTY_FOUR_HOURS
+  FOREVER
+}
+
+enum ChatUnlockStatus {
+  ACTIVE
+  HOST_RESPONDED
+  REFUNDED_TIMEOUT
+  EXPIRED
+}
+
 // ----------------------------------------------------
 // CORE ENTITIES
 // ----------------------------------------------------
@@ -109,6 +139,11 @@ model User {
   email           String?     @unique
   role            UserRole    @default(MEMBER)
   walletBalance   Decimal     @default(0.00) @db.Decimal(10, 2)
+  coinBalance     Int         @default(100)
+  creditBalance   Decimal     @default(100.00) @db.Decimal(10, 2)
+  referralCode    String?     @unique
+  referredById    String?
+  emailVerified   Boolean     @default(false)
   isUnlocked      Boolean     @default(false)
   activePassTier  PassTier?
   passExpiresAt   DateTime?
@@ -121,6 +156,8 @@ model User {
   memberBookings  Booking[]       @relation("MemberBookings")
   chatMessages    ChatMessage[]
   transactions    Transaction[]
+  coinTransactions CoinTransaction[]
+  chatUnlocksInitiated ChatUnlock[] @relation("MemberChatUnlocks")
   reviewsWritten  ReviewRating[]  @relation("MemberReviews")
   safetyAlerts    SafetyAlert[]   @relation("TriggeredAlerts")
   tickets         GrievanceTicket[]
@@ -144,6 +181,11 @@ model Companion {
   hourlyRate          Decimal     @default(499.00) @db.Decimal(10, 2)
   spokenLanguages     String[]
   acceptedActivities  String[]
+  locality            String?
+  travelRadiusKm      Int         @default(10)
+  hostLevel           HostLevel   @default(NEW)
+  completedMeetups    Int         @default(0)
+  photoVerified       Boolean     @default(false)
   ratingAverage       Float       @default(5.0)
   totalReviews        Int         @default(0)
   isAvailable         Boolean     @default(true)
@@ -155,6 +197,7 @@ model Companion {
 
   bookings            Booking[]   @relation("CompanionBookings")
   reviewsReceived     ReviewRating[] @relation("CompanionReviews")
+  chatUnlocksReceived ChatUnlock[]
 
   @@index([cityId])
   @@index([isAvailable])
@@ -293,10 +336,21 @@ model HostApplication {
   phone               String
   fullName            String
   city                String
+  locality            String?
+  travelRadiusKm      Int             @default(10)
+  hourlyRate          Decimal         @default(399.00) @db.Decimal(10, 2)
+  platonicAgreed      Boolean         @default(true)
+  aadhaarNumber       String?
   aadhaarDocUrl       String
+  aadhaarBackDocUrl   String?
   panDocUrl           String
   selfieVideoUrl      String?
+  faceMatchScore      Float?
+  registrationFee     Decimal         @default(99.00) @db.Decimal(10, 2)
+  gstAmount           Decimal         @default(18.00) @db.Decimal(10, 2)
+  totalAmountPaid     Decimal         @default(117.00) @db.Decimal(10, 2)
   applicationFeePaid  Boolean         @default(false)
+  paymentId           String?
   screeningStatus     ScreeningStatus @default(SUBMITTED)
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
@@ -350,4 +404,42 @@ model GrievanceTicket {
 
   @@index([category])
   @@index([status])
+}
+
+model CoinTransaction {
+  id              String              @id @default(uuid())
+  userId          String
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            CoinTransactionType
+  amount          Int                 // Positive for credit/refund, negative for debit
+  balanceAfter    Int                 // Running balance snapshot
+  description     String
+  referenceId     String?             // razorpayPaymentId, bookingId, or chatUnlockId
+  createdAt       DateTime            @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model ChatUnlock {
+  id                  String            @id @default(uuid())
+  memberId            String
+  member              User              @relation("MemberChatUnlocks", fields: [memberId], references: [id], onDelete: Cascade)
+  companionId         String
+  companion           Companion         @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  tier                ChatTier
+  coinsDeducted       Int               // 69 or 499
+  expiresAt           DateTime?         // null for FOREVER, now + 24h for TWENTY_FOUR_HOURS
+  firstHostReplyAt    DateTime?
+  refundDeadline      DateTime          // now + 48 hours SLA
+  isRefunded          Boolean           @default(false)
+  status              ChatUnlockStatus  @default(ACTIVE)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([memberId])
+  @@index([companionId])
+  @@index([status])
+  @@index([refundDeadline])
 }

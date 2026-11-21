@@ -10,6 +10,9 @@ export interface User {
   name?: string;
   activeRole: 'member' | 'host' | 'admin';
   accountStatus: string;
+  coinBalance?: number;
+  creditBalance?: number;
+  referralCode?: string | null;
 }
 
 export interface MemberProfile {
@@ -36,6 +39,11 @@ export interface HostProfile {
   tagline?: string;
   avatarUrl?: string;
   hourlyRate?: number;
+  locality?: string;
+  travelRadiusKm?: number;
+  hostLevel?: 'NEW' | 'RISING' | 'TOP' | string;
+  completedMeetups?: number;
+  photoVerified?: boolean;
   verificationStatus: 'not_applied' | 'pending' | 'approved' | 'rejected';
   isFreeToday: boolean;
   walletBalance: number;
@@ -125,6 +133,9 @@ export const useAppStore = create<AppState>()(
                 name: u.name,
                 activeRole: role,
                 accountStatus: 'active',
+                coinBalance: u.coinBalance ?? 100,
+                creditBalance: u.creditBalance ?? 100,
+                referralCode: u.referralCode || null,
               };
               const memProfile: MemberProfile = data.memberProfile || {
                 id: u.id,

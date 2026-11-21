@@ -7,30 +7,50 @@ import {
   Send,
   ShieldCheck,
   AlertTriangle,
+  AlertCircle,
   MapPin,
   Clock,
   Lock,
   ChevronLeft,
   Wifi,
   WifiOff,
+  Coins,
+  RotateCcw,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ChatMessageRecord } from "@/lib/chat-store";
 import { BookingRecord } from "@/lib/bookings";
 import { filterChatMessage } from "@/lib/filters";
+import { useToast } from "@/components/ui/toast";
+import { useAuth } from "@/context/auth-context";
+
+interface UnlockInfo {
+  id: string;
+  tier: "TWENTY_FOUR_HOURS" | "FOREVER";
+  status: "ACTIVE" | "HOST_RESPONDED" | "EXPIRED" | "REFUNDED_TIMEOUT";
+  coinsDeducted: number;
+  expiresAt: string | null;
+  refundDeadline: string | null;
+  firstHostReplyAt: string | null;
+  isExpired: boolean;
+}
 
 export default function ChatRoomPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
+  const { user, refreshSession } = useAuth();
   const bookingId = String(params.bookingId || "bkg_seed_01");
 
   const [booking, setBooking] = useState<BookingRecord | null>(null);
   const [messages, setMessages] = useState<ChatMessageRecord[]>([]);
+  const [unlockInfo, setUnlockInfo] = useState<UnlockInfo | null>(null);
   const [inputContent, setInputContent] = useState<string>("");
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [currentUserId, setCurrentUserId] = useState<string>("user_member_demo");
   const [preflightWarning, setPreflightWarning] = useState<string | null>(null);
+  const [isRenewing, setIsRenewing] = useState<boolean>(false);
 
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -42,6 +62,25 @@ export default function ChatRoomPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const fetchChatData = () => {
+    fetch(`/api/chat/${bookingId}/messages`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          if (Array.isArray(data.messages)) {
+            setMessages(data.messages);
+          }
+          if (data.unlock) {
+            setUnlockInfo(data.unlock);
+          }
+          if (data.booking) {
+            setBooking(data.booking);
+          }
+        }
+      })
+      .catch((err) => console.error("Error fetching chat data:", err));
+  };
 
   // 1. Fetch current session & booking details
   useEffect(() => {
@@ -63,35 +102,12 @@ export default function ChatRoomPage() {
       })
       .catch(() => {});
 
-    fetch(`/api/chat/${bookingId}/messages`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.messages) {
-          setMessages(data.messages);
-        }
-      })
-      .catch(() => {});
+    fetchChatData();
   }, [bookingId]);
 
   // 2. Establish WebSocket connection with REST polling fallback
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
-
-    const pollMessages = () => {
-      fetch(`/api/chat/${bookingId}/messages`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && Array.isArray(data.messages)) {
-            setMessages((prev) => {
-              if (data.messages.length !== prev.length) {
-                return data.messages;
-              }
-              return prev;
-            });
-          }
-        })
-        .catch(() => {});
-    };
 
     const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
     const protocol = isHttps ? "wss:" : "ws:";
@@ -128,18 +144,18 @@ export default function ChatRoomPage() {
       ws.onclose = () => {
         setIsConnected(false);
         if (!pollingInterval) {
-          pollingInterval = setInterval(pollMessages, 2500);
+          pollingInterval = setInterval(fetchChatData, 3000);
         }
       };
 
       ws.onerror = () => {
         setIsConnected(false);
         if (!pollingInterval) {
-          pollingInterval = setInterval(pollMessages, 2500);
+          pollingInterval = setInterval(fetchChatData, 3000);
         }
       };
     } catch {
-      pollingInterval = setInterval(pollMessages, 2500);
+      pollingInterval = setInterval(fetchChatData, 3000);
     }
 
     return () => {
@@ -170,6 +186,15 @@ export default function ChatRoomPage() {
     e.preventDefault();
     if (!inputContent.trim()) return;
 
+    if (unlockInfo?.isExpired) {
+      toast({
+        title: "Pass Expired",
+        description: "Your 24-hour chat pass has expired. Please renew it to send messages.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const rawMessage = inputContent.trim();
     setInputContent("");
     setPreflightWarning(null);
@@ -183,9 +208,64 @@ export default function ChatRoomPage() {
       const data = await res.json();
       if (data.success && data.message) {
         setMessages((prev) => [...prev, data.message]);
+      } else if (data.isExpired) {
+        setUnlockInfo((prev) => (prev ? { ...prev, isExpired: true } : null));
+        toast({
+          title: "Chat Pass Expired",
+          description: data.error || "Please renew your 24h pass (69 coins) to continue.",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error("Failed to send message:", err);
+    }
+  };
+
+  const handleRenewPass = async () => {
+    if (!booking?.companionId) return;
+
+    const coinsAvailable = user?.coinBalance ?? 0;
+    if (coinsAvailable < 69) {
+      toast({
+        title: "Insufficient Coins",
+        description: `You have ${coinsAvailable} coins. Please top up your wallet to renew.`,
+        variant: "destructive",
+      });
+      router.push("/wallet");
+      return;
+    }
+
+    try {
+      setIsRenewing(true);
+      const res = await fetch("/api/chat/unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companionId: booking.companionId,
+          tier: "TWENTY_FOUR_HOURS",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to renew pass.");
+      }
+
+      toast({
+        title: "Pass Renewed",
+        description: "Deducted 69 coins. 24-hour messaging is active again!",
+      });
+
+      await refreshSession();
+      fetchChatData();
+    } catch (err: any) {
+      toast({
+        title: "Renewal Failed",
+        description: err.message || "Could not complete renewal.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRenewing(false);
     }
   };
 
@@ -242,14 +322,55 @@ export default function ChatRoomPage() {
             </div>
           </div>
 
+          {/* Dynamic SLA / Pass Status Banner */}
+          {unlockInfo && (
+            <>
+              {unlockInfo.isExpired ? (
+                <div className="border-b-2 border-ink bg-rose-100 px-4 py-2 text-xs font-bold text-red-900 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4 text-red-700 shrink-0" />
+                    <span>24-Hour Pass Expired: Previous messages are preserved. Renew below to resume messaging.</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase bg-red-200 px-1.5 py-0.5 rounded border border-ink shrink-0">
+                    Expired
+                  </span>
+                </div>
+              ) : unlockInfo.status === "ACTIVE" && !unlockInfo.firstHostReplyAt ? (
+                <div className="border-b-2 border-ink bg-amber-50 px-4 py-2 text-xs font-bold text-amber-900 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4 text-amber-700 shrink-0" />
+                    <span>48h Host Response SLA Active: If the companion does not reply, your coins will be automatically refunded.</span>
+                  </div>
+                  <span className="text-[10px] uppercase font-black bg-amber-200 px-1.5 py-0.5 rounded border border-ink shrink-0">
+                    Escrow Protected
+                  </span>
+                </div>
+              ) : (
+                <div className="border-b-2 border-ink bg-[#D4F7A5]/50 px-4 py-2 text-xs font-bold text-ink flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4 text-emerald-700 shrink-0" />
+                    <span>
+                      {unlockInfo.tier === "FOREVER"
+                        ? "Forever Pass Active: Direct messaging is permanently unlocked."
+                        : "24-Hour Pass Active: Direct messaging is open."}
+                    </span>
+                  </div>
+                  <span className="text-[10px] uppercase font-black bg-white px-1.5 py-0.5 rounded border border-ink shrink-0">
+                    Host Connected
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+
           {/* Safety Shield Banner */}
-          <div className="border-b-2 border-ink bg-pink/20 px-4 py-2 text-xs font-bold text-ink flex items-center justify-between">
+          <div className="border-b-2 border-ink bg-pink/20 px-4 py-1.5 text-xs font-bold text-ink flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4" />
-              <span>Contact Shield Active: Phone numbers and payment handles are automatically masked.</span>
+              <ShieldCheck className="h-3.5 w-3.5 text-ink" />
+              <span>Contact Shield Active: Phone numbers, social handles, and external payment links are masked.</span>
             </div>
             <span className="hidden sm:inline border border-ink bg-white px-2 py-0.2 text-[10px] font-black uppercase">
-              Monitored
+              100% Platonic
             </span>
           </div>
 
@@ -257,7 +378,7 @@ export default function ChatRoomPage() {
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-paper">
             {messages.length === 0 ? (
               <div className="h-full flex items-center justify-center text-center text-xs font-bold text-ink/50">
-                No messages yet. Send a greeting to coordinate your arrival at the venue.
+                No messages yet. Send a greeting to coordinate your meetup.
               </div>
             ) : (
               messages.map((msg) => {
@@ -299,33 +420,52 @@ export default function ChatRoomPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Bar */}
-          {preflightWarning && (
-            <div className="border-t-2 border-ink bg-danger/10 px-4 py-1.5 text-xs font-bold text-danger">
-              {preflightWarning}
+          {/* Input Bar or Renewal Bar */}
+          {unlockInfo?.isExpired ? (
+            <div className="border-t-3 border-ink bg-[#FFF4F2] p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-ink">
+                <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                <span>Your 24-hour chat pass has expired. Previous messages are preserved.</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRenewPass}
+                disabled={isRenewing}
+                className="border-2 border-ink bg-sunny px-4 py-2 text-xs font-black uppercase text-ink shadow-brutal-sm btn-press cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                {isRenewing ? "Renewing..." : "Renew Pass (69 Coins)"}
+              </button>
             </div>
-          )}
+          ) : (
+            <>
+              {preflightWarning && (
+                <div className="border-t-2 border-ink bg-danger/10 px-4 py-1.5 text-xs font-bold text-danger">
+                  {preflightWarning}
+                </div>
+              )}
 
-          <form
-            onSubmit={handleSendMessage}
-            className="border-t-3 border-ink bg-white p-3 flex gap-2"
-          >
-            <input
-              type="text"
-              value={inputContent}
-              onChange={handleInputChange}
-              placeholder="Type a message to your companion..."
-              className="flex-1 border-2 border-ink bg-paper px-3 py-2 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={!inputContent.trim()}
-              className="border-2 border-ink bg-ink px-5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-40 flex items-center gap-1.5"
-            >
-              <Send className="h-3.5 w-3.5" />
-              <span>Send</span>
-            </button>
-          </form>
+              <form
+                onSubmit={handleSendMessage}
+                className="border-t-3 border-ink bg-white p-3 flex gap-2"
+              >
+                <input
+                  type="text"
+                  value={inputContent}
+                  onChange={handleInputChange}
+                  placeholder="Type a message to your companion..."
+                  className="flex-1 border-2 border-ink bg-paper px-3 py-2 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!inputContent.trim()}
+                  className="border-2 border-ink bg-ink px-5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  <span>Send</span>
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </main>
 

@@ -325,12 +325,15 @@ export default function HostDashboardPage() {
           {/* Top Bar: Profile & Availability Toggle */}
           <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <Badge variant={isApproved ? "lime" : "sunny"} size="sm">
                   {isApproved ? "Verified Host" : "Verification Pending"}
                 </Badge>
+                <span className="border border-ink bg-[#D4F7A5] px-2 py-0.5 text-[11px] font-black uppercase text-ink">
+                  {hostProfile?.hostLevel === 'TOP' ? 'Top Host (95% Cut)' : hostProfile?.hostLevel === 'RISING' ? 'Rising Host (93% Cut)' : 'New Host (90% Cut)'}
+                </span>
                 <span className="text-xs font-bold text-ink-muted capitalize">
-                  {hostLocation}
+                  {hostProfile?.locality ? `${hostProfile.locality}, ` : ''}{hostProfile?.city || 'Bengaluru'} &middot; Travel: {hostProfile?.travelRadiusKm || 10} km
                 </span>
               </div>
               <h1 className="font-display text-3xl font-black text-ink">

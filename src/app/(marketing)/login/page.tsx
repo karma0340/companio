@@ -56,10 +56,14 @@ function LoginContent() {
   const [profileCheck, setProfileCheck] = useState<ProfileCheckResult | null>(null);
   const [checkingProfile, setCheckingProfile] = useState<boolean>(false);
 
-  // 1. Reactive synchronization with URL intent parameter
+  // 1. Reactive synchronization with URL intent parameter and referral capture
   useEffect(() => {
+    const urlRef = searchParams.get('ref');
+    if (urlRef && typeof window !== 'undefined') {
+      localStorage.setItem('companio_referral_code', urlRef);
+    }
     setIntent(urlIntent);
-  }, [urlIntent]);
+  }, [searchParams, urlIntent]);
 
   // 2. 60-Second Cooldown Timer for Resend SMS
   useEffect(() => {
@@ -194,6 +198,10 @@ function LoginContent() {
     const cleanPhone = phone.replace(/[\s-]/g, '');
     const effectiveIdentifier = cleanPhone.startsWith('+91') ? cleanPhone : `+91${cleanPhone}`;
 
+    const savedRef = typeof window !== 'undefined' ? localStorage.getItem('companio_referral_code') : null;
+    const urlRef = searchParams.get('ref');
+    const referralCode = urlRef || savedRef || undefined;
+
     try {
       const res = await fetch('/api/auth/otp/verify', {
         method: 'POST',
@@ -202,6 +210,7 @@ function LoginContent() {
           identifier: effectiveIdentifier,
           code: cleanOtp,
           intent,
+          ref: referralCode,
         }),
       });
 

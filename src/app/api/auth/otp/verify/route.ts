@@ -3,6 +3,7 @@ import { verifyOtp } from "@/lib/otp-store";
 import { prisma } from "@/lib/prisma";
 import { setSessionCookie } from "@/lib/session";
 import { UserRole } from "@prisma/client";
+import { ensureUserWallet, generateReferralCode } from "@/lib/wallet";
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,12 +55,22 @@ export async function POST(req: NextRequest) {
 
     // Database upsert based on verified credentials
     try {
+      const incomingRef = String(body.ref || body.referralCode || "").trim();
+      let referredByUser = null;
+      if (incomingRef) {
+        referredByUser = await prisma.user.findUnique({
+          where: { referralCode: incomingRef },
+          select: { id: true },
+        });
+      }
+
       if (isEmail) {
         const dummyPhone = `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
         dbUser = await prisma.user.upsert({
           where: { email: identifier },
           update: {
             ...(name ? { name } : {}),
+            emailVerified: true,
           },
           create: {
             email: identifier,
@@ -67,6 +78,11 @@ export async function POST(req: NextRequest) {
             name: name || "Member",
             role: "MEMBER",
             walletBalance: 0,
+            coinBalance: 100,
+            creditBalance: 100,
+            emailVerified: true,
+            referralCode: generateReferralCode(),
+            referredById: referredByUser?.id || null,
             isUnlocked: false,
           },
           include: {
@@ -89,6 +105,10 @@ export async function POST(req: NextRequest) {
             name: name || "Member",
             role: "MEMBER",
             walletBalance: 0,
+            coinBalance: 100,
+            creditBalance: 100,
+            referralCode: generateReferralCode(),
+            referredById: referredByUser?.id || null,
             isUnlocked: false,
           },
           include: {
@@ -105,6 +125,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (dbUser) {
+        await ensureUserWallet(dbUser.id);
         userId = dbUser.id;
         role = dbUser.role;
         const latestPass = dbUser.passes?.[0];

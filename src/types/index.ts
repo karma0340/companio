@@ -2,6 +2,8 @@
  * Shared Type Definitions for Companio Platform
  */
 
+export * from "@/lib/types";
+
 export type PassTier = "ONE_MONTH" | "THREE_MONTH" | "SIX_MONTH" | "ONE_YEAR" | "LIFETIME";
 
 export interface PassTierOption {

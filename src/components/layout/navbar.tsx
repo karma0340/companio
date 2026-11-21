@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
@@ -15,6 +15,8 @@ import {
   ArrowRightLeft,
   KeyRound,
   X,
+  Coins,
+  Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,12 +35,36 @@ export function Navbar() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
 
+  // Capture referral parameter anywhere across the platform
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref');
+      if (ref) {
+        localStorage.setItem('companio_referral_code', ref);
+      }
+    }
+  }, [pathname]);
+
   const { isAuthenticated, user, memberProfile, hostProfile, activeRole, logout, switchRole } =
     useAuth();
 
-  const isApplyingHost = pathname?.startsWith('/become-a-companion');
+  const isApplyingHost = pathname?.startsWith('/become-a-companion') || pathname?.startsWith('/become-a-host');
   const isOnboarding = pathname?.startsWith('/onboarding');
   const isAnonymousName = !user?.name || user.name.toLowerCase() === 'member';
+
+  const formatPhoneNumber = (ph?: string | null) => {
+    if (!ph) return '';
+    const digits = ph.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    }
+    if (digits.length === 12 && digits.startsWith('91')) {
+      const nat = digits.slice(2);
+      return `+91 ${nat.slice(0, 5)} ${nat.slice(5)}`;
+    }
+    return ph;
+  };
 
   let resolvedName =
     activeRole === 'host'
@@ -50,17 +76,17 @@ export function Navbar() {
   let badgeVariant: 'lime' | 'sunny' | 'coral' | 'lavender' = activeRole === 'host' ? 'lime' : 'sunny';
 
   if (isApplyingHost) {
-    resolvedName = !isAnonymousName ? resolvedName : (user?.phone ? `+91 ${user.phone.slice(-4)}` : 'Host Applicant');
-    roleLabel = 'Host Application';
+    resolvedName = !isAnonymousName ? resolvedName : (user?.phone ? formatPhoneNumber(user.phone) : 'Host Applicant');
+    roleLabel = 'Host Applicant';
     badgeLabel = 'Application in Progress';
     badgeVariant = 'sunny';
   } else if (isOnboarding) {
-    resolvedName = !isAnonymousName ? resolvedName : (user?.phone ? `+91 ${user.phone.slice(-4)}` : 'New User');
+    resolvedName = !isAnonymousName ? resolvedName : (user?.phone ? formatPhoneNumber(user.phone) : 'New User');
     roleLabel = 'Onboarding';
     badgeLabel = 'Registration';
     badgeVariant = 'lavender';
   } else if (isAnonymousName && !hostProfile) {
-    resolvedName = user?.phone ? `+91 ${user.phone.slice(-4)}` : 'New Member';
+    resolvedName = user?.phone ? formatPhoneNumber(user.phone) : 'New Member';
     roleLabel = 'New Member';
     badgeLabel = 'Active User';
     badgeVariant = 'sunny';
@@ -148,11 +174,22 @@ export function Navbar() {
 
             {/* Dynamic Authentication Area */}
             {isAuthenticated ? (
-              <div className="relative">
-                <button
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 rounded-xl border-brutal bg-white px-2.5 py-1.5 shadow-brutal-sm hover:bg-paper-deep btn-press cursor-pointer"
+              <div className="flex items-center gap-2">
+                {/* Coin Balance Pill */}
+                <Link
+                  href="/wallet"
+                  title="View wallet & coins"
+                  className="flex items-center gap-1.5 rounded-xl border-brutal bg-[#D4F7A5] px-2.5 py-1.5 text-xs font-black text-ink shadow-brutal-xs hover:bg-[#c3ec8d] btn-press"
                 >
+                  <Coins className="h-3.5 w-3.5 text-ink" />
+                  <span>{user?.coinBalance ?? 100} Coins</span>
+                </Link>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-2 rounded-xl border-brutal bg-white px-2.5 py-1.5 shadow-brutal-sm hover:bg-paper-deep btn-press cursor-pointer"
+                  >
                   <AvatarVector
                     gender={memberProfile?.gender || 'female'}
                     size="sm"
@@ -175,7 +212,7 @@ export function Navbar() {
                     <div className="border-b-brutal-sm p-2 pb-2.5">
                       <p className="font-display text-xs font-black text-ink">{resolvedName}</p>
                       <p className="text-[11px] font-mono text-ink-muted">
-                        {user?.phone ? (user.phone.startsWith('+91') ? user.phone : `+91 ${user.phone}`) : ''}
+                        {formatPhoneNumber(user?.phone)}
                       </p>
                       <div className="mt-1">
                         <Badge variant={badgeVariant} size="sm">
@@ -183,6 +220,31 @@ export function Navbar() {
                         </Badge>
                       </div>
                     </div>
+
+                    {/* Quick Wallet Link */}
+                    <Link
+                      href="/wallet"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center justify-between rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-paper-deep transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4 text-emerald-600" />
+                        <span>Wallet &amp; Coins</span>
+                      </div>
+                      <span className="text-[10px] font-mono font-black bg-[#D4F7A5] px-1.5 py-0.5 rounded border border-ink">
+                        {user?.coinBalance ?? 100}
+                      </span>
+                    </Link>
+
+                    {/* Member Meetups */}
+                    <Link
+                      href="/bookings"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-paper-deep transition-colors"
+                    >
+                      <Calendar className="h-4 w-4 text-lavender" />
+                      <span>My Meetups</span>
+                    </Link>
 
                     {/* Member Profile Link */}
                     <Link
@@ -192,16 +254,6 @@ export function Navbar() {
                     >
                       <User className="h-4 w-4 text-ink" />
                       <span>My Profile</span>
-                    </Link>
-
-                    {/* Member Links */}
-                    <Link
-                      href="/bookings"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center gap-2 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-paper-deep transition-colors"
-                    >
-                      <Calendar className="h-4 w-4 text-lavender" />
-                      <span>My Meetups</span>
                     </Link>
 
                     {/* Host Links if applicable */}
@@ -254,6 +306,7 @@ export function Navbar() {
                   </div>
                 )}
               </div>
+            </div>
             ) : (
               <>
                 <Link href="/login?intent=member">

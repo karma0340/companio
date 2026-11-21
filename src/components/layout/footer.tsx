@@ -98,8 +98,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/membership" className="hover:text-lavender hover:underline">
-                  Membership Passes
+                <Link href="/wallet" className="hover:text-lavender hover:underline">
+                  Wallet &amp; Coins
                 </Link>
               </li>
               <li>

@@ -19,6 +19,9 @@ export async function GET() {
       activePassTier: session.activePassTier || null,
       passExpiresAt: session.passExpiresAt ? new Date(session.passExpiresAt) : null,
       walletBalance: 0,
+      coinBalance: 100,
+      creditBalance: 100,
+      referralCode: null as string | null,
       name: session.name || "Member",
     };
 
@@ -65,6 +68,9 @@ export async function GET() {
             : null,
           passExpiresAt: latestPass?.validUntil || dbUser.passExpiresAt,
           walletBalance: Number(dbUser.walletBalance),
+          coinBalance: dbUser.coinBalance ?? 100,
+          creditBalance: Number(dbUser.creditBalance ?? 100),
+          referralCode: dbUser.referralCode,
           name: dbUser.name || "Member",
         };
 
@@ -74,10 +80,15 @@ export async function GET() {
             userId: dbUser.id,
             displayName: dbUser.companion.displayName,
             city: dbUser.companion.city?.name || 'Bengaluru',
+            locality: dbUser.companion.locality || 'Indiranagar',
+            travelRadiusKm: dbUser.companion.travelRadiusKm || 10,
+            hostLevel: dbUser.companion.hostLevel || 'NEW',
+            completedMeetups: dbUser.companion.completedMeetups || 0,
             hourlyRate: Number(dbUser.companion.hourlyRate),
             avatarUrl: dbUser.companion.avatarUrl,
             verificationStatus: 'approved',
             isFreeToday: dbUser.companion.isAvailable,
+            photoVerified: dbUser.companion.photoVerified,
             walletBalance: Number(dbUser.walletBalance || 0),
           };
         }
@@ -101,9 +112,12 @@ export async function GET() {
             userId: session.userId,
             displayName: hostApp.fullName,
             city: hostApp.city,
-            hourlyRate: 499,
+            locality: hostApp.locality || 'Indiranagar',
+            travelRadiusKm: hostApp.travelRadiusKm || 10,
+            hourlyRate: Number(hostApp.hourlyRate || 399),
             verificationStatus: hostApp.screeningStatus.toLowerCase() === "approved" ? "approved" : "pending",
             isFreeToday: false,
+            photoVerified: Boolean(hostApp.faceMatchScore && hostApp.faceMatchScore >= 80),
             walletBalance: 0,
           };
         }

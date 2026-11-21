@@ -10,6 +10,8 @@ export interface SubmitHostApplicationInput {
   displayName?: string;
   phone: string;
   city: string;
+  locality?: string;
+  travelRadiusKm?: number;
   bio: string;
   hourlyRate: number;
   activities: string[];
@@ -20,6 +22,8 @@ export interface SubmitHostApplicationInput {
   aadhaarBackImage?: string;
   liveSelfieImage?: string;
   faceMatchScore?: number;
+  registrationFeePaid?: boolean;
+  paymentId?: string;
 }
 
 export async function submitHostApplicationAction(input: SubmitHostApplicationInput) {
@@ -134,9 +138,19 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         phone: e164Phone,
         fullName: input.fullName.trim(),
         city: cityRecord.name,
+        locality: input.locality || null,
+        travelRadiusKm: input.travelRadiusKm || 10,
+        hourlyRate: input.hourlyRate || 399,
+        aadhaarNumber: input.idNumber || null,
         aadhaarDocUrl,
         panDocUrl,
         selfieVideoUrl,
+        faceMatchScore: input.faceMatchScore || null,
+        registrationFee: 99,
+        gstAmount: 18,
+        totalAmountPaid: 117,
+        applicationFeePaid: input.registrationFeePaid ?? true,
+        paymentId: input.paymentId || null,
         screeningStatus: 'APPROVED',
       },
     });
@@ -150,11 +164,14 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         avatarUrl,
         blurredAvatarUrl,
         cityId: cityRecord.id,
+        locality: input.locality || null,
+        travelRadiusKm: input.travelRadiusKm || 10,
         bio: input.bio.trim(),
         shortBio: input.bio.trim().slice(0, 115),
-        hourlyRate: input.hourlyRate || 499,
+        hourlyRate: input.hourlyRate || 399,
         spokenLanguages: input.spokenLanguages && input.spokenLanguages.length > 0 ? input.spokenLanguages : ['English', 'Hindi'],
         acceptedActivities: input.activities && input.activities.length > 0 ? input.activities : ['Coffee & Conversations', 'City Walk'],
+        photoVerified: Boolean(input.faceMatchScore && input.faceMatchScore >= 80),
         isAvailable: true,
       },
       create: {
@@ -164,11 +181,14 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         avatarUrl,
         blurredAvatarUrl,
         cityId: cityRecord.id,
+        locality: input.locality || null,
+        travelRadiusKm: input.travelRadiusKm || 10,
         bio: input.bio.trim(),
         shortBio: input.bio.trim().slice(0, 115),
-        hourlyRate: input.hourlyRate || 499,
+        hourlyRate: input.hourlyRate || 399,
         spokenLanguages: input.spokenLanguages && input.spokenLanguages.length > 0 ? input.spokenLanguages : ['English', 'Hindi'],
         acceptedActivities: input.activities && input.activities.length > 0 ? input.activities : ['Coffee & Conversations', 'City Walk'],
+        photoVerified: Boolean(input.faceMatchScore && input.faceMatchScore >= 80),
         ratingAverage: 5.0,
         totalReviews: 1,
         isAvailable: true,

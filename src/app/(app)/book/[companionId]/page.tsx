@@ -16,6 +16,8 @@ import {
   KeyRound,
   RotateCcw,
   Sparkles,
+  Coins,
+  CreditCard,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
@@ -47,7 +49,8 @@ function BookPageContent({ params }: BookPageProps) {
   const searchParams = useSearchParams();
   const initialHours = parseInt(searchParams.get('hours') || '1', 10);
   const toast = useToast();
-  const { user, memberProfile, isAuthenticated } = useAuth();
+  const { user, memberProfile, isAuthenticated, refreshSession } = useAuth();
+  const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'RAZORPAY'>('RAZORPAY');
 
   const [companion, setCompanion] = useState<Companion>({
     id: companionId,
@@ -180,7 +183,53 @@ function BookPageContent({ params }: BookPageProps) {
 
     setIsSubmitting(true);
     try {
-      // 1. Initiate order with server
+      // 1. Process Wallet Coins payment if selected
+      if (paymentMethod === 'WALLET') {
+        const userCoins = user?.coinBalance ?? 0;
+        if (userCoins < price.totalPayable) {
+          toast.error(
+            `Insufficient coins. You have ${userCoins} coins, but ${price.totalPayable} coins are needed.`,
+            'Insufficient Coins'
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
+        const res = await createBookingAction({
+          companionId: companion.id,
+          memberId: user?.id,
+          memberName: data.memberName.trim(),
+          memberPhone: `+91 ${phoneRaw}`,
+          activitySlug: selectedActivity,
+          date,
+          startTime: `${time} IST`,
+          durationHours: duration,
+          meetingPoint: data.meetingPoint.trim(),
+          note: data.note.trim() || undefined,
+          hourlyRate: companion.hourlyRate,
+          paymentMethod: 'WALLET',
+        });
+
+        if (res.success && res.startCode) {
+          setStartCode(res.startCode);
+          setConfirmedBookingId(res.bookingId ? `#CMP-${res.bookingId.slice(-6)}` : '#CMP-1029');
+          setBookingSuccess(true);
+          toast.success(
+            `${price.totalPayable} coins deducted from wallet! Meetup is reserved in Safe Escrow.`,
+            'Booking Confirmed'
+          );
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (refreshSession) {
+            await refreshSession();
+          }
+        } else {
+          toast.error(res.error || 'Failed to complete wallet booking.', 'Booking Error');
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 2. Initiate order with server for Razorpay
       const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -533,6 +582,83 @@ function BookPageContent({ params }: BookPageProps) {
                   />
                 </div>
 
+                {/* Step 5: Choose Payment Method */}
+                <div className="space-y-2">
+                  <label className="block font-display text-sm font-black text-ink">
+                    4. Choose Payment Method:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Wallet Coins Option */}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('WALLET')}
+                      className={`p-3.5 rounded-xl border-brutal text-left transition ${
+                        paymentMethod === 'WALLET'
+                          ? 'bg-[#D4F7A5] shadow-brutal'
+                          : 'bg-white hover:bg-paper-deep shadow-brutal-sm'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <Coins className="h-4 w-4 text-ink" />
+                          <span className="font-display text-xs font-black uppercase text-ink">
+                            Pay with Coins
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase bg-ink text-white px-1.5 py-0.5 rounded">
+                          1 Coin = INR 1
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-ink">
+                        Wallet Balance: {user?.coinBalance ?? 100} Coins
+                      </p>
+                      <div className="text-[11px] text-ink-muted mt-1">
+                        {(user?.coinBalance ?? 100) >= price.totalPayable ? (
+                          <span className="text-emerald-700 font-black">
+                            Balance Available &middot; {price.totalPayable} coins
+                          </span>
+                        ) : (
+                          <span className="text-danger font-black">
+                            Need {price.totalPayable - (user?.coinBalance ?? 100)} more coins &middot;{' '}
+                            <Link href="/wallet" className="underline text-ink">
+                              Top Up Wallet
+                            </Link>
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Razorpay UPI / Card Option */}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('RAZORPAY')}
+                      className={`p-3.5 rounded-xl border-brutal text-left transition ${
+                        paymentMethod === 'RAZORPAY'
+                          ? 'bg-sunny shadow-brutal'
+                          : 'bg-white hover:bg-paper-deep shadow-brutal-sm'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-ink" />
+                          <span className="font-display text-xs font-black uppercase text-ink">
+                            UPI &amp; Cards
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase bg-emerald-600 text-white px-1.5 py-0.5 rounded">
+                          Safe Escrow
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-ink">
+                        Instant GPay, PhonePe, Cards
+                      </p>
+                      <p className="text-[11px] text-ink-muted mt-1 font-bold">
+                        100% Escrow Protection &middot; PIN Release
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Step 6: Platonic Agreement Checkbox */}
                 <div className="rounded-2xl border-brutal-sm bg-pink-soft/50 p-4 space-y-2">
                   <label className="flex items-start gap-3 cursor-pointer select-none">
@@ -554,17 +680,22 @@ function BookPageContent({ params }: BookPageProps) {
                   variant="primary"
                   size="lg"
                   fullWidth
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || (paymentMethod === 'WALLET' && (user?.coinBalance ?? 100) < price.totalPayable)}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center justify-center gap-2">
                       <Lock className="h-4 w-4 animate-spin" />
-                      <span>Connecting to Razorpay Secure Vault...</span>
+                      <span>{paymentMethod === 'WALLET' ? 'Deducting coins & generating PIN...' : 'Connecting to Razorpay Secure Vault...'}</span>
+                    </span>
+                  ) : paymentMethod === 'WALLET' ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Coins className="h-4 w-4" />
+                      <span>Pay {price.totalPayable} Coins &amp; Confirm Meetup &rarr;</span>
                     </span>
                   ) : (
                     <span className="flex items-center justify-center gap-2">
                       <Lock className="h-4 w-4" />
-                      <span>Pay & Lock in Safe Escrow ({formatRupees(price.totalPayable)}) →</span>
+                      <span>Pay &amp; Lock in Safe Escrow ({formatRupees(price.totalPayable)}) &rarr;</span>
                     </span>
                   )}
                 </Button>

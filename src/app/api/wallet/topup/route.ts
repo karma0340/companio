@@ -1,0 +1,151 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import { calculateTopupBonus, creditCoins, getWalletDetails } from "@/lib/wallet";
+import { createRazorpayOrder, isRazorpayConfigured, getRazorpayKeyId, verifyRazorpaySignature } from "@/lib/razorpay";
+import { CoinTransactionType } from "@prisma/client";
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getSession();
+    let userId = session?.userId;
+
+    if (userId) {
+      const userExists = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!userExists) {
+        userId = undefined;
+      }
+    }
+
+    if (!userId) {
+      // Dev fallback to latest user if session is missing
+      const firstUser = await prisma.user.findFirst({
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+      if (firstUser) {
+        userId = firstUser.id;
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { action, amount, isSimulation, razorpayPaymentId, razorpayOrderId, razorpaySignature } = body;
+
+    const numAmount = Number(amount);
+    if (!numAmount || numAmount < 10) {
+      return NextResponse.json({ success: false, error: "Minimum top-up amount is INR 10." }, { status: 400 });
+    }
+
+    // Determine if user has prior top-ups
+    const priorTopups = await prisma.coinTransaction.count({
+      where: {
+        userId,
+        type: CoinTransactionType.TOPUP,
+      },
+    });
+    const isFirstTopup = priorTopups === 0;
+    const bonus = calculateTopupBonus(numAmount, isFirstTopup);
+
+    // 1. Order Creation
+    if (action === "create-order") {
+      const amountInPaise = Math.round(numAmount * 100);
+      const receipt = `topup_${userId.substring(0, 8)}_${Date.now()}`;
+      const order = await createRazorpayOrder(amountInPaise, "INR", receipt, {
+        userId,
+        type: "COIN_TOPUP",
+        baseCoins: String(bonus.baseCoins),
+        bonusCoins: String(bonus.bonusCoins),
+      });
+
+      return NextResponse.json({
+        success: true,
+        orderId: order.orderId,
+        amount: order.amount,
+        currency: order.currency,
+        keyId: getRazorpayKeyId(),
+        isMock: order.isMock,
+        bonus,
+      });
+    }
+
+    // 2. Direct Simulation (for local dev testing without Razorpay keys)
+    if (action === "simulate" || isSimulation) {
+      // Credit base coins
+      await creditCoins({
+        userId,
+        amount: bonus.baseCoins,
+        type: CoinTransactionType.TOPUP,
+        description: `Wallet top-up (INR ${numAmount})`,
+        referenceId: `sim_${Date.now()}`,
+      });
+
+      // Credit bonus coins if applicable
+      if (bonus.bonusCoins > 0) {
+        await creditCoins({
+          userId,
+          amount: bonus.bonusCoins,
+          type: CoinTransactionType.TOPUP_BONUS,
+          description: bonus.label || `Top-up bonus (+${bonus.bonusPercent}%)`,
+          referenceId: `sim_bonus_${Date.now()}`,
+        });
+      }
+
+      const updatedWallet = await getWalletDetails(userId);
+      return NextResponse.json({
+        success: true,
+        simulated: true,
+        wallet: updatedWallet,
+        bonus,
+      });
+    }
+
+    // 3. Razorpay Signature Verification
+    if (action === "verify") {
+      if (isRazorpayConfigured()) {
+        const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+        if (!isValid) {
+          return NextResponse.json({ success: false, error: "Payment signature verification failed." }, { status: 400 });
+        }
+      }
+
+      // Credit base coins
+      await creditCoins({
+        userId,
+        amount: bonus.baseCoins,
+        type: CoinTransactionType.TOPUP,
+        description: `Wallet top-up (INR ${numAmount})`,
+        referenceId: razorpayPaymentId || `pay_${Date.now()}`,
+      });
+
+      // Credit bonus coins if applicable
+      if (bonus.bonusCoins > 0) {
+        await creditCoins({
+          userId,
+          amount: bonus.bonusCoins,
+          type: CoinTransactionType.TOPUP_BONUS,
+          description: bonus.label || `Top-up bonus (+${bonus.bonusPercent}%)`,
+          referenceId: `bonus_${razorpayPaymentId || Date.now()}`,
+        });
+      }
+
+      const updatedWallet = await getWalletDetails(userId);
+      return NextResponse.json({
+        success: true,
+        wallet: updatedWallet,
+        bonus,
+      });
+    }
+
+    return NextResponse.json({ success: false, error: "Invalid action." }, { status: 400 });
+  } catch (error) {
+    console.error("[WALLET_TOPUP_ERROR]:", error);
+    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+  }
+}

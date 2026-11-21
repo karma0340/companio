@@ -3,6 +3,8 @@
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { debitCoins } from '@/lib/wallet';
+import { CoinTransactionType } from '@prisma/client';
 
 export interface CreateBookingInput {
   companionId: string;
@@ -17,6 +19,7 @@ export interface CreateBookingInput {
   meetingPoint: string;
   note?: string;
   hourlyRate: number;
+  paymentMethod?: 'WALLET' | 'RAZORPAY';
   razorpayPaymentId?: string;
   razorpayOrderId?: string;
   razorpaySignature?: string;
@@ -72,6 +75,24 @@ export async function createBookingAction(input: CreateBookingInput) {
       });
       if (!companion) {
         companion = await prisma.companion.findFirst();
+      }
+
+      // Handle Wallet Coins deduction if paymentMethod is WALLET
+      if (input.paymentMethod === 'WALLET' && user) {
+        if (user.coinBalance < totalPayable) {
+          return {
+            success: false,
+            error: `Insufficient wallet coins. You have ${user.coinBalance} coins, but ${totalPayable} coins are needed.`,
+          };
+        }
+
+        await debitCoins({
+          userId: user.id,
+          amount: totalPayable,
+          type: CoinTransactionType.MEETUP_PAYMENT,
+          description: `Escrow payment for meetup with ${companion?.displayName || 'Host'} (Booking #${bookingId})`,
+          referenceId: bookingId,
+        });
       }
 
       if (companion && user) {
