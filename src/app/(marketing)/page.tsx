@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -25,8 +25,8 @@ import { CompanionCard } from '@/components/companion/companion-card';
 import { ActivityIcon } from '@/components/ui/activity-icon';
 import { StatusPulse } from '@/components/ui/status-pulse';
 import { ACTIVITIES } from '@/lib/data/activities';
-import { COMPANIONS } from '@/lib/data/companions';
 import { CITIES } from '@/lib/data/cities';
+import { Companion, ActivityCategory } from '@/lib/types';
 import { HowItWorksJourney } from '@/components/how-it-works/how-it-works-journey';
 import { KineticText } from '@/components/landing/kinetic-text';
 import { TiltCard } from '@/components/landing/tilt-card';
@@ -35,11 +35,113 @@ import { HostEarningsCalculator } from '@/components/landing/host-earnings-calcu
 import { ActivityCarousel } from '@/components/landing/activity-carousel';
 import { TopRatedCarousel } from '@/components/landing/top-rated-carousel';
 
+function mapToActivityCategories(activities: string[] = []): ActivityCategory[] {
+  const mapping: Record<string, ActivityCategory> = {
+    'coffee': 'coffee-chat',
+    'cafe': 'coffee-chat',
+    'shopping': 'shopping-buddy',
+    'styling': 'shopping-buddy',
+    'photo': 'photo-walk',
+    'comedy': 'comedy-and-shows',
+    'city': 'city-guide',
+    'walk': 'walk-and-talk',
+    'gym': 'gym-partner',
+    'fitness': 'gym-partner',
+    'museum': 'city-guide',
+    'book': 'study-buddy',
+    'food': 'food-walk',
+    'co-working': 'career-chat',
+    'sports': 'sports-partner',
+    'movie': 'movie-buddy',
+  };
+
+  const categories = new Set<ActivityCategory>();
+  for (const act of activities) {
+    const lower = act.toLowerCase();
+    let matched = false;
+    for (const [key, cat] of Object.entries(mapping)) {
+      if (lower.includes(key)) {
+        categories.add(cat);
+        matched = true;
+      }
+    }
+    if (!matched) categories.add('coffee-chat');
+  }
+  return Array.from(categories);
+}
+
+const DEFAULT_HERO_COMPANION: Companion = {
+  id: 'kashish-blr',
+  name: 'Kashish',
+  age: 22,
+  gender: 'female',
+  city: 'bengaluru',
+  area: 'Indiranagar, BLR',
+  tagline: 'Show me around? No - let me show you around Bengaluru',
+  about: 'Design Student & Indie Music Fan in Indiranagar.',
+  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+  languages: ['English', 'Hindi', 'Kannada'],
+  hourlyRate: 599,
+  verifiedId: true,
+  verifiedPhoto: true,
+  rating: 4.9,
+  reviewCount: 28,
+  meetupsCount: 28,
+  activities: ['shopping-buddy', 'coffee-chat'],
+  isFreeToday: true,
+  memberSince: '2026',
+  availability: [
+    { days: 'Mon — Fri', hours: '18:00 – 21:00' },
+    { days: 'Sat — Sun', hours: '11:00 – 20:00' },
+  ],
+  reviews: [],
+};
+
 export default function HomePage() {
   const [heroCity, setHeroCity] = useState('bengaluru');
   const [heroActivity, setHeroActivity] = useState('all');
+  const [liveCompanions, setLiveCompanions] = useState<Companion[]>([]);
 
-  const freeTodayCompanions = COMPANIONS.filter((c) => c.isFreeToday);
+  useEffect(() => {
+    fetch('/api/companions')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.companions)) {
+          const mapped: Companion[] = data.companions.map((c: any) => ({
+            id: c.id,
+            name: c.displayName || c.name,
+            age: 24,
+            gender: 'female' as const,
+            city: c.citySlug,
+            area: `${c.city} Central`,
+            tagline: c.shortBio || 'Verified local companion',
+            about: c.bio || c.shortBio || '',
+            avatarUrl: c.avatarUrl,
+            languages: c.spokenLanguages || ['English', 'Hindi'],
+            hourlyRate: c.hourlyRate || 499,
+            verifiedId: true,
+            verifiedPhoto: true,
+            rating: c.ratingAverage || 4.9,
+            reviewCount: c.totalReviews || 12,
+            meetupsCount: c.totalReviews || 12,
+            activities: mapToActivityCategories(c.acceptedActivities || []),
+            isFreeToday: c.isAvailable ?? true,
+            acceptsWomenOnly: false,
+            memberSince: '2026',
+            availability: [
+              { days: 'Mon — Fri', hours: '18:00 – 21:00' },
+              { days: 'Sat — Sun', hours: '11:00 – 20:00' },
+            ],
+            reviews: [],
+          }));
+          setLiveCompanions(mapped);
+        }
+      })
+      .catch((err) => console.error('Failed to load homepage companions:', err));
+  }, []);
+
+  const freeTodayCompanions = liveCompanions.filter((c) => c.isFreeToday);
+  const featured = liveCompanions[0] || DEFAULT_HERO_COMPANION;
 
   const faqItems = [
     {
@@ -241,9 +343,9 @@ export default function HomePage() {
                   >
                     <TiltCard maxTilt={6}>
                       <Link
-                        href={`/companions/${COMPANIONS[0].id}`}
+                        href={`/companions/${featured.id}`}
                         className="block group cursor-pointer"
-                        aria-label={`View profile of ${COMPANIONS[0].name}`}
+                        aria-label={`View profile of ${featured.name}`}
                       >
                         <div className="relative rounded-2xl border-brutal bg-white p-5 shadow-brutal-lg rotate-1 space-y-4 transition-transform group-hover:scale-[1.02]">
                           {/* Top Badges */}
@@ -254,7 +356,7 @@ export default function HomePage() {
                             </Badge>
                             <span className="inline-flex items-center gap-1 font-display text-xs font-black text-ink-muted">
                               <MapPin className="h-3 w-3 text-ink-muted" />
-                              <span>Indiranagar, BLR</span>
+                              <span>{featured.area}</span>
                             </span>
                           </div>
 
@@ -262,8 +364,8 @@ export default function HomePage() {
                           <div className="flex gap-4 items-center">
                             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-brutal bg-paper-deep">
                               <Image
-                                src={COMPANIONS[0].avatarUrl}
-                                alt={COMPANIONS[0].name}
+                                src={featured.avatarUrl}
+                                alt={featured.name}
                                 fill
                                 sizes="80px"
                                 className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -271,10 +373,10 @@ export default function HomePage() {
                             </div>
                             <div>
                               <h3 className="font-display text-2xl font-black text-ink group-hover:text-lavender transition-colors">
-                                {COMPANIONS[0].name} · {COMPANIONS[0].age}
+                                {featured.name} · {featured.age}
                               </h3>
                               <p className="text-xs font-bold text-ink-soft">
-                                Design Student & Indie Music Fan
+                                Verified Togethr Companion
                               </p>
                               <div className="mt-1.5 flex gap-1">
                                 <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-sunny px-1.5 py-0.5 text-[10px] font-bold text-ink">
@@ -291,7 +393,7 @@ export default function HomePage() {
 
                           {/* Tagline Quote */}
                           <div className="rounded-xl border-brutal-sm bg-paper/70 p-3 text-xs font-medium text-ink-soft leading-relaxed italic">
-                            "{COMPANIONS[0].tagline}"
+                            "{featured.tagline}"
                           </div>
 
                           {/* Footer Rate & CTA */}
@@ -300,10 +402,10 @@ export default function HomePage() {
                               <span className="text-[10px] uppercase font-black text-ink-muted block">
                                 Hourly Rate
                               </span>
-                              <span className="font-display text-lg font-black text-ink">₹599 /hr</span>
+                              <span className="font-display text-lg font-black text-ink">₹{featured.hourlyRate} /hr</span>
                             </div>
                             <div className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-lime px-4 py-2 font-display text-xs font-black text-ink shadow-brutal-sm group-hover:bg-sunny btn-press transition-colors">
-                              <span>View Kashish →</span>
+                              <span>View {featured.name} →</span>
                             </div>
                           </div>
                         </div>
@@ -345,7 +447,7 @@ export default function HomePage() {
 
             {/* Grid of Free Today Hosts with Tilt Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {freeTodayCompanions.slice(0, 3).map((comp) => (
+              {(freeTodayCompanions.length > 0 ? freeTodayCompanions : liveCompanions).slice(0, 3).map((comp) => (
                 <TiltCard key={comp.id} maxTilt={5}>
                   <CompanionCard companion={comp} />
                 </TiltCard>
@@ -409,7 +511,7 @@ export default function HomePage() {
             </div>
 
             {/* Animated Horizontal Carousel with Category Filters */}
-            <TopRatedCarousel />
+            <TopRatedCarousel companions={liveCompanions} />
           </div>
         </section>
 

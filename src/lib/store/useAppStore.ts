@@ -117,7 +117,7 @@ export const useAppStore = create<AppState>()(
             const data = await res.json();
             if ((data.authenticated || data.isAuthenticated) && data.user) {
               const u = data.user;
-              const role = (u.role?.toLowerCase() === 'host' ? 'host' : 'member') as 'member' | 'host';
+              const role = (u.activeRole || (u.role?.toLowerCase() === 'companion' ? 'host' : 'member')) as 'member' | 'host';
               const userObj: User = {
                 id: u.id,
                 phone: u.phone,
@@ -126,7 +126,7 @@ export const useAppStore = create<AppState>()(
                 activeRole: role,
                 accountStatus: 'active',
               };
-              const memProfile: MemberProfile = {
+              const memProfile: MemberProfile = data.memberProfile || {
                 id: u.id,
                 fullName: u.name || 'Member',
                 city: 'bengaluru',
@@ -135,7 +135,7 @@ export const useAppStore = create<AppState>()(
               set({
                 user: userObj,
                 memberProfile: memProfile,
-                hostProfile: null,
+                hostProfile: data.hostProfile || null,
                 isAuthenticated: true,
                 activeRole: role,
                 isLoading: false,
@@ -166,6 +166,11 @@ export const useAppStore = create<AppState>()(
 
       switchRole: async (targetRole: 'member' | 'host') => {
         try {
+          await fetch('/api/auth/switch-role', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: targetRole === 'host' ? 'COMPANION' : 'MEMBER' }),
+          });
           set((state) => ({
             activeRole: targetRole,
             user: state.user ? { ...state.user, activeRole: targetRole } : null,

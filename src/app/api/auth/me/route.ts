@@ -22,10 +22,21 @@ export async function GET() {
       name: session.name || "Member",
     };
 
+    let hostProfile: any = null;
+    let memberProfile: any = {
+      id: session.userId,
+      fullName: session.name || "Member",
+      city: "bengaluru",
+      onboardingCompleted: true,
+    };
+
     try {
       const dbUser = await prisma.user.findUnique({
         where: { id: session.userId },
         include: {
+          companion: {
+            include: { city: true },
+          },
           passes: {
             where: { status: "ACTIVE" },
             orderBy: { createdAt: "desc" },
@@ -56,14 +67,62 @@ export async function GET() {
           walletBalance: Number(dbUser.walletBalance),
           name: dbUser.name || "Member",
         };
+
+        if (dbUser.companion) {
+          hostProfile = {
+            id: dbUser.companion.id,
+            userId: dbUser.id,
+            displayName: dbUser.companion.displayName,
+            city: dbUser.companion.city?.name || 'Bengaluru',
+            hourlyRate: Number(dbUser.companion.hourlyRate),
+            avatarUrl: dbUser.companion.avatarUrl,
+            verificationStatus: 'approved',
+            isFreeToday: dbUser.companion.isAvailable,
+            walletBalance: Number(dbUser.walletBalance || 0),
+          };
+        }
+
+        memberProfile = {
+          id: dbUser.id,
+          fullName: dbUser.name || "Member",
+          city: dbUser.companion?.city?.slug || "bengaluru",
+          onboardingCompleted: true,
+        };
+      }
+
+      if (!hostProfile && session.phone) {
+        const hostApp = await prisma.hostApplication.findFirst({
+          where: { phone: session.phone },
+          orderBy: { createdAt: "desc" },
+        });
+        if (hostApp) {
+          hostProfile = {
+            id: hostApp.id,
+            userId: session.userId,
+            displayName: hostApp.fullName,
+            city: hostApp.city,
+            hourlyRate: 499,
+            verificationStatus: hostApp.screeningStatus.toLowerCase() === "approved" ? "approved" : "pending",
+            isFreeToday: false,
+            walletBalance: 0,
+          };
+        }
       }
     } catch (dbErr) {
       console.warn("[AUTH ME DB LOOKUP]:", (dbErr as Error).message);
     }
 
+    const activeRole = session.role === "COMPANION" ? "host" : "member";
+
     return NextResponse.json({
       authenticated: true,
-      user: userDetails,
+      user: {
+        ...userDetails,
+        activeRole,
+      },
+      hostProfile,
+      memberProfile,
+      hasHostProfile: Boolean(hostProfile),
     });
   } catch (error) {
     return NextResponse.json({ authenticated: false, user: null }, { status: 500 });

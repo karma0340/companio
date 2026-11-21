@@ -8,17 +8,26 @@ interface OtpEntry {
   attempts: number;
 }
 
-// In-memory phone -> OtpEntry map
-const otpMap = new Map<string, OtpEntry>();
+// Global in-memory phone -> OtpEntry map surviving Next.js dev reloads
+const globalForOtp = globalThis as unknown as {
+  otpMap: Map<string, OtpEntry> | undefined;
+};
+
+const otpMap = globalForOtp.otpMap ?? new Map<string, OtpEntry>();
+if (process.env.NODE_ENV !== "production") globalForOtp.otpMap = otpMap;
+
+function normalizePhoneKey(phone: string): string {
+  const digits = (phone || "").replace(/\D/g, "");
+  return digits.length > 10 ? digits.slice(-10) : digits;
+}
 
 export function generateAndStoreOtp(phone: string): string {
-  // Clean phone number (Indian format)
-  const cleanPhone = phone.replace(/[\s-]/g, "");
+  const key = normalizePhoneKey(phone);
 
   // Generate authentic random 6-digit OTP
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-  otpMap.set(cleanPhone, {
+  otpMap.set(key, {
     code,
     expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
     attempts: 0,
@@ -28,20 +37,20 @@ export function generateAndStoreOtp(phone: string): string {
 }
 
 export function verifyOtp(phone: string, submittedCode: string): { success: boolean; error?: string } {
-  const cleanPhone = phone.replace(/[\s-]/g, "");
-  const entry = otpMap.get(cleanPhone);
+  const key = normalizePhoneKey(phone);
+  const entry = otpMap.get(key);
 
   if (!entry) {
     return { success: false, error: "No OTP requested for this number. Please request a new code." };
   }
 
   if (Date.now() > entry.expiresAt) {
-    otpMap.delete(cleanPhone);
+    otpMap.delete(key);
     return { success: false, error: "OTP has expired. Please request a new code." };
   }
 
   if (entry.attempts >= 5) {
-    otpMap.delete(cleanPhone);
+    otpMap.delete(key);
     return { success: false, error: "Too many failed attempts. Please request a new code." };
   }
 
@@ -52,6 +61,6 @@ export function verifyOtp(phone: string, submittedCode: string): { success: bool
   }
 
   // OTP verified successfully; clear it
-  otpMap.delete(cleanPhone);
+  otpMap.delete(key);
   return { success: true };
 }

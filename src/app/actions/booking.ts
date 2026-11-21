@@ -2,7 +2,6 @@
 
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { COMPANIONS } from '@/lib/data/companions';
 import { revalidatePath } from 'next/cache';
 
 export interface CreateBookingInput {

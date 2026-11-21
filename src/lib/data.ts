@@ -1,4 +1,5 @@
 import { CompanionSummary, CitySummary, ActivitySummary, PassTierOption } from "@/types";
+import { ActivityCategory } from "./types";
 import { prisma } from "./prisma";
 
 export const PASS_TIER_OPTIONS: PassTierOption[] = [
@@ -241,17 +242,24 @@ export const MOCK_COMPANIONS: CompanionSummary[] = [
 export async function getCompanions(citySlug?: string, activitySlug?: string): Promise<CompanionSummary[]> {
   try {
     const where: Record<string, unknown> = { isAvailable: true };
-    if (citySlug) {
-      where.city = { slug: citySlug };
+    if (citySlug && citySlug !== 'all') {
+      where.city = { slug: citySlug.toLowerCase() };
     }
     const dbCompanions = await prisma.companion.findMany({
       where,
-      include: { city: true },
-      take: 20,
+      include: {
+        city: true,
+        reviewsReceived: {
+          include: { member: true },
+          take: 5,
+        },
+      },
+      orderBy: { ratingAverage: 'desc' },
+      take: 50,
     });
 
     if (dbCompanions && dbCompanions.length > 0) {
-      return dbCompanions.map((c) => ({
+      let mapped = dbCompanions.map((c) => ({
         id: c.id,
         name: c.displayName,
         displayName: c.displayName,
@@ -269,22 +277,153 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
         shortBio: c.shortBio,
         isAvailable: c.isAvailable,
       }));
+
+      if (activitySlug && activitySlug !== 'all') {
+        const cleanAct = activitySlug.toLowerCase().replace(/-/g, ' ');
+        mapped = mapped.filter((c) =>
+          c.acceptedActivities.some((act) => act.toLowerCase().includes(cleanAct))
+        );
+      }
+
+      return mapped;
     }
   } catch (err) {
-    // Database fallback
+    console.error('[GET COMPANIONS ERROR]:', err);
   }
 
-  // Fallback to verified mock dataset
-  let results = [...MOCK_COMPANIONS];
-  if (citySlug) {
-    results = results.filter((c) => c.citySlug.toLowerCase() === citySlug.toLowerCase());
+  return [];
+}
+
+function mapToActivityCategories(activities: string[] = []): ActivityCategory[] {
+  const mapping: Record<string, ActivityCategory> = {
+    'coffee': 'coffee-chat',
+    'cafe': 'coffee-chat',
+    'shopping': 'shopping-buddy',
+    'styling': 'shopping-buddy',
+    'photo': 'photo-walk',
+    'candid': 'photo-walk',
+    'comedy': 'comedy-and-shows',
+    'shows': 'comedy-and-shows',
+    'city': 'city-guide',
+    'walk': 'walk-and-talk',
+    'gym': 'gym-partner',
+    'fitness': 'gym-partner',
+    'museum': 'city-guide',
+    'art': 'city-guide',
+    'book': 'study-buddy',
+    'reading': 'study-buddy',
+    'food': 'food-walk',
+    'crawl': 'food-walk',
+    'eats': 'food-walk',
+    'co-working': 'career-chat',
+    'career': 'career-chat',
+    'badminton': 'sports-partner',
+    'tennis': 'sports-partner',
+    'cycling': 'sports-partner',
+    'sports': 'sports-partner',
+    'sunset': 'walk-and-talk',
+    'board': 'gaming-partner',
+    'arcade': 'gaming-partner',
+    'games': 'gaming-partner',
+    'flea': 'shopping-buddy',
+    'thrifting': 'shopping-buddy',
+    'movie': 'movie-buddy',
+    'event': 'event-plus-one',
+  };
+
+  const categories = new Set<ActivityCategory>();
+
+  for (const act of activities) {
+    const lower = act.toLowerCase();
+    let matched = false;
+    for (const [key, cat] of Object.entries(mapping)) {
+      if (lower.includes(key)) {
+        categories.add(cat);
+        matched = true;
+      }
+    }
+    if (!matched) {
+      categories.add('coffee-chat');
+    }
   }
-  if (activitySlug) {
-    results = results.filter((c) =>
-      c.acceptedActivities.some((act) => act.toLowerCase().includes(activitySlug.toLowerCase()))
-    );
+
+  if (categories.size === 0) {
+    categories.add('coffee-chat');
   }
-  return results;
+
+  return Array.from(categories);
+}
+
+export async function getCompanionById(id: string) {
+  try {
+    const slugName = id.replace(/-[a-z]{3}$/i, '');
+    const c = await prisma.companion.findFirst({
+      where: {
+        OR: [
+          { id },
+          { displayName: { equals: id, mode: 'insensitive' } },
+          { displayName: { equals: slugName, mode: 'insensitive' } },
+        ],
+      },
+      include: {
+        city: true,
+        reviewsReceived: {
+          include: { member: true },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+      },
+    });
+
+    if (c) {
+      return {
+        id: c.id,
+        name: c.displayName,
+        displayName: c.displayName,
+        maskedName: c.maskedName,
+        age: 24,
+        gender: 'female' as const,
+        city: c.city.slug,
+        area: `${c.city.name} Central`,
+        tagline: c.shortBio,
+        about: c.bio,
+        avatarUrl: c.avatarUrl,
+        blurredAvatarUrl: c.blurredAvatarUrl,
+        languages: c.spokenLanguages,
+        spokenLanguages: c.spokenLanguages,
+        hourlyRate: Number(c.hourlyRate),
+        verifiedId: true,
+        verifiedPhoto: true,
+        rating: c.ratingAverage,
+        ratingAverage: c.ratingAverage,
+        reviewCount: c.totalReviews,
+        totalReviews: c.totalReviews,
+        meetupsCount: c.totalReviews,
+        activities: mapToActivityCategories(c.acceptedActivities),
+        acceptedActivities: c.acceptedActivities,
+        isFreeToday: c.isAvailable,
+        isAvailable: c.isAvailable,
+        acceptsWomenOnly: false,
+        memberSince: '2026',
+        availability: [
+          { days: 'Mon — Fri', hours: '18:00 – 21:00' },
+          { days: 'Sat — Sun', hours: '11:00 – 20:00' },
+        ],
+        reviews: c.reviewsReceived.map((r) => ({
+          id: r.id,
+          authorName: r.member?.name || 'Verified Member',
+          authorCity: c.city.name,
+          rating: r.score,
+          date: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          activityName: 'Coffee & Conversations',
+          comment: r.comment || 'Great experience and wonderful conversations.',
+        })),
+      };
+    }
+  } catch (err) {
+    console.error('[GET COMPANION BY ID ERROR]:', err);
+  }
+  return null;
 }
 
 export async function getCities(): Promise<CitySummary[]> {

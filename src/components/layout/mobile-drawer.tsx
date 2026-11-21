@@ -20,10 +20,18 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
 
   if (!isOpen) return null;
 
+  const isAnonymousName = !user?.name || user.name.toLowerCase() === 'member';
   const displayName =
     activeRole === 'host'
-      ? hostProfile?.displayName || 'Host'
-      : memberProfile?.fullName || 'Member';
+      ? hostProfile?.displayName || user?.name || 'Host'
+      : memberProfile?.fullName || (!isAnonymousName ? user?.name : (user?.phone ? `+91 ${user.phone.slice(-4)}` : 'Member'));
+
+  const roleLabel =
+    activeRole === 'host'
+      ? 'Host'
+      : !hostProfile && isAnonymousName
+      ? 'New User'
+      : 'Member';
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-between bg-paper p-5 sm:p-6 overflow-y-auto pb-12 animate-in fade-in duration-200">
@@ -61,7 +69,7 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
               </div>
             </div>
             <Badge variant={activeRole === 'host' ? 'lime' : 'sunny'} size="sm">
-              {activeRole === 'host' ? 'Host' : 'Member'}
+              {roleLabel}
             </Badge>
           </Link>
         )}
@@ -178,7 +186,7 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
             </Link>
           ) : (
             <Link
-              href="/become-a-companion"
+              href={isAuthenticated ? "/become-a-companion" : "/login?intent=host"}
               onClick={onClose}
               className="flex items-center justify-between rounded-xl border-brutal bg-paper-deep p-3.5 shadow-brutal-sm btn-press text-ink"
             >

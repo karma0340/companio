@@ -21,10 +21,12 @@ import { PriceSummary } from '@/components/booking/price-summary';
 import { Badge } from '@/components/ui/badge';
 import { ActivityIcon } from '@/components/ui/activity-icon';
 import { StatusPulse } from '@/components/ui/status-pulse';
-import { COMPANIONS } from '@/lib/data/companions';
+import { getCompanionById, getCompanions } from '@/lib/data';
 import { ACTIVITIES } from '@/lib/data/activities';
 import { ActivityCategory } from '@/lib/types';
 import type { Metadata } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 interface CompanionProfilePageProps {
   params: {
@@ -32,14 +34,8 @@ interface CompanionProfilePageProps {
   };
 }
 
-export function generateStaticParams() {
-  return COMPANIONS.map((comp) => ({
-    id: comp.id,
-  }));
-}
-
-export function generateMetadata({ params }: CompanionProfilePageProps): Metadata {
-  const companion = COMPANIONS.find((c) => c.id === params.id);
+export async function generateMetadata({ params }: CompanionProfilePageProps): Promise<Metadata> {
+  const companion = await getCompanionById(params.id);
   if (!companion) return { title: 'Companion Not Found | made4togethr' };
 
   return {
@@ -48,36 +44,13 @@ export function generateMetadata({ params }: CompanionProfilePageProps): Metadat
   };
 }
 
-export default function CompanionProfilePage({ params }: CompanionProfilePageProps) {
+export default async function CompanionProfilePage({ params }: CompanionProfilePageProps) {
   const id = params.id;
+  const companion = await getCompanionById(id);
 
-  const companion = COMPANIONS.find((c) => c.id === id) || {
-    id: id,
-    name: 'Verified Host',
-    age: 24,
-    gender: 'female' as const,
-    city: 'bengaluru',
-    area: 'Central',
-    tagline: 'Verified Togethr Host',
-    about: 'Experienced companion for city meetups.',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-    languages: ['English', 'Hindi'],
-    hourlyRate: 499,
-    verifiedId: true,
-    verifiedPhoto: true,
-    rating: 5.0,
-    reviewCount: 12,
-    meetupsCount: 8,
-    activities: ['coffee-chat' as ActivityCategory, 'walk-and-talk' as ActivityCategory],
-    isFreeToday: true,
-    acceptsWomenOnly: false,
-    memberSince: '2026',
-    availability: [
-      { days: 'Mon — Fri', hours: '18:00 – 21:00' },
-      { days: 'Sat — Sun', hours: '11:00 – 20:00' },
-    ],
-    reviews: [],
-  };
+  if (!companion) {
+    notFound();
+  }
 
   const companionActivities = companion.activities
     .map((slug) => ACTIVITIES.find((a) => a.slug === slug))

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Menu,
   MapPin,
@@ -26,6 +26,7 @@ import { AvatarVector } from '@/components/ui/avatar-vector';
 
 export function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedCity, setSelectedCity] = useState('bengaluru');
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
@@ -35,12 +36,41 @@ export function Navbar() {
   const { isAuthenticated, user, memberProfile, hostProfile, activeRole, logout, switchRole } =
     useAuth();
 
-  const displayName =
-    activeRole === 'host'
-      ? hostProfile?.displayName || 'Host'
-      : memberProfile?.fullName || 'Member';
+  const isApplyingHost = pathname?.startsWith('/become-a-companion');
+  const isOnboarding = pathname?.startsWith('/onboarding');
+  const isAnonymousName = !user?.name || user.name.toLowerCase() === 'member';
 
-  const userInitials = displayName
+  let resolvedName =
+    activeRole === 'host'
+      ? hostProfile?.displayName || user?.name || 'Host'
+      : memberProfile?.fullName || user?.name || 'Member';
+
+  let roleLabel = activeRole === 'host' ? 'Host Portal' : 'Member';
+  let badgeLabel = activeRole === 'host' ? 'Verified Host' : 'Active Member';
+  let badgeVariant: 'lime' | 'sunny' | 'coral' | 'lavender' = activeRole === 'host' ? 'lime' : 'sunny';
+
+  if (isApplyingHost) {
+    resolvedName = !isAnonymousName ? resolvedName : (user?.phone ? `+91 ${user.phone.slice(-4)}` : 'Host Applicant');
+    roleLabel = 'Host Application';
+    badgeLabel = 'Application in Progress';
+    badgeVariant = 'sunny';
+  } else if (isOnboarding) {
+    resolvedName = !isAnonymousName ? resolvedName : (user?.phone ? `+91 ${user.phone.slice(-4)}` : 'New User');
+    roleLabel = 'Onboarding';
+    badgeLabel = 'Registration';
+    badgeVariant = 'lavender';
+  } else if (isAnonymousName && !hostProfile) {
+    resolvedName = user?.phone ? `+91 ${user.phone.slice(-4)}` : 'New Member';
+    roleLabel = 'New Member';
+    badgeLabel = 'Active User';
+    badgeVariant = 'sunny';
+  } else if (hostProfile?.verificationStatus === 'pending') {
+    roleLabel = 'Under Review';
+    badgeLabel = 'Verification Pending';
+    badgeVariant = 'sunny';
+  }
+
+  const userInitials = resolvedName
     .split(' ')
     .map((n: string) => n[0])
     .join('')
@@ -82,13 +112,10 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Center Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-7 font-display text-sm font-extrabold text-ink">
+          {/* Center Navigation Links: Streamlined 3 Core Links */}
+          <nav className="hidden lg:flex items-center gap-8 font-display text-sm font-extrabold text-ink">
             <Link href="/explore" className="hover:text-lavender transition-colors">
               Explore
-            </Link>
-            <Link href="/membership" className="hover:text-lavender transition-colors">
-              Membership
             </Link>
             <Link href="/how-it-works" className="hover:text-lavender transition-colors">
               How It Works
@@ -97,53 +124,27 @@ export function Navbar() {
               <ShieldCheck className="h-4 w-4 text-ink" />
               <span>Safety</span>
             </Link>
+          </nav>
+
+          {/* Right Area: Hosting Link + Action CTAs */}
+          <div className="hidden sm:flex items-center gap-4">
+            {/* Hosting Link */}
             {activeRole === 'host' ? (
-              <Link href="/companion/dashboard" className="flex items-center gap-1.5 hover:text-lavender transition-colors">
-                <Sparkles className="h-4 w-4 text-ink" />
+              <Link
+                href="/companion/dashboard"
+                className="font-display text-xs font-black text-ink hover:text-lavender transition-colors flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-paper-deep"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-ink" />
                 <span>Host Portal</span>
               </Link>
             ) : (
-              <Link href="/become-a-companion" className="hover:text-lavender transition-colors">
+              <Link
+                href={isAuthenticated ? "/become-a-companion" : "/login?intent=host"}
+                className="font-display text-xs font-black text-ink hover:text-lavender transition-colors py-1 px-2 rounded-lg hover:bg-paper-deep"
+              >
                 Become a Host
               </Link>
             )}
-          </nav>
-
-          {/* Right Area: City Selector + Action CTAs */}
-          <div className="hidden sm:flex items-center gap-3">
-            {/* City Dropdown Selector */}
-            <div className="relative">
-              <button
-                onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-                className="flex items-center gap-1.5 rounded-xl border-brutal-sm bg-white px-3 py-1.5 font-display text-xs font-extrabold text-ink shadow-brutal-sm hover:bg-paper-deep transition-all cursor-pointer"
-              >
-                <MapPin className="h-3.5 w-3.5 text-ink" />
-                <span className="capitalize">{selectedCity}</span>
-                <ChevronDown className="h-3.5 w-3.5 text-ink" />
-              </button>
-
-              {isCityDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border-brutal bg-white p-2 shadow-brutal z-50">
-                  <div className="p-1.5 text-[11px] font-extrabold uppercase text-ink-muted">
-                    Select Your City
-                  </div>
-                  {CITIES.map((c) => (
-                    <button
-                      key={c.slug}
-                      onClick={() => {
-                        setSelectedCity(c.slug);
-                        setIsCityDropdownOpen(false);
-                        router.push(`/${c.slug}/companions`);
-                      }}
-                      className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-bold text-ink hover:bg-lime transition-colors cursor-pointer"
-                    >
-                      <span>{c.name}</span>
-                      <span className="text-[10px] text-ink-muted">{c.activeCount} hosts</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
 
             {/* Dynamic Authentication Area */}
             {isAuthenticated ? (
@@ -159,10 +160,10 @@ export function Navbar() {
                   />
                   <div className="text-left">
                     <span className="block font-display text-xs font-black text-ink leading-tight">
-                      {displayName}
+                      {resolvedName}
                     </span>
                     <span className="block text-[10px] font-bold text-ink-muted capitalize">
-                      {activeRole === 'host' ? 'Host Portal' : 'Member'}
+                      {roleLabel}
                     </span>
                   </div>
                   <ChevronDown className="h-3.5 w-3.5 text-ink" />
@@ -172,11 +173,13 @@ export function Navbar() {
                   <div className="absolute right-0 mt-2 w-56 rounded-2xl border-brutal bg-white p-2.5 shadow-brutal-lg z-50 space-y-1 animate-in fade-in">
                     {/* Header Details */}
                     <div className="border-b-brutal-sm p-2 pb-2.5">
-                      <p className="font-display text-xs font-black text-ink">{displayName}</p>
-                      <p className="text-[11px] font-mono text-ink-muted">+91 {user?.phone}</p>
+                      <p className="font-display text-xs font-black text-ink">{resolvedName}</p>
+                      <p className="text-[11px] font-mono text-ink-muted">
+                        {user?.phone ? (user.phone.startsWith('+91') ? user.phone : `+91 ${user.phone}`) : ''}
+                      </p>
                       <div className="mt-1">
-                        <Badge variant={activeRole === 'host' ? 'lime' : 'sunny'} size="sm">
-                          {activeRole === 'host' ? 'Verified Host' : 'Active Member'}
+                        <Badge variant={badgeVariant} size="sm">
+                          {badgeLabel}
                         </Badge>
                       </div>
                     </div>
@@ -253,7 +256,7 @@ export function Navbar() {
               </div>
             ) : (
               <>
-                <Link href="/login">
+                <Link href="/login?intent=member">
                   <Button variant="outline" size="sm">
                     Log In
                   </Button>

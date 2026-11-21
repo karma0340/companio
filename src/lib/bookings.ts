@@ -98,9 +98,54 @@ export interface CreateBookingInput {
 }
 
 export async function createBooking(input: CreateBookingInput): Promise<BookingRecord> {
-  const companion = MOCK_COMPANIONS.find((c) => c.id === input.companionId) || MOCK_COMPANIONS[0];
-  const activity = MOCK_ACTIVITIES.find((a) => a.id === input.activityId) || MOCK_ACTIVITIES[0];
-  const city = MOCK_CITIES.find((c) => c.slug === companion.citySlug) || MOCK_CITIES[0];
+  let dbCompanion = null;
+  try {
+    dbCompanion = await prisma.companion.findFirst({
+      where: {
+        OR: [
+          { id: input.companionId },
+          { displayName: { equals: input.companionId, mode: 'insensitive' } },
+        ],
+      },
+      include: { city: true },
+    });
+  } catch {}
+
+  const companion = dbCompanion
+    ? {
+        id: dbCompanion.id,
+        name: dbCompanion.displayName,
+        avatarUrl: dbCompanion.avatarUrl,
+        hourlyRate: Number(dbCompanion.hourlyRate),
+        cityId: dbCompanion.city.id,
+        cityName: dbCompanion.city.name,
+      }
+    : {
+        id: input.companionId,
+        name: 'Verified Host',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+        hourlyRate: 599,
+        cityId: 'bengaluru',
+        cityName: 'Bengaluru',
+      };
+
+  let dbActivity = null;
+  try {
+    dbActivity = await prisma.activity.findFirst({
+      where: {
+        OR: [{ id: input.activityId }, { slug: input.activityId }],
+      },
+    });
+  } catch {}
+
+  const activity = dbActivity
+    ? { id: dbActivity.id, title: dbActivity.title }
+    : { id: input.activityId, title: 'Coffee & Conversations' };
+
+  const city = {
+    id: companion.cityId,
+    name: companion.cityName,
+  };
 
   const breakdown = calculateEscrowBreakdown(companion.hourlyRate, input.durationHours || 1);
 

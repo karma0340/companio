@@ -52,6 +52,11 @@ export function initRecaptchaVerifier(containerId: string): RecaptchaVerifier {
       (window as any)[key] = null;
     }
 
+    const containerEl = document.getElementById(containerId);
+    if (containerEl) {
+      containerEl.innerHTML = "";
+    }
+
     const verifier = new RecaptchaVerifier(auth, containerId, {
       size: "invisible",
       callback: () => {
@@ -77,14 +82,14 @@ export function formatFirebasePhoneError(error: any): string {
   const message = error?.message || "";
 
   if (code === "auth/operation-not-allowed" || message.toLowerCase().includes("region")) {
-    return "India (+91) SMS region is not enabled in Firebase Console. Go to Firebase Console -> Authentication -> Settings -> SMS region policy to allow India (+91), or configure test numbers under Sign-in method -> Phone.";
+    return "India (+91) SMS region is not enabled in Firebase Console. Go to Firebase Console -> Authentication -> Settings -> SMS region policy to allow India (+91).";
   }
   if (code === "auth/unauthorized-domain") {
-    const host = typeof window !== "undefined" ? window.location.hostname : "companio-eight.vercel.app";
+    const host = typeof window !== "undefined" ? window.location.hostname : "localhost";
     return `Domain unauthorized: Please add "${host}" to Firebase Console -> Authentication -> Settings -> Authorized domains.`;
   }
   if (code === "auth/quota-exceeded" || message.toLowerCase().includes("quota")) {
-    return "SMS daily quota reached on Firebase Spark plan (10 SMS/day limit). Please upgrade to Blaze plan or configure test numbers in Firebase Console.";
+    return "SMS daily quota reached on Firebase Spark plan (10 SMS/day limit). Please upgrade to Blaze plan in Firebase Console.";
   }
   if (code === "auth/too-many-requests") {
     return "Too many OTP requests sent to this number. Please wait a few minutes before trying again.";
@@ -100,6 +105,9 @@ export function formatFirebasePhoneError(error: any): string {
   }
   if (code === "auth/network-request-failed") {
     return "Network error connecting to Firebase. Please check your internet connection and try again.";
+  }
+  if (code === "auth/invalid-app-credential") {
+    return "Invalid Firebase App Credential / reCAPTCHA check failed. Please check that localhost is in Authorized Domains and retry.";
   }
 
   return message || "Failed to dispatch real SMS OTP. Please try again.";

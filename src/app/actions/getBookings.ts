@@ -1,11 +1,11 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { COMPANIONS } from '@/lib/data/companions';
+import { Companion } from '@/lib/types';
 
 export interface BookingDisplayItem {
   id: string;
-  companion: typeof COMPANIONS[0];
+  companion: Companion;
   companionId: string;
   memberName: string;
   memberPhone: string;
@@ -26,20 +26,46 @@ export async function fetchLiveBookings(filter?: {
   memberPhone?: string;
 }): Promise<BookingDisplayItem[]> {
   try {
+    const where: any = {};
+    if (filter?.memberPhone) {
+      const cleanPhone = `+91${filter.memberPhone.replace(/\D/g, '').slice(-10)}`;
+      where.member = { phone: cleanPhone };
+    }
+
     const dbBookings = await prisma.booking.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         companion: true,
         activity: true,
+        member: true,
       },
     });
 
     if (dbBookings && dbBookings.length > 0) {
       return dbBookings.map((b: any) => {
-        const comp = COMPANIONS.find((c) => c.id === b.companionId) || {
-          ...COMPANIONS[0],
-          id: b.companionId,
-          name: b.companion?.name || COMPANIONS[0].name,
+        const comp: Companion = {
+          id: b.companion?.id || b.companionId,
+          name: b.companion?.displayName || 'Verified Host',
+          age: 24,
+          gender: 'female' as const,
+          city: 'bengaluru',
+          area: 'Central',
+          tagline: b.companion?.shortBio || 'Verified Togethr Host',
+          about: b.companion?.bio || '',
+          avatarUrl: b.companion?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+          languages: b.companion?.spokenLanguages || ['English', 'Hindi'],
+          hourlyRate: Number(b.companion?.hourlyRate) || 499,
+          verifiedId: true,
+          verifiedPhoto: true,
+          rating: Number(b.companion?.ratingAverage) || 4.9,
+          reviewCount: Number(b.companion?.totalReviews) || 12,
+          meetupsCount: Number(b.companion?.totalReviews) || 12,
+          activities: ['coffee-chat'],
+          isFreeToday: true,
+          memberSince: '2026',
+          availability: [],
+          reviews: [],
         };
 
         let displayStatus = 'Ready for Code Verification';
@@ -69,28 +95,8 @@ export async function fetchLiveBookings(filter?: {
       });
     }
   } catch (err) {
-    console.warn('[PRISMA FETCH BOOKINGS FALLBACK]:', (err as Error).message);
+    console.warn('[PRISMA FETCH BOOKINGS ERROR]:', (err as Error).message);
   }
 
-  // Graceful sample fallback if database is empty
-  const defaultComp = COMPANIONS[0];
-  return [
-    {
-      id: 'cmp-sample-01',
-      companion: defaultComp,
-      companionId: defaultComp.id,
-      memberName: 'Member',
-      memberPhone: '+91 98765 43210',
-      activity: 'Coffee & City Walk',
-      date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      time: '16:00',
-      duration: '2 Hours',
-      meetingPoint: 'Third Wave Coffee, Indiranagar 100ft Rd',
-      startCode: '7492',
-      escrowAmount: 1840,
-      status: 'Ready for Code Verification',
-      rawStatus: 'confirmed',
-      paymentStatus: 'paid_escrow',
-    },
-  ];
+  return [];
 }

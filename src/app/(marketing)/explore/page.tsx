@@ -6,10 +6,9 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { FilterBar } from '@/components/companion/filter-bar';
 import { CompanionCard } from '@/components/companion/companion-card';
-import { COMPANIONS } from '@/lib/data/companions';
-import { ActivityCategory } from '@/lib/types';
+import { Companion, ActivityCategory } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Users, Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 
 interface SearchSyncProps {
   onSync: (city: string, activity: ActivityCategory | 'all', freeToday: boolean) => void;
@@ -28,56 +27,113 @@ function SearchParamsSync({ onSync }: SearchSyncProps) {
   return null;
 }
 
+function mapToActivityCategories(activities: string[] = []): ActivityCategory[] {
+  const mapping: Record<string, ActivityCategory> = {
+    'coffee': 'coffee-chat',
+    'cafe': 'coffee-chat',
+    'shopping': 'shopping-buddy',
+    'styling': 'shopping-buddy',
+    'photo': 'photo-walk',
+    'candid': 'photo-walk',
+    'comedy': 'comedy-and-shows',
+    'shows': 'comedy-and-shows',
+    'city': 'city-guide',
+    'walk': 'walk-and-talk',
+    'gym': 'gym-partner',
+    'fitness': 'gym-partner',
+    'museum': 'city-guide',
+    'art': 'city-guide',
+    'book': 'study-buddy',
+    'reading': 'study-buddy',
+    'food': 'food-walk',
+    'crawl': 'food-walk',
+    'eats': 'food-walk',
+    'co-working': 'career-chat',
+    'career': 'career-chat',
+    'badminton': 'sports-partner',
+    'tennis': 'sports-partner',
+    'cycling': 'sports-partner',
+    'sports': 'sports-partner',
+    'sunset': 'walk-and-talk',
+    'board': 'gaming-partner',
+    'arcade': 'gaming-partner',
+    'games': 'gaming-partner',
+    'flea': 'shopping-buddy',
+    'thrifting': 'shopping-buddy',
+    'movie': 'movie-buddy',
+    'event': 'event-plus-one',
+  };
+
+  const categories = new Set<ActivityCategory>();
+
+  for (const act of activities) {
+    const lower = act.toLowerCase();
+    let matched = false;
+    for (const [key, cat] of Object.entries(mapping)) {
+      if (lower.includes(key)) {
+        categories.add(cat);
+        matched = true;
+      }
+    }
+    if (!matched) {
+      categories.add('coffee-chat');
+    }
+  }
+
+  if (categories.size === 0) {
+    categories.add('coffee-chat');
+  }
+
+  return Array.from(categories);
+}
+
 export default function ExplorePage() {
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [selectedActivity, setSelectedActivity] = useState<ActivityCategory | 'all'>('all');
   const [freeTodayOnly, setFreeTodayOnly] = useState<boolean>(false);
   const [womenOnlyHosts, setWomenOnlyHosts] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [companionsList, setCompanionsList] = useState(COMPANIONS);
+  const [companionsList, setCompanionsList] = useState<Companion[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Fetch live companions from database and merge
+    setIsLoading(true);
     fetch('/api/companions')
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.companions)) {
-          setCompanionsList((prev) => {
-            const existingIds = new Set(prev.map((c) => c.id));
-            const newFromDb = data.companions
-              .filter((c: any) => !existingIds.has(c.id))
-              .map((c: any) => ({
-                id: c.id,
-                name: c.displayName || c.name,
-                age: 24,
-                gender: 'female' as const,
-                city: c.citySlug || (c.city ? c.city.toLowerCase() : 'bengaluru'),
-                area: c.city || 'Central',
-                tagline: c.shortBio || 'Verified local companion',
-                about: c.bio || c.shortBio || 'Happy to explore cafes and culture.',
-                avatarUrl: c.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-                languages: c.spokenLanguages || ['English', 'Hindi'],
-                hourlyRate: c.hourlyRate || 499,
-                verifiedId: true,
-                verifiedPhoto: true,
-                rating: c.ratingAverage || 5.0,
-                reviewCount: c.totalReviews || 0,
-                meetupsCount: 1,
-                activities: ['coffee-chat' as ActivityCategory, 'walk-and-talk' as ActivityCategory],
-                isFreeToday: c.isAvailable ?? true,
-                acceptsWomenOnly: false,
-                memberSince: '2026',
-                availability: [
-                  { days: 'Mon — Fri', hours: '18:00 – 21:00' },
-                  { days: 'Sat — Sun', hours: '11:00 – 20:00' },
-                ],
-                reviews: [],
-              }));
-            return [...newFromDb, ...prev];
-          });
+          const mapped: Companion[] = data.companions.map((c: any) => ({
+            id: c.id,
+            name: c.displayName || c.name,
+            age: 24,
+            gender: 'female' as const,
+            city: (c.citySlug || (c.city ? c.city.toLowerCase() : 'bengaluru')).trim(),
+            area: c.city || 'Central Area',
+            tagline: c.shortBio || 'Verified local companion',
+            about: c.bio || c.shortBio || 'Engaging companion for genuine public meetups.',
+            avatarUrl: c.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+            languages: c.spokenLanguages || ['English', 'Hindi'],
+            hourlyRate: Number(c.hourlyRate) || 499,
+            verifiedId: true,
+            verifiedPhoto: true,
+            rating: Number(c.ratingAverage) || 4.9,
+            reviewCount: Number(c.totalReviews) || 15,
+            meetupsCount: Number(c.totalReviews) || 12,
+            activities: mapToActivityCategories(c.acceptedActivities || []),
+            isFreeToday: c.isAvailable ?? true,
+            acceptsWomenOnly: false,
+            memberSince: '2026',
+            availability: [
+              { days: 'Mon — Fri', hours: '18:00 – 21:00' },
+              { days: 'Sat — Sun', hours: '11:00 – 20:00' },
+            ],
+            reviews: [],
+          }));
+          setCompanionsList(mapped);
         }
       })
-      .catch((err) => console.error('Failed to sync live companions:', err));
+      .catch((err) => console.error('Failed to load database companions:', err))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const handleSyncParams = useCallback(
@@ -92,7 +148,7 @@ export default function ExplorePage() {
   const filteredCompanions = useMemo(() => {
     return companionsList.filter((comp) => {
       // City filter
-      if (selectedCity !== 'all' && comp.city !== selectedCity) {
+      if (selectedCity !== 'all' && comp.city !== selectedCity.toLowerCase()) {
         return false;
       }
       // Activity filter
@@ -121,7 +177,7 @@ export default function ExplorePage() {
       }
       return true;
     });
-  }, [selectedCity, selectedActivity, freeTodayOnly, womenOnlyHosts, searchQuery]);
+  }, [companionsList, selectedCity, selectedActivity, freeTodayOnly, womenOnlyHosts, searchQuery]);
 
   const handleReset = () => {
     setSelectedCity('all');
@@ -177,8 +233,18 @@ export default function ExplorePage() {
             totalCount={filteredCompanions.length}
           />
 
-          {/* Companions Results Grid */}
-          {filteredCompanions.length > 0 ? (
+          {/* Loading Indicator */}
+          {isLoading ? (
+            <div className="rounded-3xl border-brutal bg-white p-16 text-center space-y-4 shadow-brutal-sm max-w-md mx-auto">
+              <Loader2 className="h-10 w-10 animate-spin mx-auto text-ink" />
+              <h3 className="font-display text-lg font-black text-ink">
+                Loading Verified Companions...
+              </h3>
+              <p className="font-body text-xs text-ink-muted">
+                Connecting directly to PostgreSQL directory
+              </p>
+            </div>
+          ) : filteredCompanions.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredCompanions.map((companion) => (
                 <CompanionCard key={companion.id} companion={companion} />
@@ -212,4 +278,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-

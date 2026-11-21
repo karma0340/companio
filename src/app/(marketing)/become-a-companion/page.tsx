@@ -29,10 +29,10 @@ export default function BecomeACompanionPage() {
   const monthlyEarnings = hourlyRate * weeklyHours * 4;
 
   const destinationHref = !isAuthenticated
-    ? '/login?next=/companion/kyc'
+    ? '/login?intent=host&next=/become-a-companion/apply'
     : activeRole === 'host' && hostProfile?.verificationStatus === 'approved'
     ? '/companion/dashboard'
-    : '/companion/kyc';
+    : '/become-a-companion/apply';
 
   const buttonText =
     isAuthenticated && activeRole === 'host' && hostProfile?.verificationStatus === 'approved'
@@ -244,7 +244,7 @@ export default function BecomeACompanionPage() {
             </div>
 
             <div className="pt-4 border-t-brutal-sm flex justify-center">
-              <Link href="/login?next=/companion/kyc">
+              <Link href={destinationHref}>
                 <Button variant="primary" size="lg">
                   <span>Submit Your Host Application Now →</span>
                 </Button>

@@ -44,8 +44,14 @@ export async function sendSmsOtp(
   if (provider === "FAST2SMS") {
     const fast2smsKey = apiKey || process.env.FAST2SMS_API_KEY?.trim();
     if (!fast2smsKey) {
-      console.warn("[FAST2SMS] Missing SMS_API_KEY or FAST2SMS_API_KEY. Falling back to sandbox.");
-      return mockSmsFallback("FAST2SMS", recipientPhone, otpCode, "Missing API key");
+      const errMsg = "Missing FAST2SMS_API_KEY in .env. Please sign up on fast2sms.com and add your API key.";
+      console.error("[FAST2SMS ERROR]:", errMsg);
+      return {
+        success: false,
+        provider: "FAST2SMS",
+        error: errMsg,
+        isMock: false,
+      };
     }
 
     try {
@@ -56,15 +62,20 @@ export async function sendSmsOtp(
           authorization: fast2smsKey,
         },
         body: JSON.stringify({
-          route: "otp",
-          variables_values: otpCode,
+          route: "q",
+          message: `Your made4togethr verification code is ${otpCode}. Valid for 5 minutes.`,
+          language: "english",
+          flash: 0,
           numbers: tenDigit,
         }),
       });
 
       const data = await response.json();
       if (!response.ok || !data.return) {
-        throw new Error(data.message?.[0] || data.message || "Fast2SMS dispatch failed");
+        const errorDetail = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Fast2SMS dispatch failed";
+        throw new Error(errorDetail);
       }
 
       console.log(`[FAST2SMS SUCCESS] Sent OTP to ${tenDigit}. Request ID: ${data.request_id}`);
@@ -75,8 +86,14 @@ export async function sendSmsOtp(
         isMock: false,
       };
     } catch (err) {
-      console.error("[FAST2SMS ERROR]:", (err as Error).message);
-      return mockSmsFallback("FAST2SMS", recipientPhone, otpCode, (err as Error).message);
+      const errMsg = (err as Error).message || "Fast2SMS dispatch failed";
+      console.error("[FAST2SMS ERROR]:", errMsg);
+      return {
+        success: false,
+        provider: "FAST2SMS",
+        error: errMsg,
+        isMock: false,
+      };
     }
   }
 

@@ -23,10 +23,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { ActivityIcon } from '@/components/ui/activity-icon';
-import { COMPANIONS } from '@/lib/data/companions';
 import { ACTIVITIES } from '@/lib/data/activities';
 import { calculatePrice, formatRupees } from '@/lib/utils';
-import { ActivityCategory } from '@/lib/types';
+import { Companion, ActivityCategory } from '@/lib/types';
 import { createBookingAction } from '@/app/actions/booking';
 import { useAuth } from '@/context/auth-context';
 import { openRazorpayCheckout } from '@/lib/payments/razorpay';
@@ -50,7 +49,7 @@ function BookPageContent({ params }: BookPageProps) {
   const toast = useToast();
   const { user, memberProfile, isAuthenticated } = useAuth();
 
-  const companion = COMPANIONS.find((c) => c.id === companionId) || {
+  const [companion, setCompanion] = useState<Companion>({
     id: companionId,
     name: 'Verified Host',
     age: 24,
@@ -59,7 +58,7 @@ function BookPageContent({ params }: BookPageProps) {
     area: 'Central',
     tagline: 'Verified Togethr Host',
     about: 'Experienced companion for city meetups.',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
     languages: ['English', 'Hindi'],
     hourlyRate: 499,
     verifiedId: true,
@@ -76,11 +75,25 @@ function BookPageContent({ params }: BookPageProps) {
       { days: 'Sat — Sun', hours: '11:00 – 20:00' },
     ],
     reviews: [],
-  };
+  });
+
+  useEffect(() => {
+    fetch(`/api/companions/${companionId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.companion) {
+          setCompanion(data.companion);
+          if (data.companion.activities && data.companion.activities.length > 0) {
+            setSelectedActivity(data.companion.activities[0]);
+          }
+        }
+      })
+      .catch((err) => console.error('Failed to load companion for booking:', err));
+  }, [companionId]);
 
   // Booking Form State
   const [selectedActivity, setSelectedActivity] = useState<ActivityCategory>(
-    companion.activities[0] || 'coffee-chat'
+    'coffee-chat'
   );
   const [date, setDate] = useState<string>(
     new Date(Date.now() + 86400000).toISOString().split('T')[0]

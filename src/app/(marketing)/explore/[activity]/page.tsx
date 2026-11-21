@@ -8,9 +8,46 @@ import { CompanionCard } from '@/components/companion/companion-card';
 import { Badge } from '@/components/ui/badge';
 import { ActivityIcon } from '@/components/ui/activity-icon';
 import { ACTIVITIES } from '@/lib/data/activities';
-import { COMPANIONS } from '@/lib/data/companions';
-import { ActivityCategory } from '@/lib/types';
+import { getCompanions } from '@/lib/data';
+import { Companion, ActivityCategory } from '@/lib/types';
 import type { Metadata } from 'next';
+
+export const dynamic = 'force-dynamic';
+
+function mapToActivityCategories(activities: string[] = []): ActivityCategory[] {
+  const mapping: Record<string, ActivityCategory> = {
+    'coffee': 'coffee-chat',
+    'cafe': 'coffee-chat',
+    'shopping': 'shopping-buddy',
+    'styling': 'shopping-buddy',
+    'photo': 'photo-walk',
+    'comedy': 'comedy-and-shows',
+    'city': 'city-guide',
+    'walk': 'walk-and-talk',
+    'gym': 'gym-partner',
+    'fitness': 'gym-partner',
+    'museum': 'city-guide',
+    'book': 'study-buddy',
+    'food': 'food-walk',
+    'co-working': 'career-chat',
+    'sports': 'sports-partner',
+    'movie': 'movie-buddy',
+  };
+
+  const categories = new Set<ActivityCategory>();
+  for (const act of activities) {
+    const lower = act.toLowerCase();
+    let matched = false;
+    for (const [key, cat] of Object.entries(mapping)) {
+      if (lower.includes(key)) {
+        categories.add(cat);
+        matched = true;
+      }
+    }
+    if (!matched) categories.add('coffee-chat');
+  }
+  return Array.from(categories);
+}
 
 interface ActivityPageProps {
   params: {
@@ -35,7 +72,7 @@ export function generateMetadata({ params }: ActivityPageProps): Metadata {
   };
 }
 
-export default function ActivityPage({ params }: ActivityPageProps) {
+export default async function ActivityPage({ params }: ActivityPageProps) {
   const activitySlug = params.activity;
 
   const currentActivity = ACTIVITIES.find((a) => a.slug === activitySlug);
@@ -43,10 +80,34 @@ export default function ActivityPage({ params }: ActivityPageProps) {
     notFound();
   }
 
-  // Filter companions who offer this activity
-  const relevantCompanions = COMPANIONS.filter((comp) =>
-    comp.activities.includes(activitySlug as ActivityCategory)
-  );
+  const rawCompanions = await getCompanions(undefined, activitySlug);
+  const relevantCompanions: Companion[] = rawCompanions.map((c) => ({
+    id: c.id,
+    name: c.displayName || c.name,
+    age: 24,
+    gender: 'female' as const,
+    city: c.citySlug,
+    area: c.city,
+    tagline: c.shortBio || 'Verified local companion',
+    about: c.bio || c.shortBio || '',
+    avatarUrl: c.avatarUrl,
+    languages: c.spokenLanguages || ['English', 'Hindi'],
+    hourlyRate: c.hourlyRate || 499,
+    verifiedId: true,
+    verifiedPhoto: true,
+    rating: c.ratingAverage || 4.9,
+    reviewCount: c.totalReviews || 12,
+    meetupsCount: c.totalReviews || 12,
+    activities: mapToActivityCategories(c.acceptedActivities || []),
+    isFreeToday: c.isAvailable ?? true,
+    acceptsWomenOnly: false,
+    memberSince: '2026',
+    availability: [
+      { days: 'Mon — Fri', hours: '18:00 – 21:00' },
+      { days: 'Sat — Sun', hours: '11:00 – 20:00' },
+    ],
+    reviews: [],
+  }));
 
   return (
     <div className="min-h-screen flex flex-col bg-paper">

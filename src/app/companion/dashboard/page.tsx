@@ -16,6 +16,10 @@ import {
   ArrowUpRight,
   User,
   Loader2,
+  Lock,
+  Sparkles,
+  AlertCircle,
+  Video,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
@@ -37,6 +41,9 @@ export default function HostDashboardPage() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [simulatingApproval, setSimulatingApproval] = useState(false);
+
+  const isApproved = hostProfile?.verificationStatus === 'approved';
 
   // Sync state with hostProfile from Zustand
   useEffect(() => {
@@ -57,7 +64,7 @@ export default function HostDashboardPage() {
           if (data.bookings && data.bookings.length > 0) {
             setPendingRequests(data.bookings);
           } else {
-            // If no active bookings yet, show starter requests so the host sees how requests look
+            // Starter preview requests for host
             setPendingRequests([
               {
                 id: 'req-preview-1',
@@ -196,7 +203,24 @@ export default function HostDashboardPage() {
     }, 1000);
   };
 
-  const hostDisplayName = hostProfile?.displayName || user?.phone || 'Host';
+  const handleSimulateApproval = async () => {
+    setSimulatingApproval(true);
+    try {
+      const res = await fetch('/api/companion/upgrade', { method: 'POST' });
+      if (res.ok) {
+        await refreshSession();
+        toast.success('Desk approval simulated. Live Host Portal unlocked for testing!', 'Host Verified');
+      } else {
+        toast.error('Simulation failed. Please try again.', 'Error');
+      }
+    } catch {
+      toast.error('Network error during approval simulation.', 'Error');
+    } finally {
+      setSimulatingApproval(false);
+    }
+  };
+
+  const hostDisplayName = hostProfile?.displayName || user?.name || user?.phone || 'Verified Host';
   const hostLocation = `${hostProfile?.area || 'City Area'}, ${hostProfile?.city || 'Bengaluru'}`;
 
   return (
@@ -205,12 +229,105 @@ export default function HostDashboardPage() {
 
       <main className="flex-1 py-10 sm:py-14">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-8">
+          {/* APPLICANT REVIEW STAGE NOTICE (If Pending Review) */}
+          {!isApproved && (
+            <div className="border-3 border-ink bg-white p-6 sm:p-8 shadow-brutal space-y-5 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-ink pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="border border-ink bg-sunny px-2.5 py-0.5 text-xs font-black uppercase tracking-wider text-ink">
+                      Application Under Review
+                    </span>
+                    <span className="border border-ink bg-paper px-2 py-0.5 text-xs font-mono font-bold text-ink">
+                      Ref: HST-2026-REG
+                    </span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black uppercase text-ink">
+                    Host Verification in Progress (Under 48 Hours)
+                  </h2>
+                  <p className="text-xs sm:text-sm font-bold text-ink/70 max-w-xl">
+                    Our trust and physical safety desk is reviewing your Aadhaar records and automated live video match. Meetup requests will be routed to your portal upon approval.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                  <button
+                    type="button"
+                    disabled={simulatingApproval}
+                    onClick={handleSimulateApproval}
+                    className="border-2 border-ink bg-lime text-ink px-4 py-2 text-xs font-black uppercase tracking-wider shadow-brutal-sm btn-press flex items-center gap-1.5"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>{simulatingApproval ? 'Simulating...' : 'Simulate Desk Approval (Instant Test)'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3-Stage Progress Tracker */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                <div className="border-2 border-ink bg-lime/20 p-4 space-y-1 shadow-brutal-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-ink">
+                      Stage 1
+                    </span>
+                    <span className="text-[10px] font-black uppercase bg-lime px-1.5 py-0.5 border border-ink text-ink flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      <span>Verified</span>
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-black uppercase text-ink">
+                    Aadhaar ID Proof
+                  </h4>
+                  <p className="text-[11px] font-bold text-ink/70">
+                    Front and back documents uploaded and encrypted under DPDP Act 2023.
+                  </p>
+                </div>
+
+                <div className="border-2 border-ink bg-lime/20 p-4 space-y-1 shadow-brutal-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-ink">
+                      Stage 2
+                    </span>
+                    <span className="text-[10px] font-black uppercase bg-lime px-1.5 py-0.5 border border-ink text-ink flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      <span>Passed</span>
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-black uppercase text-ink">
+                    Live Video Face Match
+                  </h4>
+                  <p className="text-[11px] font-bold text-ink/70">
+                    Live facial geometry matched against government documentation.
+                  </p>
+                </div>
+
+                <div className="border-2 border-ink bg-sunny/30 p-4 space-y-1 shadow-brutal-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-ink">
+                      Stage 3
+                    </span>
+                    <span className="text-[10px] font-black uppercase bg-sunny px-1.5 py-0.5 border border-ink text-ink flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>In Review</span>
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-black uppercase text-ink">
+                    Safety Welcome Call
+                  </h4>
+                  <p className="text-[11px] font-bold text-ink/70">
+                    Our safety officer will contact you on WhatsApp for a 5-minute onboarding check.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top Bar: Profile & Availability Toggle */}
           <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Badge variant="lime" size="sm">
-                  Verified Host
+                <Badge variant={isApproved ? "lime" : "sunny"} size="sm">
+                  {isApproved ? "Verified Host" : "Verification Pending"}
                 </Badge>
                 <span className="text-xs font-bold text-ink-muted capitalize">
                   {hostLocation}
@@ -318,111 +435,120 @@ export default function HostDashboardPage() {
                   <input
                     type="text"
                     maxLength={4}
+                    placeholder="e.g. 4892"
                     value={enteredCode}
-                    onChange={(e) => setEnteredCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="4 Digits"
-                    className="w-32 text-center rounded-xl border-brutal bg-paper-deep px-3 py-2.5 font-mono text-xl font-black text-ink focus:bg-white focus:outline-none focus:shadow-brutal"
+                    onChange={(e) => setEnteredCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    className="w-32 rounded-xl border-brutal bg-paper px-4 py-2.5 text-center font-mono text-lg font-black tracking-widest text-ink focus:outline-none"
                   />
                   <Button type="submit" variant="primary" size="md">
                     Verify Code
                   </Button>
                 </form>
               ) : (
-                <div className="rounded-xl border-brutal-sm bg-lime px-4 py-2 font-display text-xs font-black text-ink shadow-brutal-sm flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-xl border-brutal bg-lime px-4 py-2.5 text-ink font-display text-xs font-black uppercase shadow-brutal-sm">
                   <CheckCircle2 className="h-4 w-4" />
-                  <span>Meetup Active · Payout Protected</span>
+                  <span>Session Code Verified</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Pending Booking Requests */}
-          <div className="space-y-4">
-            <div className="flex items-baseline justify-between border-b-brutal pb-3">
-              <h2 className="font-display text-2xl font-black text-ink">
-                Booking Requests ({pendingRequests.filter((r) => r.status === 'pending').length})
-              </h2>
-              <span className="font-display text-xs font-black uppercase text-ink-muted">
-                Auto-Refunds if unreviewed within 4 hours
+          {/* Booking Requests Manager */}
+          <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-display text-xl sm:text-2xl font-black text-ink">
+                  Meetup Requests ({pendingRequests.length})
+                </h2>
+                <p className="font-body text-xs text-ink-soft">
+                  Incoming reservation requests from verified members.
+                </p>
+              </div>
+
+              <span className="text-xs font-black uppercase border border-ink bg-paper px-2.5 py-1">
+                Safe Escrow Guaranteed
               </span>
             </div>
 
             {loadingBookings ? (
-              <div className="rounded-2xl border-brutal bg-white p-8 text-center text-xs text-ink-muted">
-                Loading requests...
+              <div className="py-8 text-center text-xs font-black uppercase text-ink flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading requests...</span>
               </div>
             ) : pendingRequests.length === 0 ? (
-              <div className="rounded-2xl border-brutal bg-white p-8 text-center space-y-2">
-                <p className="font-display text-sm font-black text-ink">No pending booking requests right now.</p>
-                <p className="text-xs text-ink-muted">Keep your availability toggled ON to receive instant requests from nearby members.</p>
+              <div className="rounded-2xl border-2 border-dashed border-ink p-8 text-center text-xs font-bold text-ink-muted">
+                No active meetup requests right now. Keep your "Available Today" toggle active to receive instant requests.
               </div>
             ) : (
-              pendingRequests.map((req) => (
-                <div
-                  key={req.id}
-                  className="rounded-2xl border-brutal bg-white p-5 sm:p-6 shadow-brutal flex flex-col md:flex-row md:items-center justify-between gap-4"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-display text-lg font-black text-ink">
-                        {req.memberName}
-                      </h3>
-                      <Badge variant="sunny" size="sm">
-                        {req.activity || req.activitySlug}
-                      </Badge>
+              <div className="space-y-4">
+                {pendingRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="rounded-2xl border-brutal bg-paper p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-brutal-sm"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-sm font-black text-ink">
+                          {req.memberName}
+                        </span>
+                        <Badge variant="sunny" size="sm">
+                          {req.activity}
+                        </Badge>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-ink-muted">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5 text-ink" />
+                          <span>{req.date} at {req.time}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5 text-ink" />
+                          <span>{req.duration}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5 text-ink" />
+                          <span>{req.venue}</span>
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-ink-soft">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5 text-ink stroke-[2.25]" />
-                        <span>{req.date}</span>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5 text-ink stroke-[2.25]" />
-                        <span>{req.time || req.startTime} ({req.duration || `${req.durationHours || 1} hr`})</span>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-ink stroke-[2.25]" />
-                        <span>{req.venue || req.meetingPoint}</span>
-                      </span>
-                    </div>
+                    <div className="flex items-center gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-ink/10 justify-between sm:justify-end">
+                      <div className="text-left sm:text-right">
+                        <span className="block text-[10px] font-black uppercase text-ink-muted">
+                          Your Escrow Payout
+                        </span>
+                        <span className="font-display text-base font-black text-ink">
+                          {formatRupees(req.payout)}
+                        </span>
+                      </div>
 
-                    <div className="text-xs font-extrabold text-ink">
-                      Your Payout:{' '}
-                      <strong className="text-base text-lavender font-mono font-black">
-                        {formatRupees(req.payout || req.hostSubtotal || 600)}
-                      </strong>{' '}
-                      (Protected by Togethr Escrow)
+                      {req.status === 'confirmed' ? (
+                        <span className="border-2 border-ink bg-lime px-3 py-1.5 text-xs font-black uppercase text-ink shadow-brutal-sm flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>Confirmed</span>
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleAccept(req.id)}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDecline(req.id)}
+                          >
+                            Decline
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-3">
-                    {req.status === 'pending' ? (
-                      <>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleAccept(req.id)}
-                        >
-                          Accept Meetup
-                        </Button>
-                        <button
-                          onClick={() => handleDecline(req.id)}
-                          className="rounded-xl border-brutal bg-white px-3 py-1.5 font-display text-xs font-bold text-danger hover:bg-danger-soft btn-press cursor-pointer"
-                        >
-                          Decline
-                        </button>
-                      </>
-                    ) : (
-                      <Badge variant="lime" size="md" className="inline-flex items-center gap-1">
-                        <CheckCircle2 className="h-3.5 w-3.5 stroke-[2.25]" />
-                        <span>Accepted · Meetup Active</span>
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </div>

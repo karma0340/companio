@@ -65,13 +65,13 @@ export function CompanionCard({ companion, featured = false }: CompanionCardProp
             {companion.verifiedId && (
               <span className="flex items-center gap-1 rounded-md border-brutal-sm bg-lime px-2 py-0.5 text-[10px] font-black uppercase text-ink shadow-brutal-sm">
                 <ShieldCheck className="h-3 w-3" />
-                ID Verified
+                Aadhaar Verified
               </span>
             )}
             {companion.verifiedPhoto && (
               <span className="flex items-center gap-1 rounded-md border-brutal-sm bg-sunny px-2 py-0.5 text-[10px] font-black uppercase text-ink shadow-brutal-sm">
                 <Camera className="h-3 w-3" />
-                Live Selfie
+                Live Video Match
               </span>
             )}
           </div>

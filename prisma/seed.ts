@@ -3,68 +3,97 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("[Seed] Starting database seeding for Companio...");
+  console.log("[Seed] Starting comprehensive database seeding for made4togethr...");
 
-  // 1. Seed Cities
+  // 1. Seed Cities (9 Major Metro Cities)
   const citiesData = [
-    { name: "Delhi", slug: "delhi", state: "Delhi NCR", metaTitle: "Hire Companions in Delhi | Companio", metaDescription: "Find verified companions in Connaught Place, Hauz Khas, and South Delhi." },
-    { name: "Bengaluru", slug: "bengaluru", state: "Karnataka", metaTitle: "Hire Companions in Bengaluru | Companio", metaDescription: "Connect with verified companions in Koramangala, Indiranagar, and HSR Layout." },
-    { name: "Mumbai", slug: "mumbai", state: "Maharashtra", metaTitle: "Hire Companions in Mumbai | Companio", metaDescription: "Find companions for coffee and marine drive walks in Bandra and Colaba." },
-    { name: "Pune", slug: "pune", state: "Maharashtra", metaTitle: "Hire Companions in Pune | Companio", metaDescription: "Connect with verified companions in Koregaon Park and Kalyani Nagar." },
-    { name: "Hyderabad", slug: "hyderabad", state: "Telangana", metaTitle: "Hire Companions in Hyderabad | Companio", metaDescription: "Find verified companions in Jubilee Hills and Gachibowli." },
+    { name: "Bengaluru", slug: "bengaluru", state: "Karnataka", metaTitle: "Hire Verified Companions in Bengaluru | made4togethr", metaDescription: "Connect with verified companions in Koramangala, Indiranagar, Church Street, and HSR Layout." },
+    { name: "Delhi NCR", slug: "delhi", state: "Delhi NCR", metaTitle: "Hire Verified Companions in Delhi NCR | made4togethr", metaDescription: "Find verified companions in Connaught Place, Hauz Khas, Khan Market, and Cyber Hub." },
+    { name: "Mumbai", slug: "mumbai", state: "Maharashtra", metaTitle: "Hire Verified Companions in Mumbai | made4togethr", metaDescription: "Find companions for cafes, gigs, and Marine Drive strolls in Bandra, Colaba, and Juhu." },
+    { name: "Pune", slug: "pune", state: "Maharashtra", metaTitle: "Hire Verified Companions in Pune | made4togethr", metaDescription: "Connect with verified companions in Koregaon Park, Kalyani Nagar, and FC Road." },
+    { name: "Hyderabad", slug: "hyderabad", state: "Telangana", metaTitle: "Hire Verified Companions in Hyderabad | made4togethr", metaDescription: "Find verified companions in Jubilee Hills, Banjara Hills, and Gachibowli." },
+    { name: "Chennai", slug: "chennai", state: "Tamil Nadu", metaTitle: "Hire Verified Companions in Chennai | made4togethr", metaDescription: "Connect with companions for beach walks and cafes in Besant Nagar and Alwarpet." },
+    { name: "Kolkata", slug: "kolkata", state: "West Bengal", metaTitle: "Hire Verified Companions in Kolkata | made4togethr", metaDescription: "Explore heritage book alleys and colonial cafes in Park Street and Salt Lake." },
+    { name: "Ahmedabad", slug: "ahmedabad", state: "Gujarat", metaTitle: "Hire Verified Companions in Ahmedabad | made4togethr", metaDescription: "Connect with verified companions for evening riverfront strolls and food walks." },
+    { name: "Chandigarh", slug: "chandigarh", state: "Punjab/Haryana", metaTitle: "Hire Verified Companions in Chandigarh | made4togethr", metaDescription: "Find companions for Sector 17 cafes and Sukhna Lake walks." },
   ];
 
   const seededCities: Record<string, string> = {};
   for (const city of citiesData) {
     const record = await prisma.city.upsert({
       where: { slug: city.slug },
-      update: {},
+      update: {
+        name: city.name,
+        state: city.state,
+        metaTitle: city.metaTitle,
+        metaDescription: city.metaDescription,
+        isActive: true,
+      },
       create: city,
     });
     seededCities[city.slug] = record.id;
   }
-  console.log(`[Seed] Seeded ${Object.keys(seededCities).length} cities.`);
+  console.log(`[Seed] Seeded ${Object.keys(seededCities).length} active cities.`);
 
-  // 2. Seed Activities
+  // 2. Seed Activities (17 Common Platonic Social Activities)
   const activitiesData = [
-    { title: "Café & Conversation", slug: "coffee", description: "Grab artisan coffee, unwind, and enjoy good conversation in a cozy cafe.", suggestedDuration: 1, icon: "coffee" },
-    { title: "City Walk & Exploration", slug: "city-walk", description: "Stroll through scenic streets, parks, historical markets, and hidden alleys.", suggestedDuration: 2, icon: "map-pin" },
-    { title: "Gym & Fitness Spotting", slug: "gym", description: "Get a workout partner, spotter, or running companion to keep you motivated.", suggestedDuration: 1, icon: "dumbbell" },
-    { title: "Gigs, Standup & Events", slug: "events", description: "Never go to comedy shows, live concerts, or food festivals alone.", suggestedDuration: 3, icon: "ticket" },
-    { title: "Museum & Art Galleries", slug: "museum", description: "Explore contemporary art, heritage exhibits, and cultural spaces together.", suggestedDuration: 2, icon: "palette" },
+    { title: "Coffee & Conversations", slug: "coffee-chat", description: "Grab artisan coffee, unwind, and enjoy honest conversation in a cozy cafe.", suggestedDuration: 1, icon: "coffee" },
+    { title: "City Walk & Exploration", slug: "city-walk", description: "Stroll through scenic streets, parks, historical markets, and hidden viewpoints.", suggestedDuration: 2, icon: "map-pin" },
+    { title: "Gym & Fitness Spotting", slug: "gym-partner", description: "Get a dedicated workout partner, spotter, or running companion to keep you motivated.", suggestedDuration: 1, icon: "dumbbell" },
+    { title: "Comedy & Live Shows", slug: "comedy-and-shows", description: "Never go to comedy clubs, indie gigs, or live concerts alone.", suggestedDuration: 3, icon: "ticket" },
+    { title: "Museums & Art Galleries", slug: "museum-and-art", description: "Explore contemporary art exhibitions, heritage galleries, and design studios together.", suggestedDuration: 2, icon: "palette" },
+    { title: "Food Crawl & Street Eats", slug: "food-walk", description: "Discover neighborhood street food alleys, secret dessert spots, and culinary joints.", suggestedDuration: 2, icon: "utensils" },
+    { title: "Book Cafes & Reading", slug: "book-cafes", description: "Quiet co-reading companion for independent bookstores and library cafes.", suggestedDuration: 2, icon: "book-open" },
+    { title: "Shopping & Styling Buddy", slug: "shopping-buddy", description: "Get honest opinions, fashion advice, and a friendly plus-one for shopping streets.", suggestedDuration: 2, icon: "shopping-bag" },
+    { title: "Badminton & Tennis", slug: "sports-buddy", description: "Rally partner for weekend turf tennis, badminton, or squash sessions.", suggestedDuration: 1, icon: "activity" },
+    { title: "Co-Working Focus Partner", slug: "coworking-partner", description: "Accountability buddy for focused productivity sessions at specialty coffee shops.", suggestedDuration: 3, icon: "laptop" },
+    { title: "Photo Walk & Candid Shots", slug: "photo-walk", description: "Explore scenic urban architectural lanes with a companion who loves taking candid shots.", suggestedDuration: 2, icon: "camera" },
+    { title: "Board Games & Arcades", slug: "board-games", description: "Challenge someone to Catan, Scrabble, or classic arcade games over milkshakes.", suggestedDuration: 2, icon: "dices" },
+    { title: "Sunset & Park Strolls", slug: "park-walk", description: "Peaceful evening walks across Cubbon Park, Lodhi Gardens, or waterfronts.", suggestedDuration: 1, icon: "sun" },
+    { title: "Flea Markets & Thrifting", slug: "thrift-shopping", description: "Treasure hunt through vintage pop-ups, handmade markets, and vinyl record stores.", suggestedDuration: 2, icon: "tag" },
+    { title: "Indie Cinema & Film Clubs", slug: "indie-cinema", description: "Watch arthouse films and discuss cinema over tea afterwards.", suggestedDuration: 3, icon: "film" },
+    { title: "Weekend Morning Cycling", slug: "cycling", description: "Early morning cycling partner along tree-lined boulevards and quiet outskirts.", suggestedDuration: 2, icon: "bike" },
+    { title: "Language & Cultural Exchange", slug: "language-exchange", description: "Practice conversational English, Hindi, French, or regional languages casually.", suggestedDuration: 1, icon: "languages" },
   ];
 
   const seededActivities: Record<string, string> = {};
   for (const act of activitiesData) {
     const record = await prisma.activity.upsert({
       where: { slug: act.slug },
-      update: {},
+      update: {
+        title: act.title,
+        description: act.description,
+        icon: act.icon,
+        suggestedDuration: act.suggestedDuration,
+      },
       create: act,
     });
     seededActivities[act.slug] = record.id;
   }
   console.log(`[Seed] Seeded ${Object.keys(seededActivities).length} activities.`);
 
-  // 3. Seed Companions
+  // 3. Seed Verified Companions across India
   const companionsData = [
     {
+      id: "kashish-blr",
       phone: "+919811223301",
-      name: "Vanshika Sharma",
-      displayName: "Vanshika",
-      maskedName: "Vanshika S***",
-      citySlug: "delhi",
+      name: "Kashish Agarwal",
+      displayName: "Kashish",
+      maskedName: "Kashish A***",
+      citySlug: "bengaluru",
       avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
       blurredAvatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&blur=15&q=30",
-      bio: "Masters in Psychology student at DU. Passionate about indie music, specialty roasteries in Hauz Khas, and thoughtful conversations about books and urban life.",
-      shortBio: "DU Psychology student. Love coffee & indie books.",
-      hourlyRate: 499.00,
-      spokenLanguages: ["English", "Hindi"],
-      acceptedActivities: ["Café & Conversation", "Museum & Art Galleries", "City Walk"],
+      bio: "Easygoing design student and genuinely curious about people. I love showcasing secret Indiranagar roasteries, finding vintage books on Church Street, and sharing laughs at standup comedy.",
+      shortBio: "Design student in Indiranagar. Coffee roasteries & bookshops.",
+      hourlyRate: 599.00,
+      spokenLanguages: ["English", "Hindi", "Kannada"],
+      acceptedActivities: ["Coffee & Conversations", "Shopping & Styling Buddy", "Photo Walk & Candid Shots", "Comedy & Live Shows"],
       ratingAverage: 4.9,
       totalReviews: 28,
-      upiId: "vanshika@okhdfcbank",
+      upiId: "kashish@okaxis",
     },
     {
+      id: "kritika-blr",
       phone: "+919811223302",
       name: "Kritika Sen",
       displayName: "Kritika",
@@ -72,55 +101,206 @@ async function main() {
       citySlug: "bengaluru",
       avatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80",
       blurredAvatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=50&blur=15&q=30",
-      bio: "UI/UX Designer working in Indiranagar. Big foodie, sourdough enthusiast, and weekend runner around Cubbon Park. Fluent in tech and design banter.",
-      shortBio: "Designer in Indiranagar. Foodie & Cubbon runner.",
+      bio: "Product designer working in Koramangala. Big foodie, weekend runner around Cubbon Park, and passionate about tech banter, art galleries, and specialty cold brews.",
+      shortBio: "Product designer in Koramangala. Cubbon runner & foodie.",
       hourlyRate: 549.00,
       spokenLanguages: ["English", "Hindi", "Bengali"],
-      acceptedActivities: ["Café & Conversation", "City Walk & Exploration", "Gym & Fitness Spotting"],
+      acceptedActivities: ["Coffee & Conversations", "City Walk & Exploration", "Gym & Fitness Spotting"],
       ratingAverage: 5.0,
       totalReviews: 42,
-      upiId: "kritika@okaxis",
+      upiId: "kritika@okhdfcbank",
     },
     {
+      id: "shameera-del",
       phone: "+919811223303",
+      name: "Shameera Khan",
+      displayName: "Shameera",
+      maskedName: "Shameera K***",
+      citySlug: "delhi",
+      avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80",
+      blurredAvatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=50&blur=15&q=30",
+      bio: "Architecture researcher and history buff in South Delhi. Great listener who loves wandering through Humayun's Tomb, Sunder Nursery sunset picnics, and quiet tea rooms.",
+      shortBio: "Architecture researcher. Heritage walks & quiet tea cafes.",
+      hourlyRate: 649.00,
+      spokenLanguages: ["English", "Hindi", "Urdu"],
+      acceptedActivities: ["City Walk & Exploration", "Museums & Art Galleries", "Book Cafes & Reading"],
+      ratingAverage: 4.9,
+      totalReviews: 35,
+      upiId: "shameera@ybl",
+    },
+    {
+      id: "rohan-mum",
+      phone: "+919811223304",
       name: "Rohan Malhotra",
       displayName: "Rohan",
       maskedName: "Rohan M***",
       citySlug: "mumbai",
       avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
       blurredAvatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=50&blur=15&q=30",
-      bio: "Screenwriter and podcast host based in Bandra. Great listener with endless stories about Mumbai film culture and retro architecture.",
-      shortBio: "Bandra writer. Film culture & retro architecture.",
+      bio: "Screenwriter and film enthusiast living in Bandra. Great energy, zero awkward pauses. Love exploring retro Bombay bakeries, coastal seaside strolls, and live indie acoustic sets.",
+      shortBio: "Bandra writer. Film culture & retro seaside strolls.",
       hourlyRate: 499.00,
       spokenLanguages: ["English", "Hindi", "Marathi"],
-      acceptedActivities: ["Café & Conversation", "Gigs, Standup & Events", "City Walk & Exploration"],
+      acceptedActivities: ["Coffee & Conversations", "Comedy & Live Shows", "City Walk & Exploration"],
       ratingAverage: 4.8,
-      totalReviews: 19,
+      totalReviews: 24,
       upiId: "rohan@paytm",
     },
     {
-      phone: "+919811223304",
+      id: "ananya-blr",
+      phone: "+919811223305",
       name: "Ananya Roy",
       displayName: "Ananya",
       maskedName: "Ananya R***",
       citySlug: "bengaluru",
       avatarUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80",
       blurredAvatarUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=50&blur=15&q=30",
-      bio: "Fintech analyst by day, contemporary art enthusiast on weekends. Love exploring quiet corners of Bengaluru, artisan matcha, and gallery exhibitions.",
-      shortBio: "Fintech analyst. Love art galleries & quiet cafes.",
+      bio: "Fintech analyst by day, contemporary art curator on weekends. Huge fan of artisanal matcha, gallery openings, museum retrospectives, and lively conversations.",
+      shortBio: "Fintech analyst. Love art exhibitions & quiet cafes.",
       hourlyRate: 599.00,
       spokenLanguages: ["English", "Hindi"],
-      acceptedActivities: ["Museum & Art Galleries", "Café & Conversation"],
+      acceptedActivities: ["Museums & Art Galleries", "Coffee & Conversations", "Co-Working Focus Partner"],
       ratingAverage: 5.0,
       totalReviews: 31,
       upiId: "ananya@ybl",
     },
+    {
+      id: "akash-del",
+      phone: "+919811223306",
+      name: "Akash Verma",
+      displayName: "Akash",
+      maskedName: "Akash V***",
+      citySlug: "delhi",
+      avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80",
+      blurredAvatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=50&blur=15&q=30",
+      bio: "Fitness trainer, marathoner, and tech consultant. Always ready for a serious gym workout, form checks, running companion, or casual post-workout brunch banter.",
+      shortBio: "Fitness coach & tech consultant. Gym spotter & runner.",
+      hourlyRate: 599.00,
+      spokenLanguages: ["English", "Hindi", "Punjabi"],
+      acceptedActivities: ["Gym & Fitness Spotting", "Badminton & Tennis", "Coffee & Conversations"],
+      ratingAverage: 4.9,
+      totalReviews: 29,
+      upiId: "akash@icici",
+    },
+    {
+      id: "priya-mum",
+      phone: "+919811223307",
+      name: "Priya Nair",
+      displayName: "Priya",
+      maskedName: "Priya N***",
+      citySlug: "mumbai",
+      avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80",
+      blurredAvatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=50&blur=15&q=30",
+      bio: "Communications manager in Colaba. Avid food walk guide, sunset chaser, and lover of heritage South Mumbai architecture and vintage vinyl cafes.",
+      shortBio: "Colaba communications lead. South Mumbai walks & heritage cafes.",
+      hourlyRate: 549.00,
+      spokenLanguages: ["English", "Hindi", "Malayalam"],
+      acceptedActivities: ["Food Crawl & Street Eats", "City Walk & Exploration", "Sunset & Park Strolls"],
+      ratingAverage: 5.0,
+      totalReviews: 38,
+      upiId: "priya@okaxis",
+    },
+    {
+      id: "arjun-blr",
+      phone: "+919811223308",
+      name: "Arjun Reddy",
+      displayName: "Arjun",
+      maskedName: "Arjun R***",
+      citySlug: "bengaluru",
+      avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80",
+      blurredAvatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=50&blur=15&q=30",
+      bio: "Software architect and avid badminton player in HSR Layout. Great co-working buddy, tennis partner, and knowledgeable companion for tech and startup discussions.",
+      shortBio: "Software architect in HSR. Co-working & badminton buddy.",
+      hourlyRate: 499.00,
+      spokenLanguages: ["English", "Hindi", "Telugu"],
+      acceptedActivities: ["Co-Working Focus Partner", "Badminton & Tennis", "Coffee & Conversations"],
+      ratingAverage: 4.8,
+      totalReviews: 22,
+      upiId: "arjun@okhdfcbank",
+    },
+    {
+      id: "tanvi-hyd",
+      phone: "+919811223309",
+      name: "Tanvi Rao",
+      displayName: "Tanvi",
+      maskedName: "Tanvi R***",
+      citySlug: "hyderabad",
+      avatarUrl: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=600&q=80",
+      blurredAvatarUrl: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=50&blur=15&q=30",
+      bio: "Journalist and food researcher based in Jubilee Hills. Passionate about exploring historic biryani places, lake walks, and contemporary Telugu literature.",
+      shortBio: "Journalist in Jubilee Hills. Food trails & lake walks.",
+      hourlyRate: 499.00,
+      spokenLanguages: ["English", "Hindi", "Telugu"],
+      acceptedActivities: ["Food Crawl & Street Eats", "Coffee & Conversations", "Book Cafes & Reading"],
+      ratingAverage: 4.9,
+      totalReviews: 26,
+      upiId: "tanvi@ybl",
+    },
+    {
+      id: "vikram-pune",
+      phone: "+919811223310",
+      name: "Vikram Joshi",
+      displayName: "Vikram",
+      maskedName: "Vikram J***",
+      citySlug: "pune",
+      avatarUrl: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=600&q=80",
+      blurredAvatarUrl: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=50&blur=15&q=30",
+      bio: "Musician and cafe manager in Koregaon Park. Loves German bakeries, acoustic guitar jams, flea market vinyl searches, and board games.",
+      shortBio: "Musician in Koregaon Park. Vinyl records & board games.",
+      hourlyRate: 499.00,
+      spokenLanguages: ["English", "Hindi", "Marathi"],
+      acceptedActivities: ["Board Games & Arcades", "Flea Markets & Thrifting", "Comedy & Live Shows"],
+      ratingAverage: 4.8,
+      totalReviews: 20,
+      upiId: "vikram@okaxis",
+    },
+    {
+      id: "meera-del",
+      phone: "+919811223311",
+      name: "Meera Mathur",
+      displayName: "Meera",
+      maskedName: "Meera M***",
+      citySlug: "delhi",
+      avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80",
+      blurredAvatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=50&blur=15&q=30",
+      bio: "Fashion stylist and gallery curator based in Hauz Khas Village. Friendly, warm, and honest shopping companion who helps you discover statement outfits without breaking the bank.",
+      shortBio: "Fashion stylist in HKV. Personal styling & shopping buddy.",
+      hourlyRate: 699.00,
+      spokenLanguages: ["English", "Hindi"],
+      acceptedActivities: ["Shopping & Styling Buddy", "Museums & Art Galleries", "Photo Walk & Candid Shots"],
+      ratingAverage: 5.0,
+      totalReviews: 45,
+      upiId: "meera@okhdfcbank",
+    },
+    {
+      id: "kabir-del",
+      phone: "+919811223312",
+      name: "Kabir Dewan",
+      displayName: "Kabir",
+      maskedName: "Kabir D***",
+      citySlug: "delhi",
+      avatarUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=600&q=80",
+      blurredAvatarUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=50&blur=15&q=30",
+      bio: "Outdoor enthusiast and cycling enthusiast living in Gurgaon. Great companion for morning cycling along Aravalli trails or exploring modern cafes at Cyber Hub.",
+      shortBio: "Outdoor & cycling enthusiast in Gurgaon. Cyber Hub cafes.",
+      hourlyRate: 499.00,
+      spokenLanguages: ["English", "Hindi"],
+      acceptedActivities: ["Weekend Morning Cycling", "Gym & Fitness Spotting", "Coffee & Conversations"],
+      ratingAverage: 4.9,
+      totalReviews: 18,
+      upiId: "kabir@paytm",
+    },
   ];
 
   for (const c of companionsData) {
+    console.log(`[Seed] Seeding companion: ${c.displayName} (${c.citySlug})...`);
     const user = await prisma.user.upsert({
       where: { phone: c.phone },
-      update: {},
+      update: {
+        name: c.name,
+        role: "COMPANION",
+        isKycVerified: true,
+      },
       create: {
         phone: c.phone,
         name: c.name,
@@ -129,16 +309,14 @@ async function main() {
       },
     });
 
-    await prisma.companion.upsert({
+    const companionRecord = await prisma.companion.upsert({
       where: { userId: user.id },
-      update: {},
-      create: {
-        userId: user.id,
+      update: {
         displayName: c.displayName,
         maskedName: c.maskedName,
         avatarUrl: c.avatarUrl,
         blurredAvatarUrl: c.blurredAvatarUrl,
-        cityId: seededCities[c.citySlug],
+        cityId: seededCities[c.citySlug] || seededCities["bengaluru"],
         bio: c.bio,
         shortBio: c.shortBio,
         hourlyRate: c.hourlyRate,
@@ -147,27 +325,97 @@ async function main() {
         ratingAverage: c.ratingAverage,
         totalReviews: c.totalReviews,
         upiId: c.upiId,
+        isAvailable: true,
+      },
+      create: {
+        id: c.id,
+        userId: user.id,
+        displayName: c.displayName,
+        maskedName: c.maskedName,
+        avatarUrl: c.avatarUrl,
+        blurredAvatarUrl: c.blurredAvatarUrl,
+        cityId: seededCities[c.citySlug] || seededCities["bengaluru"],
+        bio: c.bio,
+        shortBio: c.shortBio,
+        hourlyRate: c.hourlyRate,
+        spokenLanguages: c.spokenLanguages,
+        acceptedActivities: c.acceptedActivities,
+        ratingAverage: c.ratingAverage,
+        totalReviews: c.totalReviews,
+        upiId: c.upiId,
+        isAvailable: true,
+      },
+    });
+
+    // Seed an authentic completed booking and review for each companion
+    const reviewerPhone = `+91999900${c.phone.slice(-4)}`;
+    const reviewerUser = await prisma.user.upsert({
+      where: { phone: reviewerPhone },
+      update: {},
+      create: {
+        phone: reviewerPhone,
+        name: "Verified Member",
+        role: "MEMBER",
+      },
+    });
+
+    const bookingRecord = await prisma.booking.upsert({
+      where: { bookingNumber: `CMP-SEED-${c.id}` },
+      update: {},
+      create: {
+        id: `seed-bk-${c.id}`,
+        bookingNumber: `CMP-SEED-${c.id}`,
+        memberId: reviewerUser.id,
+        companionId: companionRecord.id,
+        cityId: seededCities[c.citySlug] || seededCities["bengaluru"],
+        activityId: seededActivities["coffee-chat"] || Object.values(seededActivities)[0],
+        scheduledDate: new Date(Date.now() - 3 * 86400000),
+        durationHours: 2,
+        venueName: "Artisan Roastery Cafe",
+        venueAddress: "Public High Street",
+        totalAmount: 1200.00,
+        companionFee: 1000.00,
+        platformFee: 169.49,
+        gstAmount: 30.51,
+        verificationPin: "8421",
+        pinVerifiedAt: new Date(Date.now() - 3 * 86400000),
+        status: "COMPLETED",
+        escrowStatus: "RELEASED_TO_HOST",
+        hostAcceptanceDeadline: new Date(Date.now() - 2 * 86400000),
+      },
+    });
+
+    await prisma.reviewRating.upsert({
+      where: { bookingId: bookingRecord.id },
+      update: {},
+      create: {
+        id: `rev-${c.id}-1`,
+        bookingId: bookingRecord.id,
+        memberId: reviewerUser.id,
+        companionId: companionRecord.id,
+        score: 5,
+        comment: `Had such a refreshing time with ${c.displayName}! We hung out in a public cafe and felt completely at ease from the first minute. Zero awkwardness!`,
       },
     });
   }
-  console.log(`[Seed] Seeded ${companionsData.length} companions.`);
+  console.log(`[Seed] Seeded ${companionsData.length} verified companions with reviews.`);
 
   // 4. Seed Demo Members
-  const demoUnlockedUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { phone: "+919999999901" },
-    update: {},
+    update: { isUnlocked: true, activePassTier: "ONE_MONTH" },
     create: {
       phone: "+919999999901",
       name: "Aditya Mehta",
       role: "MEMBER",
       isUnlocked: true,
       activePassTier: "ONE_MONTH",
-      passExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days ahead
+      passExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       walletBalance: 1500.00,
     },
   });
 
-  const demoLockedUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { phone: "+919999999902" },
     update: {},
     create: {
@@ -179,8 +427,8 @@ async function main() {
     },
   });
 
-  console.log("[Seed] Seeded demo members (Unlocked: Aditya, Locked: Saurabh).");
-  console.log("[Seed] Seeding completed successfully.");
+  console.log("[Seed] Seeded demo members.");
+  console.log("[Seed] All database seeding completed successfully!");
 }
 
 main()
