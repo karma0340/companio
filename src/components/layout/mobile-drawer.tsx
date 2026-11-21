@@ -13,6 +13,7 @@ import {
   LogOut,
   User,
   Coins,
+  HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -124,14 +125,18 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
           </div>
         )}
 
-        {/* Compact Location Chip */}
-        <div className="mt-3 flex items-center justify-between rounded-xl border border-ink/40 bg-white px-3 py-2 shadow-brutal-xs">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5 text-ink" />
-            <span className="text-[11px] font-bold text-ink-muted uppercase">City:</span>
-            <span className="font-display text-xs font-black capitalize text-ink">{selectedCity}</span>
+        {/* Themed Location Chip */}
+        <div className="mt-3 flex items-center justify-between rounded-2xl border-2 border-ink bg-white px-3.5 py-2.5 shadow-brutal-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-sunny text-ink shadow-brutal-xs">
+              <MapPin className="h-3.5 w-3.5 stroke-[2.5]" />
+            </div>
+            <div>
+              <span className="block text-[10px] font-black uppercase tracking-wider text-ink-muted leading-tight">Selected City</span>
+              <span className="font-display text-xs font-black capitalize text-ink">{selectedCity}</span>
+            </div>
           </div>
-          <Link href="/explore" onClick={onClose} className="text-[11px] font-black text-ink underline">
+          <Link href="/explore" onClick={onClose} className="text-xs font-black text-ink underline hover:text-lavender transition-colors">
             Change
           </Link>
         </div>
@@ -140,38 +145,53 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
         <Link
           href="/explore"
           onClick={onClose}
-          className="mt-3.5 flex items-center justify-between rounded-xl border-brutal bg-sunny p-3 shadow-brutal-sm btn-press text-ink font-display text-sm font-black"
+          className="mt-3 flex items-center justify-between rounded-2xl border-brutal bg-sunny p-3.5 shadow-brutal-sm btn-press text-ink font-display text-sm font-black"
         >
-          <span>Explore Companions</span>
-          <ArrowRight className="h-4 w-4" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-ink bg-white text-ink shadow-brutal-xs">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <span>Explore Companions</span>
+          </div>
+          <ArrowRight className="h-4 w-4 stroke-[2.5]" />
         </Link>
 
-        {/* Grouped Minimal Navigation Card */}
+        {/* Themed Navigation Card */}
         <div className="mt-3 rounded-2xl border-brutal bg-white overflow-hidden shadow-brutal-sm divide-y-2 divide-ink/10 font-display text-xs font-extrabold text-ink">
           {isAuthenticated && (
             <>
               <Link
                 href="/bookings"
                 onClick={onClose}
-                className="flex items-center justify-between p-3 hover:bg-paper-deep transition"
+                className="flex items-center justify-between p-3 hover:bg-lavender/15 transition-colors group"
               >
-                <div className="flex items-center gap-2.5">
-                  <Calendar className="h-4 w-4 text-lavender" />
-                  <span>My Meetups</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-ink bg-[#E8DEFF] text-ink shadow-brutal-xs group-hover:scale-105 transition-transform">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <span className="block font-black text-ink leading-tight">My Meetups</span>
+                    <span className="block text-[10px] font-medium text-ink-muted">View upcoming sessions</span>
+                  </div>
                 </div>
-                <ArrowRight className="h-3.5 w-3.5 text-ink/40" />
+                <ArrowRight className="h-3.5 w-3.5 text-ink/40 group-hover:text-ink group-hover:translate-x-0.5 transition-all" />
               </Link>
 
               <Link
                 href="/profile"
                 onClick={onClose}
-                className="flex items-center justify-between p-3 hover:bg-paper-deep transition"
+                className="flex items-center justify-between p-3 hover:bg-sky-50 transition-colors group"
               >
-                <div className="flex items-center gap-2.5">
-                  <User className="h-4 w-4 text-ink" />
-                  <span>Profile &amp; Settings</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-ink bg-[#BAE6FD] text-ink shadow-brutal-xs group-hover:scale-105 transition-transform">
+                    <User className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <span className="block font-black text-ink leading-tight">Profile &amp; Settings</span>
+                    <span className="block text-[10px] font-medium text-ink-muted">Edit profile, safety details</span>
+                  </div>
                 </div>
-                <ArrowRight className="h-3.5 w-3.5 text-ink/40" />
+                <ArrowRight className="h-3.5 w-3.5 text-ink/40 group-hover:text-ink group-hover:translate-x-0.5 transition-all" />
               </Link>
             </>
           )}
@@ -181,11 +201,16 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
             <Link
               href="/companion/dashboard"
               onClick={onClose}
-              className="flex items-center justify-between p-3 hover:bg-paper-deep transition bg-lime/20"
+              className="flex items-center justify-between p-3 hover:bg-lime/20 transition-colors bg-lime/10 group"
             >
-              <div className="flex items-center gap-2.5">
-                <KeyRound className="h-4 w-4 text-ink" />
-                <span>Host Dashboard</span>
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-ink bg-[#D4F7A5] text-ink shadow-brutal-xs group-hover:scale-105 transition-transform">
+                  <KeyRound className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block font-black text-ink leading-tight">Host Dashboard</span>
+                  <span className="block text-[10px] font-medium text-ink-muted">Manage meetups &amp; payouts</span>
+                </div>
               </div>
               <Badge variant="lime" size="sm">Active</Badge>
             </Link>
@@ -193,14 +218,19 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
             <Link
               href={isAuthenticated ? "/become-a-companion" : "/login?intent=host"}
               onClick={onClose}
-              className="flex items-center justify-between p-3 hover:bg-paper-deep transition"
+              className="flex items-center justify-between p-3 hover:bg-sunny/15 transition-colors group"
             >
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="h-4 w-4 text-sunny" />
-                <span>Become a Host</span>
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-ink bg-sunny text-ink shadow-brutal-xs group-hover:scale-105 transition-transform">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="block font-black text-ink leading-tight">Become a Host</span>
+                  <span className="block text-[10px] font-medium text-ink-muted">Get paid for meetups &amp; activities</span>
+                </div>
               </div>
-              <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 border border-emerald-300 rounded">
-                Keep up to 95%
+              <span className="text-[10px] font-black uppercase text-ink bg-[#D4F7A5] px-2 py-0.5 border border-ink rounded-lg shadow-brutal-xs">
+                Keep 95%
               </span>
             </Link>
           )}
@@ -209,25 +239,36 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
           <Link
             href="/safety"
             onClick={onClose}
-            className="flex items-center justify-between p-3 hover:bg-paper-deep transition"
+            className="flex items-center justify-between p-3 hover:bg-pink/15 transition-colors group"
           >
-            <div className="flex items-center gap-2.5">
-              <ShieldCheck className="h-4 w-4 text-pink-dark" />
-              <span>Safety &amp; Community Rules</span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-ink bg-[#FFE2EC] text-ink shadow-brutal-xs group-hover:scale-105 transition-transform">
+                <ShieldCheck className="h-4 w-4 text-ink" />
+              </div>
+              <div>
+                <span className="block font-black text-ink leading-tight">Safety &amp; Rules</span>
+                <span className="block text-[10px] font-medium text-ink-muted">100% Platonic &amp; Public meetups</span>
+              </div>
             </div>
-            <ArrowRight className="h-3.5 w-3.5 text-ink/40" />
+            <ArrowRight className="h-3.5 w-3.5 text-ink/40 group-hover:text-ink group-hover:translate-x-0.5 transition-all" />
           </Link>
 
+          {/* How It Works */}
           <Link
             href="/how-it-works"
             onClick={onClose}
-            className="flex items-center justify-between p-3 hover:bg-paper-deep transition"
+            className="flex items-center justify-between p-3 hover:bg-amber-50 transition-colors group"
           >
-            <div className="flex items-center gap-2.5">
-              <Sparkles className="h-4 w-4 text-ink" />
-              <span>How It Works</span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-ink bg-[#FEF08A] text-ink shadow-brutal-xs group-hover:scale-105 transition-transform">
+                <HelpCircle className="h-4 w-4 text-ink" />
+              </div>
+              <div>
+                <span className="block font-black text-ink leading-tight">How It Works</span>
+                <span className="block text-[10px] font-medium text-ink-muted">Booking, escrow &amp; coin guide</span>
+              </div>
             </div>
-            <ArrowRight className="h-3.5 w-3.5 text-ink/40" />
+            <ArrowRight className="h-3.5 w-3.5 text-ink/40 group-hover:text-ink group-hover:translate-x-0.5 transition-all" />
           </Link>
         </div>
       </div>

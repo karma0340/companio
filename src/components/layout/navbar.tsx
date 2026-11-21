@@ -225,10 +225,12 @@ export function Navbar() {
                     <Link
                       href="/wallet"
                       onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center justify-between rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-paper-deep transition-colors"
+                      className="flex items-center justify-between rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-lime/15 transition-colors group"
                     >
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4 text-emerald-600" />
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-[#D4F7A5] text-ink shadow-brutal-xs">
+                          <Coins className="h-3.5 w-3.5" />
+                        </div>
                         <span>Wallet &amp; Coins</span>
                       </div>
                       <span className="text-[10px] font-mono font-black bg-[#D4F7A5] px-1.5 py-0.5 rounded border border-ink">
@@ -240,9 +242,11 @@ export function Navbar() {
                     <Link
                       href="/bookings"
                       onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center gap-2 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-paper-deep transition-colors"
+                      className="flex items-center gap-2.5 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-lavender/15 transition-colors group"
                     >
-                      <Calendar className="h-4 w-4 text-lavender" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-[#E8DEFF] text-ink shadow-brutal-xs">
+                        <Calendar className="h-3.5 w-3.5" />
+                      </div>
                       <span>My Meetups</span>
                     </Link>
 
@@ -250,9 +254,11 @@ export function Navbar() {
                     <Link
                       href="/profile"
                       onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center gap-2 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-paper-deep transition-colors"
+                      className="flex items-center gap-2.5 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-sky-50 transition-colors group"
                     >
-                      <User className="h-4 w-4 text-ink" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-[#BAE6FD] text-ink shadow-brutal-xs">
+                        <User className="h-3.5 w-3.5" />
+                      </div>
                       <span>My Profile</span>
                     </Link>
 
@@ -262,9 +268,11 @@ export function Navbar() {
                         <Link
                           href="/companion/dashboard"
                           onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-2 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-paper-deep transition-colors"
+                          className="flex items-center gap-2.5 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-lime/20 transition-colors group"
                         >
-                          <KeyRound className="h-4 w-4 text-emerald-600" />
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-[#D4F7A5] text-ink shadow-brutal-xs">
+                            <KeyRound className="h-3.5 w-3.5 text-ink" />
+                          </div>
                           <span>Host Dashboard</span>
                         </Link>
 
@@ -273,33 +281,39 @@ export function Navbar() {
                             switchRole(activeRole === 'host' ? 'member' : 'host');
                             setIsUserMenuOpen(false);
                           }}
-                          className="flex w-full items-center gap-2 rounded-xl p-2 text-left font-display text-xs font-bold text-ink hover:bg-paper-deep transition-colors"
+                          className="flex w-full items-center gap-2.5 rounded-xl p-2 text-left font-display text-xs font-bold text-ink hover:bg-sunny/20 transition-colors group cursor-pointer"
                         >
-                          <ArrowRightLeft className="h-4 w-4 text-sunny" />
-                          <span>Switch to {activeRole === 'host' ? 'Member' : 'Host'} View</span>
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-sunny text-ink shadow-brutal-xs">
+                            <ArrowRightLeft className="h-3.5 w-3.5 text-ink" />
+                          </div>
+                          <span>Switch to {activeRole === 'host' ? 'Member' : 'Host'}</span>
                         </button>
                       </>
                     ) : (
                       <Link
                         href="/become-a-companion"
                         onClick={() => setIsUserMenuOpen(false)}
-                        className="flex items-center gap-2 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-paper-deep transition-colors"
+                        className="flex items-center gap-2.5 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-sunny/20 transition-colors group"
                       >
-                        <Sparkles className="h-4 w-4 text-sunny" />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-sunny text-ink shadow-brutal-xs">
+                          <Sparkles className="h-3.5 w-3.5 text-ink" />
+                        </div>
                         <span>Apply to Become a Host</span>
                       </Link>
                     )}
 
                     {/* Logout */}
-                    <div className="border-t-brutal-sm pt-1">
+                    <div className="border-t-brutal-sm pt-1 mt-1">
                       <button
                         onClick={() => {
                           logout();
                           setIsUserMenuOpen(false);
                         }}
-                        className="flex w-full items-center gap-2 rounded-xl p-2 text-left font-display text-xs font-bold text-danger hover:bg-danger-soft transition-colors cursor-pointer"
+                        className="flex w-full items-center gap-2.5 rounded-xl p-2 text-left font-display text-xs font-bold text-danger hover:bg-danger/10 transition-colors cursor-pointer group"
                       >
-                        <LogOut className="h-4 w-4" />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-rose-100 text-danger shadow-brutal-xs">
+                          <LogOut className="h-3.5 w-3.5" />
+                        </div>
                         <span>Sign Out</span>
                       </button>
                     </div>
