@@ -177,7 +177,7 @@ function LoginContent() {
         setCode('');
         if (data.sandboxCode) {
           setDevOtp(data.sandboxCode);
-          toast.success(`Verification code generated: ${data.sandboxCode}`, 'Dev Mode Active');
+          toast.success(`Verification code: ${data.sandboxCode}`, 'Sign In Code');
         } else {
           setDevOtp(null);
           toast.success(`Verification code sent via SMS to +91 ${validation.formatted}`, 'SMS Dispatched');
@@ -513,7 +513,7 @@ function LoginContent() {
                 <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-xs text-emerald-900 font-bold animate-in fade-in">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                    <span>Dev Code: <strong className="font-mono text-sm">{devOtp}</strong></span>
+                    <span>Verification Code: <strong className="font-mono text-sm">{devOtp}</strong></span>
                   </div>
                   <button
                     type="button"
