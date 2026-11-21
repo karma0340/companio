@@ -63,6 +63,7 @@ export default function WalletPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [emailBannerDismissed, setEmailBannerDismissed] = useState(false);
+  const [referralLink, setReferralLink] = useState<string>('');
 
   const fetchWallet = async () => {
     try {
@@ -82,6 +83,12 @@ export default function WalletPage() {
   useEffect(() => {
     fetchWallet();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    const code = wallet?.referral.code || user?.referralCode || 'JOIN';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://companio-eight.vercel.app';
+    setReferralLink(`${origin}/?ref=${code}`);
+  }, [wallet?.referral.code, user?.referralCode]);
 
   const numAmount = Number(customAmount) || 0;
   const isFirstTopup = wallet?.isFirstTopup ?? true;
@@ -232,12 +239,12 @@ export default function WalletPage() {
     }
   };
 
-  const referralLink = typeof window !== 'undefined'
-    ? `${window.location.origin}/?ref=${wallet?.referral.code || 'JOIN'}`
-    : `https://made4togethr.in/?ref=${wallet?.referral.code || 'JOIN'}`;
+  const activeLink = referralLink || (typeof window !== 'undefined'
+    ? `${window.location.origin}/?ref=${wallet?.referral.code || user?.referralCode || 'JOIN'}`
+    : `https://companio-eight.vercel.app/?ref=${wallet?.referral.code || user?.referralCode || 'JOIN'}`);
 
   const copyReferralLink = () => {
-    navigator.clipboard.writeText(referralLink);
+    navigator.clipboard.writeText(activeLink);
     setCopiedLink(true);
     toast({
       title: 'Link Copied',
@@ -248,7 +255,7 @@ export default function WalletPage() {
 
   const shareWhatsApp = () => {
     const text = encodeURIComponent(
-      `Join me on Togethr to find ID-verified local buddies for gym, coffee, and city walks! Sign up with my link and get INR 100 free credit: ${referralLink}`
+      `Join me on Togethr to find ID-verified local buddies for gym, coffee, and city walks! Sign up with my link and get INR 100 free credit: ${activeLink}`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
@@ -300,7 +307,7 @@ export default function WalletPage() {
             </p>
           </div>
           <Link
-            href="/companions"
+            href="/explore"
             className="hidden sm:inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-ink bg-white border-brutal-sm px-3 py-1.5 rounded-xl shadow-brutal-xs hover:bg-paper-deep btn-press"
           >
             <span>Explore Hosts</span>
@@ -464,8 +471,11 @@ export default function WalletPage() {
 
           {/* Link Box */}
           <div className="flex flex-col sm:flex-row gap-2.5">
-            <div className="flex-1 px-3.5 py-2.5 rounded-xl border-brutal-sm bg-paper-deep text-xs font-mono font-bold text-ink break-all flex items-center">
-              {referralLink}
+            <div
+              suppressHydrationWarning
+              className="flex-1 px-3.5 py-2.5 rounded-xl border-brutal-sm bg-paper-deep text-xs font-mono font-bold text-ink break-all flex items-center"
+            >
+              <span suppressHydrationWarning>{referralLink || 'Generating your invite link...'}</span>
             </div>
             <div className="flex gap-2">
               <button
