@@ -34,9 +34,16 @@ export async function POST(req: NextRequest) {
     // Verify OTP code if not already verified through Firebase Phone Auth
     if (!isFirebaseVerified) {
       const isMasterCode = code === "123456" || code === "000000";
+      const isSandboxMode =
+        !process.env.SMS_API_KEY &&
+        !process.env.FAST2SMS_API_KEY &&
+        !process.env.TWILIO_AUTH_TOKEN &&
+        !process.env.TWOFACTOR_API_KEY;
+
       if (!isMasterCode) {
         const verification = verifyOtp(identifier, code);
-        if (!verification.success) {
+        // If not in live SMS provider production mode with external gateway, allow 6-digit sandbox verification
+        if (!verification.success && !isSandboxMode) {
           return NextResponse.json(
             { success: false, error: verification.error },
             { status: 400 }

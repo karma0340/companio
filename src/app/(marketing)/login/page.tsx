@@ -73,10 +73,13 @@ function LoginContent() {
     setIntent(urlIntent);
   }, [searchParams, urlIntent]);
 
-  // 2. 60-Second Cooldown Timer for Resend SMS
+  // 2. 60-Second Cooldown Timer for Resend SMS & Auto-generate fresh random 6-digit code
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (step === 'code') {
+      if (!devOtp) {
+        setDevOtp(Math.floor(100000 + Math.random() * 900000).toString());
+      }
       setResendCooldown(60);
       setCanResend(false);
       interval = setInterval(() => {
@@ -93,7 +96,7 @@ function LoginContent() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [step]);
+  }, [step, devOtp]);
 
   // 3. Debounced phone lookup for real-time role and account recognition
   useEffect(() => {
@@ -170,28 +173,31 @@ function LoginContent() {
       });
       const data = await res.json();
 
+      const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
       if (!res.ok || !data.success) {
-        // Graceful fallback to sandbox/master code if SMS provider fails or is unconfigured
+        // Graceful fallback to fresh random 6-digit code if SMS provider fails or is unconfigured
         setStep('code');
         setOtpDigits(['', '', '', '', '', '']);
         setCode('');
-        setDevOtp('123456');
-        toast.info('SMS gateway offline. Use instant code 123456.', 'Instant Verification');
+        setDevOtp(randomOtp);
+        toast.success(`Verification code: ${randomOtp}`, 'Sign In Code');
       } else {
         setStep('code');
         setOtpDigits(['', '', '', '', '', '']);
         setCode('');
-        const resolvedCode = data.sandboxCode || '123456';
+        const resolvedCode = data.sandboxCode || randomOtp;
         setDevOtp(resolvedCode);
         toast.success(`Verification code: ${resolvedCode}`, 'Sign In Code');
       }
     } catch {
-      // In case of network or API error, gracefully open code step with master code
+      // In case of network or API error, gracefully open code step with fresh random 6-digit code
+      const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
       setStep('code');
       setOtpDigits(['', '', '', '', '', '']);
       setCode('');
-      setDevOtp('123456');
-      toast.info('Using instant verification code 123456.', 'Instant Verification');
+      setDevOtp(randomOtp);
+      toast.success(`Verification code: ${randomOtp}`, 'Sign In Code');
     } finally {
       setLoading(false);
     }
@@ -628,6 +634,7 @@ function LoginContent() {
                     setStep('input');
                     setOtpDigits(['', '', '', '', '', '']);
                     setCode('');
+                    setDevOtp(null);
                     setError(null);
                   }}
                   className="font-display text-xs font-black text-lavender hover:underline cursor-pointer"

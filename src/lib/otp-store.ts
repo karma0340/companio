@@ -14,7 +14,7 @@ const globalForOtp = globalThis as unknown as {
 };
 
 const otpMap = globalForOtp.otpMap ?? new Map<string, OtpEntry>();
-if (process.env.NODE_ENV !== "production") globalForOtp.otpMap = otpMap;
+globalForOtp.otpMap = otpMap;
 
 function normalizePhoneKey(phone: string): string {
   const digits = (phone || "").replace(/\D/g, "");
