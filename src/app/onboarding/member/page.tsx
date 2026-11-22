@@ -242,11 +242,10 @@ export default function MemberOnboardingPage() {
                 <button
                   type="button"
                   onClick={() => handleGenderSelect('female')}
-                  className={`flex items-center justify-between rounded-xl border-brutal p-3.5 transition-all cursor-pointer ${
-                    selectedGender === 'female'
-                      ? 'bg-pink text-ink shadow-brutal-sm'
-                      : 'bg-white text-ink hover:bg-paper-deep'
-                  }`}
+                  className={`flex items-center justify-between rounded-xl border-brutal p-3.5 transition-all cursor-pointer ${selectedGender === 'female'
+                    ? 'bg-pink text-ink shadow-brutal-sm'
+                    : 'bg-white text-ink hover:bg-paper-deep'
+                    }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <AvatarVector gender="female" size="sm" bgVariant="pink" />
@@ -258,11 +257,10 @@ export default function MemberOnboardingPage() {
                 <button
                   type="button"
                   onClick={() => handleGenderSelect('male')}
-                  className={`flex items-center justify-between rounded-xl border-brutal p-3.5 transition-all cursor-pointer ${
-                    selectedGender === 'male'
-                      ? 'bg-sky text-ink shadow-brutal-sm'
-                      : 'bg-white text-ink hover:bg-paper-deep'
-                  }`}
+                  className={`flex items-center justify-between rounded-xl border-brutal p-3.5 transition-all cursor-pointer ${selectedGender === 'male'
+                    ? 'bg-sky text-ink shadow-brutal-sm'
+                    : 'bg-white text-ink hover:bg-paper-deep'
+                    }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <AvatarVector gender="male" size="sm" bgVariant="sky" />
@@ -338,11 +336,10 @@ export default function MemberOnboardingPage() {
                       key={c.slug}
                       type="button"
                       onClick={() => handleQuickCitySelect(c.slug)}
-                      className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                        currentCity === c.slug
-                          ? 'border-ink bg-ink text-paper shadow-brutal-xs'
-                          : 'border-ink/30 bg-white text-ink hover:border-ink hover:bg-paper-deep'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all cursor-pointer ${currentCity === c.slug
+                        ? 'border-ink bg-ink text-paper shadow-brutal-xs'
+                        : 'border-ink/30 bg-white text-ink hover:border-ink hover:bg-paper-deep'
+                        }`}
                     >
                       {c.label}
                     </button>

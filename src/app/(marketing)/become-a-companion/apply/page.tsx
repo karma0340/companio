@@ -143,41 +143,88 @@ function CompanionApplyForm() {
     });
   };
 
-  // Avatar handler with compression
+  // Avatar handler with compression & FileReader fallback
   const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsAvatarProcessing(true);
+    setAvatarFileName(file.name);
     try {
-      setIsAvatarProcessing(true);
-      setAvatarFileName(file.name);
       const compressed = await compressImage(file, 800, 0.85);
       setAvatarBase64(compressed);
-    } catch (err) {
-      console.error("[AVATAR COMPRESSION ERROR]:", err);
-      alert("Failed to process image. Please try a different photo.");
+      setErrorMessage(null);
+    } catch {
+      // Fallback directly to FileReader
+      const reader = new FileReader();
+      reader.onload = (readEvt) => {
+        if (readEvt.target?.result) {
+          setAvatarBase64(readEvt.target.result as string);
+          setErrorMessage(null);
+        }
+      };
+      reader.readAsDataURL(file);
     } finally {
       setIsAvatarProcessing(false);
     }
   };
 
-  // ID Document handler with compression
+  // ID Document handler with compression & FileReader fallback
   const handleIdDocFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsIdDocProcessing(true);
+    setIdDocFileName(file.name);
     try {
-      setIsIdDocProcessing(true);
-      setIdDocFileName(file.name);
       const compressed = await compressImage(file, 1280, 0.85);
       setIdDocBase64(compressed);
-    } catch (err) {
-      console.error("[ID DOC COMPRESSION ERROR]:", err);
-      alert("Failed to process document image. Please try another photo.");
+      setErrorMessage(null);
+    } catch {
+      // Fallback directly to FileReader
+      const reader = new FileReader();
+      reader.onload = (readEvt) => {
+        if (readEvt.target?.result) {
+          setIdDocBase64(readEvt.target.result as string);
+          setErrorMessage(null);
+        }
+      };
+      reader.readAsDataURL(file);
     } finally {
       setIsIdDocProcessing(false);
     }
   };
+
+  // Step-by-step required fields check to control Next Step button
+  const phoneDigits = formData.phone.replace(/\D/g, "");
+  const ageNum = parseInt(formData.age, 10);
+
+  const isStep1Valid = Boolean(
+    formData.fullName.trim().length >= 2 &&
+    phoneDigits.length === 10 &&
+    formData.gender &&
+    formData.city &&
+    formData.age &&
+    !isNaN(ageNum) &&
+    ageNum >= 18 &&
+    ageNum <= 70
+  );
+
+  const isStep2Valid = Boolean(
+    formData.displayName.trim().length >= 2 &&
+    Boolean(avatarBase64) &&
+    formData.hourlyRate &&
+    formData.languages.trim().length > 0 &&
+    formData.activities.length > 0 &&
+    formData.bio.trim().length >= 15
+  );
+
+  const isStep3Valid = Boolean(formData.agreePlatonic);
+
+  const canProceed =
+    step === 1 ? isStep1Valid :
+    step === 2 ? isStep2Valid :
+    isStep3Valid;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -381,23 +428,20 @@ function CompanionApplyForm() {
                 {/* Step Indicators: 3 Clean Steps */}
                 <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs">
                   <div
-                    className={`border-2 border-ink p-2 font-black uppercase transition ${
-                      step >= 1 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
-                    }`}
+                    className={`border-2 border-ink p-2 font-black uppercase transition ${step >= 1 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
+                      }`}
                   >
                     1. Info
                   </div>
                   <div
-                    className={`border-2 border-ink p-2 font-black uppercase transition ${
-                      step >= 2 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
-                    }`}
+                    className={`border-2 border-ink p-2 font-black uppercase transition ${step >= 2 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
+                      }`}
                   >
                     2. Persona &amp; Photo
                   </div>
                   <div
-                    className={`border-2 border-ink p-2 font-black uppercase transition ${
-                      step >= 3 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
-                    }`}
+                    className={`border-2 border-ink p-2 font-black uppercase transition ${step >= 3 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
+                      }`}
                   >
                     3. Simple Verification
                   </div>
@@ -602,21 +646,31 @@ function CompanionApplyForm() {
                             </div>
                           </div>
                         ) : (
-                          <label className="flex items-center justify-center gap-2 border-2 border-dashed border-ink bg-paper p-3 cursor-pointer hover:bg-paper-deep transition text-center">
-                            <Upload className="h-4 w-4 text-ink/70" />
+                          <button
+                            type="button"
+                            onClick={() => avatarInputRef.current?.click()}
+                            className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-ink bg-paper p-3.5 hover:bg-paper-deep transition text-center cursor-pointer active:scale-[0.99]"
+                          >
+                            <Upload className="h-4 w-4 text-ink" />
                             <span className="text-xs font-black text-ink">
-                              {isAvatarProcessing ? "Compressing photo..." : "Upload Profile Photo"}
+                              {isAvatarProcessing ? "Compressing photo..." : "Upload Profile Photo (Click to choose)"}
                             </span>
-                          </label>
+                          </button>
                         )}
 
                         <input
+                          id="avatar-upload-input"
                           ref={avatarInputRef}
                           type="file"
                           accept="image/*"
                           onChange={handleAvatarFile}
                           className="hidden"
                         />
+                        {!avatarBase64 && (
+                          <p className="mt-1 text-[11px] font-bold text-amber-800">
+                            * Photo is required to continue to Step 3.
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -671,11 +725,10 @@ function CompanionApplyForm() {
                               type="button"
                               key={act}
                               onClick={() => handleActivityToggle(act)}
-                              className={`border-2 border-ink p-2.5 text-left text-xs transition ${
-                                isSelected
-                                  ? "bg-lime font-black shadow-brutal-sm"
-                                  : "bg-paper font-bold hover:bg-black/5"
-                              }`}
+                              className={`border-2 border-ink p-2.5 text-left text-xs transition ${isSelected
+                                ? "bg-lime font-black shadow-brutal-sm"
+                                : "bg-paper font-bold hover:bg-black/5"
+                                }`}
                             >
                               {act}
                             </button>
@@ -790,18 +843,23 @@ function CompanionApplyForm() {
                           </div>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-ink bg-white p-5 cursor-pointer hover:bg-paper-deep transition text-center min-h-[90px]">
+                        <button
+                          type="button"
+                          onClick={() => idDocInputRef.current?.click()}
+                          className="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-ink bg-white p-5 hover:bg-paper-deep transition text-center min-h-[90px] cursor-pointer active:scale-[0.99]"
+                        >
                           <Upload className="h-5 w-5 text-ink/70" />
                           <span className="text-xs font-black text-ink">
-                            {isIdDocProcessing ? "Compressing document..." : "Upload Document Photo"}
+                            {isIdDocProcessing ? "Compressing document..." : "Upload Document Photo (Click to choose file)"}
                           </span>
                           <span className="text-[10px] font-bold text-ink-muted">
                             Aadhaar, Driving License, Student ID or Work ID
                           </span>
-                        </label>
+                        </button>
                       )}
 
                       <input
+                        id="id-doc-upload-input"
                         ref={idDocInputRef}
                         type="file"
                         accept="image/*"
@@ -844,36 +902,49 @@ function CompanionApplyForm() {
                 )}
 
                 {/* Form Navigation Controls */}
-                <div className="flex items-center justify-between pt-4 border-t-2 border-ink">
-                  {step > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setErrorMessage(null);
-                        setStep(step - 1);
-                      }}
-                      className="border-2 border-ink bg-paper px-6 py-2.5 text-xs font-black uppercase shadow-brutal btn-press cursor-pointer"
-                    >
-                      Back
-                    </button>
-                  ) : (
-                    <div />
+                <div className="space-y-2.5 pt-4 border-t-2 border-ink">
+                  {!canProceed && (
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+                      <span>
+                        {step === 1 && "Please enter your full legal name, 10-digit mobile number, and age (18+) to enable Next Step."}
+                        {step === 2 && (!avatarBase64 ? "Please upload your profile photo to enable Next Step." : formData.bio.trim().length < 15 ? "Please write a short bio of at least 15 characters to enable Next Step." : "Please fill in all required fields to enable Next Step.")}
+                        {step === 3 && "Please check the strictly platonic policy box to enable Submit."}
+                      </span>
+                    </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="border-2 border-ink bg-ink px-8 py-3 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-50 inline-flex items-center gap-2 cursor-pointer"
-                  >
-                    <span>
-                      {step === 3
-                        ? isSubmitting
-                          ? "Submitting Application..."
-                          : "Submit Application →"
-                        : "Next Step"}
-                    </span>
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center justify-between">
+                    {step > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setErrorMessage(null);
+                          setStep(step - 1);
+                        }}
+                        className="border-2 border-ink bg-paper px-6 py-2.5 text-xs font-black uppercase shadow-brutal btn-press cursor-pointer"
+                      >
+                        Back
+                      </button>
+                    ) : (
+                      <div />
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !canProceed}
+                      className="border-2 border-ink bg-ink px-8 py-3 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <span>
+                        {step === 3
+                          ? isSubmitting
+                            ? "Submitting Application..."
+                            : "Submit Application →"
+                          : "Next Step"}
+                      </span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
