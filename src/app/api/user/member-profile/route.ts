@@ -171,12 +171,20 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Update session cookie with the confirmed User ID and name
-    await setSessionCookie({
-      ...session,
-      userId: updatedUser.id,
-      phone: updatedUser.phone,
-      name: updatedUser.name || fullName,
-    });
+    try {
+      await setSessionCookie({
+        userId: updatedUser.id,
+        phone: updatedUser.phone,
+        email: updatedUser.email || session.email || null,
+        name: updatedUser.name || fullName,
+        role: (session.role as any) || "MEMBER",
+        isUnlocked: Boolean(session.isUnlocked),
+        activePassTier: session.activePassTier || null,
+        passExpiresAt: session.passExpiresAt || null,
+      });
+    } catch (cookieErr) {
+      console.warn("[SESSION COOKIE UPDATE WARN]:", cookieErr);
+    }
 
     return NextResponse.json({
       success: true,
@@ -193,10 +201,10 @@ export async function POST(req: NextRequest) {
         onboardingCompleted: true,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[MEMBER PROFILE POST ERROR]:", error);
     return NextResponse.json(
-      { error: "Failed to update profile. Please try again." },
+      { error: error?.message || "Failed to update profile. Please try again." },
       { status: 500 }
     );
   }

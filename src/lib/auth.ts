@@ -24,8 +24,10 @@ export interface UserTokenPayload {
 }
 
 export function signUserToken(payload: UserTokenPayload, expiresIn: SignOptions["expiresIn"] = "7d"): string {
+  // Strip JWT internal claims if payload was spread from a decoded token
+  const { iat, exp, nbf, jti, ...cleanPayload } = (payload as any) || {};
   const options: SignOptions = { expiresIn };
-  return jwt.sign(payload, getJwtSecret(), options);
+  return jwt.sign(cleanPayload, getJwtSecret(), options);
 }
 
 export function verifyUserToken(token: string): UserTokenPayload | null {

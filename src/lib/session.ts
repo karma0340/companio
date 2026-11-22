@@ -9,17 +9,22 @@ export function getSessionCookieName(): string {
 export const SESSION_COOKIE_NAME = getSessionCookieName();
 
 export async function setSessionCookie(payload: UserTokenPayload, expiresIn = "7d"): Promise<string> {
-  const token = signUserToken(payload, expiresIn as any);
+  const { iat, exp, nbf, jti, ...cleanPayload } = (payload as any) || {};
+  const token = signUserToken(cleanPayload as UserTokenPayload, expiresIn as any);
   const cookieStore = cookies();
   const cookieName = getSessionCookieName();
   
-  cookieStore.set(cookieName, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
-  });
+  try {
+    cookieStore.set(cookieName, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
+  } catch (err) {
+    console.warn("[SESSION COOKIE SET WARN]:", err);
+  }
 
   return token;
 }
