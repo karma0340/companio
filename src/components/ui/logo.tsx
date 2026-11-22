@@ -12,10 +12,10 @@ interface LogoProps {
 export function Logo({ size = 'md', className, href = '/' }: LogoProps) {
   // Dimensions based on 1024x341 aspect ratio (~3:1)
   const sizeMap = {
-    sm: { width: 105, height: 35, maxHeight: 'max-h-[36px]' },
-    md: { width: 135, height: 45, maxHeight: 'max-h-[46px]' },
-    lg: { width: 175, height: 58, maxHeight: 'max-h-[58px]' },
-    xl: { width: 220, height: 73, maxHeight: 'max-h-[74px]' },
+    sm: { width: 120, height: 40, maxHeight: 'max-h-[38px]' },
+    md: { width: 156, height: 52, maxHeight: 'max-h-[48px] sm:max-h-[52px]' },
+    lg: { width: 195, height: 65, maxHeight: 'max-h-[62px]' },
+    xl: { width: 240, height: 80, maxHeight: 'max-h-[78px]' },
   };
 
   const { width, height, maxHeight } = sizeMap[size];
@@ -24,12 +24,12 @@ export function Logo({ size = 'md', className, href = '/' }: LogoProps) {
     <div className={cn('relative inline-flex items-center select-none', className)}>
       <Image
         src="/logo.png"
-        alt="Meetzy Club"
+        alt="Meetzy Club — Meet • Connect • Belong"
         width={width}
         height={height}
         priority
         className={cn(
-          'h-auto w-auto object-contain transition-transform duration-200 hover:scale-105 mix-blend-multiply',
+          'h-auto w-auto object-contain transition-transform duration-200 hover:scale-[1.03] mix-blend-multiply',
           maxHeight
         )}
       />
