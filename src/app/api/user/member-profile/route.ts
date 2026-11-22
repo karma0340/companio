@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, setSessionCookie } from "@/lib/session";
+import { generateReferralCode } from "@/lib/wallet";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.userId) {
+    if (!session?.userId && !session?.phone) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
+    const cleanPhone = session.phone ? session.phone.replace(/[\s-]/g, "") : "";
+    const e164Phone = cleanPhone ? (cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`) : "";
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          ...(session.userId ? [{ id: session.userId }] : []),
+          ...(e164Phone ? [{ phone: e164Phone }] : []),
+          ...(cleanPhone ? [{ phone: cleanPhone.replace("+91", "") }] : []),
+        ],
+      },
       include: {
         passes: {
           where: { status: "ACTIVE" },
@@ -42,7 +54,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching member profile:", error);
+    console.error("[MEMBER PROFILE GET ERROR]:", error);
     return NextResponse.json({ error: "Failed to fetch profile" }, { status: 500 });
   }
 }
@@ -50,7 +62,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.userId) {
+    if (!session?.userId && !session?.phone) {
       return NextResponse.json(
         { error: "Your session has expired. Please sign in again with your phone number." },
         { status: 401 }
@@ -73,54 +85,96 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Connect referral owner if referralCode provided and user not yet linked
-    if (referralCode) {
-      try {
-        const currentUser = await prisma.user.findUnique({
-          where: { id: session.userId },
-          select: { referredById: true },
-        });
+    const cleanPhone = session.phone ? session.phone.replace(/[\s-]/g, "") : "";
+    const e164Phone = cleanPhone ? (cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`) : "";
 
-        if (!currentUser?.referredById) {
-          const referrer = await prisma.user.findFirst({
-            where: {
-              OR: [
-                { referralCode: referralCode },
-                { referralCode: { equals: referralCode, mode: "insensitive" } },
-              ],
-              NOT: { id: session.userId },
-            },
-            select: { id: true, name: true },
-          });
-
-          if (referrer) {
-            await prisma.user.update({
-              where: { id: session.userId },
-              data: { referredById: referrer.id },
-            });
-          }
-        }
-      } catch (refErr) {
-        console.warn("[REFERRAL LINK WARN]:", refErr);
-      }
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: session.userId },
-      data: {
-        name: fullName,
-        gender: gender || "female",
-        city: city || "bengaluru",
-        area: area || null,
-        bio: bio || null,
-        emergencyContact: emergencyContact || null,
-        onboardingCompleted: true,
+    // 1. Locate existing user record by ID or Phone
+    let existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          ...(session.userId ? [{ id: session.userId }] : []),
+          ...(e164Phone ? [{ phone: e164Phone }] : []),
+          ...(cleanPhone ? [{ phone: cleanPhone.replace("+91", "") }] : []),
+        ],
       },
     });
 
-    // Refresh session cookie with the new name
+    // 2. Resolve optional referral link
+    let referredById: string | null = null;
+    if (referralCode) {
+      try {
+        const referrer = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { referralCode: referralCode },
+              { referralCode: { equals: referralCode, mode: "insensitive" } },
+            ],
+            ...(existingUser?.id ? { NOT: { id: existingUser.id } } : {}),
+          },
+          select: { id: true },
+        });
+        if (referrer) {
+          referredById = referrer.id;
+        }
+      } catch (refErr) {
+        console.warn("[REFERRAL LOOKUP WARN]:", refErr);
+      }
+    }
+
+    // 3. Update existing user or upsert by phone
+    let updatedUser;
+    if (existingUser) {
+      updatedUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name: fullName,
+          gender: gender || "female",
+          city: city || "chandigarh",
+          area: area || null,
+          bio: bio || null,
+          emergencyContact: emergencyContact || null,
+          onboardingCompleted: true,
+          ...(referredById && !existingUser.referredById ? { referredById } : {}),
+        },
+      });
+    } else {
+      const targetPhone = e164Phone || `+91${Math.floor(6000000000 + Math.random() * 3999999999)}`;
+      updatedUser = await prisma.user.upsert({
+        where: { phone: targetPhone },
+        update: {
+          name: fullName,
+          gender: gender || "female",
+          city: city || "chandigarh",
+          area: area || null,
+          bio: bio || null,
+          emergencyContact: emergencyContact || null,
+          onboardingCompleted: true,
+          ...(referredById ? { referredById } : {}),
+        },
+        create: {
+          id: session.userId || undefined,
+          phone: targetPhone,
+          name: fullName,
+          role: "MEMBER",
+          gender: gender || "female",
+          city: city || "chandigarh",
+          area: area || null,
+          bio: bio || null,
+          emergencyContact: emergencyContact || null,
+          onboardingCompleted: true,
+          coinBalance: 100,
+          creditBalance: 100,
+          referralCode: generateReferralCode(),
+          referredById: referredById || null,
+        },
+      });
+    }
+
+    // 4. Update session cookie with the confirmed User ID and name
     await setSessionCookie({
       ...session,
+      userId: updatedUser.id,
+      phone: updatedUser.phone,
       name: updatedUser.name || fullName,
     });
 
@@ -140,7 +194,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error updating member profile:", error);
+    console.error("[MEMBER PROFILE POST ERROR]:", error);
     return NextResponse.json(
       { error: "Failed to update profile. Please try again." },
       { status: 500 }

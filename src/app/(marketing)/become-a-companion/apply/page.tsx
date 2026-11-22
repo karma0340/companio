@@ -166,6 +166,9 @@ function CompanionApplyForm() {
       reader.readAsDataURL(file);
     } finally {
       setIsAvatarProcessing(false);
+      if (e.target) {
+        e.target.value = "";
+      }
     }
   };
 
@@ -192,6 +195,9 @@ function CompanionApplyForm() {
       reader.readAsDataURL(file);
     } finally {
       setIsIdDocProcessing(false);
+      if (e.target) {
+        e.target.value = "";
+      }
     }
   };
 
@@ -517,11 +523,10 @@ function CompanionApplyForm() {
                             type="button"
                             key={g.id}
                             onClick={() => setFormData({ ...formData, gender: g.id })}
-                            className={`border-2 border-ink p-2.5 text-center text-xs font-black uppercase transition-all cursor-pointer ${
-                              formData.gender === g.id
-                                ? "bg-pink text-ink shadow-brutal-sm"
-                                : "bg-paper text-ink hover:bg-paper-deep"
-                            }`}
+                            className={`border-2 border-ink p-2.5 text-center text-xs font-black uppercase transition-all cursor-pointer ${formData.gender === g.id
+                              ? "bg-pink text-ink shadow-brutal-sm"
+                              : "bg-paper text-ink hover:bg-paper-deep"
+                              }`}
                           >
                             {g.label}
                           </button>
