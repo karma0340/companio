@@ -59,7 +59,7 @@ function BookPageContent({ params }: BookPageProps) {
     gender: 'female' as const,
     city: 'bengaluru',
     area: 'Central',
-    tagline: 'Verified Togethr Host',
+    tagline: 'Verified Meetzy Club Host',
     about: 'Experienced companion for city meetups.',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
     languages: ['English', 'Hindi'],
@@ -126,7 +126,7 @@ function BookPageContent({ params }: BookPageProps) {
     if (user || memberProfile) {
       const cleanPhone = user?.phone ? user.phone.replace(/\D/g, '').slice(-10) : '';
       const name =
-        memberProfile?.fullName && memberProfile.fullName !== 'Togethr Member'
+        memberProfile?.fullName && memberProfile.fullName !== 'Meetzy Club Member'
           ? memberProfile.fullName
           : '';
 
@@ -251,13 +251,13 @@ function BookPageContent({ params }: BookPageProps) {
         key: orderData.keyId,
         amount: orderData.amountPaise,
         currency: 'INR',
-        name: 'Togethr Safe Escrow',
+        name: 'Meetzy Club Safe Escrow',
         description: `${selectedActivity.replace(/-/g, ' ')} with ${companion.name}`,
         order_id: orderData.orderId,
         prefill: {
           name: data.memberName.trim(),
           contact: phoneRaw,
-          email: user?.phone ? `${user.phone}@member.togethr.in` : undefined,
+          email: user?.phone ? `${user.phone}@member.meetzy.club` : undefined,
         },
         theme: {
           color: '#121212',
@@ -345,7 +345,7 @@ function BookPageContent({ params }: BookPageProps) {
               Meetup Confirmed with {companion.name}!
             </h1>
             <p className="font-body text-xs sm:text-sm text-ink-soft max-w-lg mx-auto leading-relaxed">
-              Your payment ({formatRupees(price.totalPayable)}) is held safely by Togethr and only transferred to {companion.name} after you meet and share the code.
+              Your payment ({formatRupees(price.totalPayable)}) is held safely by Meetzy Club and only transferred to {companion.name} after you meet and share the code.
             </p>
           </div>
 
@@ -423,7 +423,7 @@ function BookPageContent({ params }: BookPageProps) {
                   Book a Meetup with {companion.name}
                 </h1>
                 <p className="font-body text-xs sm:text-sm text-ink-soft">
-                  Fill in your preferred public location and timing. Your money stays safe with Togethr until you meet in person.
+                  Fill in your preferred public location and timing. Your money stays safe with Meetzy Club until you meet in person.
                 </p>
               </div>
 
@@ -671,7 +671,7 @@ function BookPageContent({ params }: BookPageProps) {
                     />
                     <div className="text-xs font-bold text-ink leading-relaxed">
                       <span>
-                        I confirm that this meetup is <strong>100% platonic and respectful</strong>, will occur strictly in a public place, and follows the Togethr Community Guidelines.
+                        I confirm that this meetup is <strong>100% platonic and respectful</strong>, will occur strictly in a public place, and follows the Meetzy Club Community Guidelines.
                       </span>
                     </div>
                   </label>
@@ -737,7 +737,7 @@ function BookPageContent({ params }: BookPageProps) {
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Togethr Protection & Platform Fee</span>
+                  <span>Meetzy Club Protection & Platform Fee</span>
                   <span className="font-bold text-ink font-mono">{formatRupees(price.connectionFee)}</span>
                 </div>
 
@@ -759,7 +759,7 @@ function BookPageContent({ params }: BookPageProps) {
                   <span>100% Money-Back Guarantee</span>
                 </div>
                 <p className="font-body text-[11px] text-ink-soft leading-relaxed">
-                  Your payment is never given upfront. It is safely held by Togethr Escrow and released only after your meetup takes place.
+                  Your payment is never given upfront. It is safely held by Meetzy Club Escrow and released only after your meetup takes place.
                 </p>
               </div>
 

@@ -63,7 +63,7 @@ export default function HostKYCPage() {
 
   // Prefill legal name from member profile if available
   useEffect(() => {
-    if (memberProfile?.fullName && memberProfile.fullName !== 'Togethr Member') {
+    if (memberProfile?.fullName && memberProfile.fullName !== 'Meetzy Club Member') {
       setValue('fullName', memberProfile.fullName, { shouldValidate: true });
     }
   }, [memberProfile, setValue]);
@@ -106,7 +106,7 @@ export default function HostKYCPage() {
         setAadhaarImageBase64(base64);
 
         try {
-          const res = await uploadImageAction(base64, 'made4togethr/kyc');
+          const res = await uploadImageAction(base64, 'meetzyclub/kyc');
           if (res.success && res.url) {
             setUploadedImageUrl(res.url);
             toast.success('Your ID photo has been uploaded securely.', 'Photo Uploaded');
@@ -142,7 +142,7 @@ export default function HostKYCPage() {
       age--;
     }
     if (age < 18) {
-      toast.error('You must be at least 18 years of age to host on Togethr.', 'Age Requirement');
+      toast.error('You must be at least 18 years of age to host on Meetzy Club.', 'Age Requirement');
       return;
     }
 
@@ -214,7 +214,7 @@ export default function HostKYCPage() {
       setSubmitted(true);
       setKycReference(json.kycReference || '#CMP-8921');
       toast.success(
-        'Congratulations! You are now an approved and verified Host on Togethr.',
+        'Congratulations! You are now an approved and verified Host on Meetzy Club.',
         'Profile Verified & Approved'
       );
     } catch (err) {
@@ -250,7 +250,7 @@ export default function HostKYCPage() {
             </h1>
 
             <p className="font-body text-xs sm:text-sm text-ink-soft leading-relaxed">
-              To keep meetups safe for everyone, all Togethr companions confirm their identity with an Aadhaar card and photo before meeting members in public.
+              To keep meetups safe for everyone, all Meetzy Club companions confirm their identity with an Aadhaar card and photo before meeting members in public.
             </p>
           </div>
 
@@ -341,7 +341,7 @@ export default function HostKYCPage() {
                         className="w-full rounded-xl border-brutal bg-white px-3.5 py-3 font-display text-xs sm:text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
                       />
                       <span className="block text-[11px] font-medium text-ink-muted">
-                        You must be at least 18 years of age to host on Togethr.
+                        You must be at least 18 years of age to host on Meetzy Club.
                       </span>
                     </div>
 

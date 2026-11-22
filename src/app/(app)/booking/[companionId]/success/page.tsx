@@ -104,7 +104,7 @@ export default function BookingSuccessPage() {
               Meetup Request Confirmed
             </h1>
             <p className="text-xs sm:text-sm font-bold text-ink/80 max-w-md mx-auto">
-              Your meetup request #{booking?.bookingNumber || "CMP-2026"} has been placed. Your payment is safely locked in Togethr Escrow and will only be released after the session is validated in person.
+              Your meetup request #{booking?.bookingNumber || "CMP-2026"} has been placed. Your payment is safely locked in Meetzy Club Escrow and will only be released after the session is validated in person.
             </p>
           </div>
 

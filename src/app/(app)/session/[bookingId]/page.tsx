@@ -164,7 +164,7 @@ export default function SessionLivePage() {
 
   const handleTriggerSos = async () => {
     const confirmSos = window.confirm(
-      "CONFIRM EMERGENCY SOS: This will alert local police dispatch (112), transmit current GPS coordinates, and notify Togethr Trust Operations. Proceed only in genuine emergencies."
+      "CONFIRM EMERGENCY SOS: This will alert local police dispatch (112), transmit current GPS coordinates, and notify Meetzy Club Trust Operations. Proceed only in genuine emergencies."
     );
 
     if (!confirmSos) return;
@@ -472,7 +472,7 @@ export default function SessionLivePage() {
                       Rate Your Meetup Experience
                     </h3>
                     <p className="text-xs font-medium text-ink/70">
-                      How was your experience with {booking.companionName}? Ratings help maintain trust across Togethr.
+                      How was your experience with {booking.companionName}? Ratings help maintain trust across Meetzy Club.
                     </p>
 
                     {/* Star Rating Selector */}

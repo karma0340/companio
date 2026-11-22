@@ -67,7 +67,7 @@ export function generateMetadata({ params }: ActivityPageProps): Metadata {
   if (!currentActivity) return { title: 'Activity Not Found' };
 
   return {
-    title: `Find a Verified ${currentActivity.name} in India — ${currentActivity.tagline} | made4togethr`,
+    title: `Find a Verified ${currentActivity.name} in India — ${currentActivity.tagline} | Meetzy Club`,
     description: currentActivity.description,
   };
 }

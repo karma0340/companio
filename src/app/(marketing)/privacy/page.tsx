@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
   title: "Privacy Policy — DPDP Act 2023 Compliant",
-  description: "How made4togethr securely handles ID verification, phone number masking, and data privacy in accordance with Indian data protection laws.",
+  description: "How Meetzy Club securely handles ID verification, phone number masking, and data privacy in accordance with Indian data protection laws.",
 };
 
 export default function PrivacyPage() {
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
                 1. Data We Collect for Safety
               </h2>
               <p>
-                To maintain our verification protocols, Togethr collects your legal name, mobile phone number, government ID images (Aadhaar, Passport, or Voter ID), live selfie video data, and meeting coordinate logs. Government IDs are encrypted at rest using AES-256 standards.
+                To maintain our verification protocols, Meetzy Club collects your legal name, mobile phone number, government ID images (Aadhaar, Passport, or Voter ID), live selfie video data, and meeting coordinate logs. Government IDs are encrypted at rest using AES-256 standards.
               </p>
             </section>
 
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
                 3. Live Location Data During Active Meetups
               </h2>
               <p>
-                When a 4-digit start code is activated, Togethr may access geolocation data strictly to provide real-time SOS tracking and emergency responder assistance if triggered. Geolocation tracking terminates automatically when the session concludes.
+                When a 4-digit start code is activated, Meetzy Club may access geolocation data strictly to provide real-time SOS tracking and emergency responder assistance if triggered. Geolocation tracking terminates automatically when the session concludes.
               </p>
             </section>
 
@@ -64,8 +64,8 @@ export default function PrivacyPage() {
               </h2>
               <p>
                 Under the DPDP Act 2023, you have the right to request a copy of your personal data or request permanent deletion of your account by emailing{' '}
-                <a href="mailto:privacy@made4togethr.com" className="font-bold underline text-ink">
-                  privacy@made4togethr.com
+                <a href="mailto:privacy@meetzy.club" className="font-bold underline text-ink">
+                  privacy@meetzy.club
                 </a>
                 .
               </p>

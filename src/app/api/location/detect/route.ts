@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`,
         {
           headers: {
-            "User-Agent": "Made4Togethr/1.0 (contact@made4togethr.in)",
+            "User-Agent": "MeetzyClub/1.0 (contact@meetzy.club)",
             Accept: "application/json",
           },
           signal: controller.signal,

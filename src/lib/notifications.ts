@@ -145,7 +145,7 @@ export async function getUserNotifications(userId: string): Promise<{
             id: `ref_joined_${ref.id}`,
             type: "ALERT",
             title: "New Friend Joined!",
-            message: `${ref.name || "A friend"} joined made4togethr using your invite code! When they complete their first meetup, you will automatically get 100 coins.`,
+            message: `${ref.name || "A friend"} joined Meetzy Club using your invite code! When they complete their first meetup, you will automatically get 100 coins.`,
             badge: "Invited",
             badgeVariant: "sunny",
             ctaText: "View Invites →",

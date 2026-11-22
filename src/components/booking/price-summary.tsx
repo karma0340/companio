@@ -100,7 +100,7 @@ export function PriceSummary({ companion }: PriceSummaryProps) {
           </div>
 
           <div className="flex items-center justify-between font-medium">
-            <span>Togethr Protection &amp; Escrow Fee</span>
+            <span>Meetzy Club Protection &amp; Escrow Fee</span>
             <span className="font-bold text-ink font-mono">{formatRupees(price.connectionFee)}</span>
           </div>
 

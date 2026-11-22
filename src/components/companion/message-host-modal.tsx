@@ -130,7 +130,7 @@ export function MessageHostModal({
         key: data.keyId,
         amount: data.amount,
         currency: data.currency,
-        name: 'made4togethr',
+        name: 'Meetzy Club',
         description: 'Instant Chat Recharge (100 Coins)',
         order_id: data.orderId,
         handler: async function (response: any) {

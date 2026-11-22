@@ -146,9 +146,9 @@ export default function HomePage() {
   const faqItems = [
     {
       id: 'faq-1',
-      question: 'Is Togethr a dating or matchmaking app?',
+      question: 'Is Meetzy Club a dating or matchmaking app?',
       answer:
-        'Absolutely NOT. Togethr is strictly for platonic, activity-based companionship. We exist to help you find a gym spotter, a movie buddy, a shopping guide, or a coffee companion. Any romantic advances, escorting requests, or inappropriate behavior result in an immediate permanent ban and forfeiture of escrow funds.',
+        'Absolutely NOT. Meetzy Club is strictly for platonic, activity-based companionship. We exist to help you find a gym spotter, a movie buddy, a shopping guide, or a coffee companion. Any romantic advances, escorting requests, or inappropriate behavior result in an immediate permanent ban and forfeiture of escrow funds.',
     },
     {
       id: 'faq-2',
@@ -160,7 +160,7 @@ export default function HomePage() {
       id: 'faq-3',
       question: 'What is the 4-Digit Start Code and how does it work?',
       answer:
-        'When your booking is confirmed, a secret 4-digit numeric code is generated on your Togethr screen. When you meet your companion at the agreed public venue, you share this code with them. Once they enter it, the meetup timer officially activates. No code = no meetup = zero payment released.',
+        'When your booking is confirmed, a secret 4-digit numeric code is generated on your Meetzy Club screen. When you meet your companion at the agreed public venue, you share this code with them. Once they enter it, the meetup timer officially activates. No code = no meetup = zero payment released.',
     },
     {
       id: 'faq-4',
@@ -376,7 +376,7 @@ export default function HomePage() {
                                 {featured.name} · {featured.age}
                               </h3>
                               <p className="text-xs font-bold text-ink-soft">
-                                Verified Togethr Companion
+                                Verified Meetzy Club Companion
                               </p>
                               <div className="mt-1.5 flex gap-1">
                                 <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-sunny px-1.5 py-0.5 text-[10px] font-bold text-ink">
@@ -479,7 +479,7 @@ export default function HomePage() {
         </section>
 
         {/* =========================================================================
-            SECTION 4: HOW TOGETHR WORKS (5 STEPS SCROLL JOURNEY & LOTTIE)
+            SECTION 4: HOW MEETZY CLUB WORKS (5 STEPS SCROLL JOURNEY & LOTTIE)
            ========================================================================= */}
         <section className="border-b-brutal bg-white py-10 sm:py-16">
           <HowItWorksJourney showHero={true} />

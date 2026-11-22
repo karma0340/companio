@@ -63,11 +63,11 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: CityPageProps): Metadata {
   const citySlug = params.slug;
   const currentCity = CITIES.find((c) => c.slug === citySlug);
-  if (!currentCity) return { title: 'City Not Found | made4togethr' };
+  if (!currentCity) return { title: 'City Not Found | Meetzy Club' };
 
   return {
-    title: `Verified Local Companions in ${currentCity.name} — Gym, Movies & Coffee Buddies | made4togethr`,
-    description: `Connect with ID-verified local buddies in ${currentCity.name} (${currentCity.popularAreas.slice(0, 3).join(', ')}). 100% platonic, escrow-safe companionship on Togethr.`,
+    title: `Verified Local Companions in ${currentCity.name} — Gym, Movies & Coffee Buddies | Meetzy Club`,
+    description: `Connect with ID-verified local buddies in ${currentCity.name} (${currentCity.popularAreas.slice(0, 3).join(', ')}). 100% platonic, escrow-safe companionship on Meetzy Club.`,
   };
 }
 

@@ -16,9 +16,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
-  title: "Trust, ID Checks & Background Verification",
+  title: "Trust, ID Checks & Background Verification | Meetzy Club",
   description:
-    "Complete transparency on how made4togethr authenticates government IDs, validates live facial selfies, and enforces public meetup rules.",
+    "Complete transparency on how Meetzy Club authenticates government IDs, validates live facial selfies, and enforces public meetup rules.",
 };
 
 export default function TrustPage() {

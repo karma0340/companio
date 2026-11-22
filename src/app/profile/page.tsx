@@ -90,7 +90,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (memberProfile) {
       reset({
-        fullName: memberProfile.fullName === 'Togethr Member' ? '' : memberProfile.fullName,
+        fullName: memberProfile.fullName === 'Meetzy Club Member' ? '' : memberProfile.fullName,
         city: memberProfile.city || 'bengaluru',
         area: memberProfile.area || '',
         bio: memberProfile.bio || '',
@@ -109,7 +109,7 @@ export default function ProfilePage() {
   // If profile is incomplete or still has placeholder name, redirect to profile creation form
   useEffect(() => {
     if (!isLoading && isAuthenticated && memberProfile) {
-      if (!memberProfile.onboardingCompleted || !memberProfile.fullName || memberProfile.fullName === 'Togethr Member') {
+      if (!memberProfile.onboardingCompleted || !memberProfile.fullName || memberProfile.fullName === 'Meetzy Club Member') {
         router.push('/onboarding/member');
       }
     }
@@ -511,7 +511,7 @@ export default function ProfilePage() {
               className="inline-flex items-center gap-2 rounded-xl border-brutal bg-danger/10 px-4 py-2 font-display text-xs font-black text-danger hover:bg-danger hover:text-white transition-colors btn-press cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
-              <span>Sign Out of Togethr</span>
+              <span>Sign Out of Meetzy Club</span>
             </button>
           </div>
         </div>

@@ -37,7 +37,7 @@ export interface CloudinaryUploadResult {
 
 export async function uploadToCloudinary(
   fileBase64OrUrl: string,
-  folder: string = 'made4togethr'
+  folder: string = 'meetzyclub'
 ): Promise<CloudinaryUploadResult> {
   if (!isCloudinaryConfigured) {
     return {
@@ -100,7 +100,7 @@ export async function uploadHostAvatar(
   try {
     const result = await withTimeout(
       cloudinary.uploader.upload(fileBase64OrUrl, {
-        folder: 'made4togethr/avatars',
+        folder: 'meetzyclub/avatars',
         transformation: [
           { width: 800, height: 800, crop: 'fill', gravity: 'face' },
           { quality: 'auto', fetch_format: 'auto' },
@@ -140,5 +140,5 @@ export async function uploadHostAvatar(
 export async function uploadKycDocument(
   fileBase64OrUrl: string
 ): Promise<CloudinaryUploadResult> {
-  return uploadToCloudinary(fileBase64OrUrl, 'made4togethr/kyc');
+  return uploadToCloudinary(fileBase64OrUrl, 'meetzyclub/kyc');
 }

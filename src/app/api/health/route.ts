@@ -12,7 +12,7 @@ export async function GET() {
 
   return NextResponse.json({
     status: "ok",
-    service: "Togethr Platform API",
+    service: "Meetzy Club Platform API",
     version: "1.0.0",
     database: dbStatus,
     timestamp: new Date().toISOString(),

@@ -36,11 +36,11 @@ interface CompanionProfilePageProps {
 
 export async function generateMetadata({ params }: CompanionProfilePageProps): Promise<Metadata> {
   const companion = await getCompanionById(params.id);
-  if (!companion) return { title: 'Companion Not Found | made4togethr' };
+  if (!companion) return { title: 'Companion Not Found | Meetzy Club' };
 
   return {
-    title: `${companion.name}, ${companion.age} — Verified Companion in ${companion.area} (₹${companion.hourlyRate}/hr) | made4togethr`,
-    description: `Book an ID-verified meetup with ${companion.name} in ${companion.area}. "${companion.tagline}" 100% platonic & escrow protected on Togethr.`,
+    title: `${companion.name}, ${companion.age} — Verified Companion in ${companion.area} (₹${companion.hourlyRate}/hr) | Meetzy Club`,
+    description: `Book an ID-verified meetup with ${companion.name} in ${companion.area}. "${companion.tagline}" 100% platonic & escrow protected on Meetzy Club.`,
   };
 }
 

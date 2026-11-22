@@ -236,7 +236,7 @@ function LoginContent() {
       }
 
       await refreshSession();
-      toast.success('Welcome back to made4togethr! Redirecting...', 'Verified');
+      toast.success('Welcome back to Meetzy Club! Redirecting...', 'Verified');
       // Directly and automatically redirect into app without manual clicks
       routePostAuth(data.hostProfile, data.memberProfile);
     } catch {
@@ -339,7 +339,7 @@ function LoginContent() {
               </Badge>
             </div>
             <h1 className="font-display text-2xl font-black text-ink">
-              Welcome to made4togethr
+              Welcome to Meetzy Club
             </h1>
             <p className="font-body text-xs sm:text-sm text-ink-soft">
               Sign in with your mobile number to explore, book meetups, or manage your host profile.
@@ -758,7 +758,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-paper flex items-center justify-center font-display font-black text-ink">
-          Loading made4togethr authentication...
+          Loading Meetzy Club authentication...
         </div>
       }
     >

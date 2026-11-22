@@ -369,7 +369,7 @@ function CompanionApplyForm() {
 
               <div className="border-2 border-ink bg-paper p-5 space-y-3 shadow-brutal-sm">
                 <h3 className="text-xs font-black uppercase tracking-wider text-ink">
-                  Welcome to Made4Togethr Host Community!
+                  Welcome to Meetzy Club Host Community!
                 </h3>
                 <ul className="text-xs font-medium space-y-2 text-ink-soft">
                   <li className="flex items-start gap-2">
@@ -894,7 +894,7 @@ function CompanionApplyForm() {
                           className="mt-0.5 h-4 w-4 border-2 border-ink accent-ink"
                         />
                         <span className="text-xs font-bold text-ink leading-relaxed">
-                          I agree to Made4Togethr&apos;s Strictly Platonic &amp; Public Venues policy. All meetups are 100% platonic in open public places only; romantic or sexual propositions are strictly prohibited and result in immediate ban.
+                          I agree to Meetzy Club&apos;s Strictly Platonic &amp; Public Venues policy. All meetups are 100% platonic in open public places only; romantic or sexual propositions are strictly prohibited and result in immediate ban.
                         </span>
                       </label>
                     </div>

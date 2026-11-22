@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
   title: "Terms of Service — Platonic Rules & User Agreement",
-  description: "Official terms and conditions governing the use of made4togethr platonic companionship platform in India.",
+  description: "Official terms and conditions governing the use of Meetzy Club platonic companionship platform in India.",
 };
 
 export default function TermsPage() {
@@ -37,7 +37,7 @@ export default function TermsPage() {
                 1. Strictly Platonic Nature of the Platform
               </h2>
               <p>
-                Togethr (operated under <strong>made4togethr</strong>) is an intermediary technology platform connecting independent adult users for strictly platonic, social companionship in public venues. Togethr is <strong>not</strong> an employer, dating service, matrimony bureau, or adult entertainment directory. Any solicitation of romantic or sexual favors constitutes a breach of contract and criminal conduct under applicable Indian penal provisions.
+                Meetzy Club is an intermediary technology platform connecting independent adult users for strictly platonic, social companionship in public venues. Meetzy Club is <strong>not</strong> an employer, dating service, matrimony bureau, or adult entertainment directory. Any solicitation of romantic or sexual favors constitutes a breach of contract and criminal conduct under applicable Indian penal provisions.
               </p>
             </section>
 
@@ -55,7 +55,7 @@ export default function TermsPage() {
                 3. Public Venue Requirement
               </h2>
               <p>
-                All meetups facilitated through Togethr must occur exclusively in publicly accessible venues such as restaurants, cafes, shopping centers, libraries, fitness studios, sports turfs, and public parks. Private residences, hotel rooms, and isolated properties are strictly off-limits.
+                All meetups facilitated through Meetzy Club must occur exclusively in publicly accessible venues such as restaurants, cafes, shopping centers, libraries, fitness studios, sports turfs, and public parks. Private residences, hotel rooms, and isolated properties are strictly off-limits.
               </p>
             </section>
 
@@ -64,7 +64,7 @@ export default function TermsPage() {
                 4. Escrow Mechanism & Off-Platform Payments
               </h2>
               <p>
-                All financial consideration must be transacted through Togethr’s authorized escrow payment gateway. Soliciting or accepting off-platform payments (cash, direct UPI, gift vouchers) is strictly prohibited and results in permanent deplatforming.
+                All financial consideration must be transacted through Meetzy Club’s authorized escrow payment gateway. Soliciting or accepting off-platform payments (cash, direct UPI, gift vouchers) is strictly prohibited and results in permanent deplatforming.
               </p>
             </section>
           </div>

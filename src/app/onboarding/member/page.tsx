@@ -195,7 +195,7 @@ export default function MemberOnboardingPage() {
       }
 
       await refreshSession();
-      toast.success('Your profile is ready! Welcome to Togethr.', 'Profile Completed');
+      toast.success('Your profile is ready! Welcome to Meetzy Club.', 'Profile Completed');
       router.push('/explore');
     } catch (err) {
       const isNetwork = typeof navigator !== 'undefined' && (!navigator.onLine || (err instanceof Error && err.message.toLowerCase().includes('fetch')));

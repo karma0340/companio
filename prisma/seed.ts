@@ -3,19 +3,19 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("[Seed] Starting comprehensive database seeding for made4togethr...");
+  console.log("[Seed] Starting comprehensive database seeding for Meetzy Club...");
 
   // 1. Seed Cities (9 Major Metro Cities)
   const citiesData = [
-    { name: "Bengaluru", slug: "bengaluru", state: "Karnataka", metaTitle: "Hire Verified Companions in Bengaluru | made4togethr", metaDescription: "Connect with verified companions in Koramangala, Indiranagar, Church Street, and HSR Layout." },
-    { name: "Delhi NCR", slug: "delhi", state: "Delhi NCR", metaTitle: "Hire Verified Companions in Delhi NCR | made4togethr", metaDescription: "Find verified companions in Connaught Place, Hauz Khas, Khan Market, and Cyber Hub." },
-    { name: "Mumbai", slug: "mumbai", state: "Maharashtra", metaTitle: "Hire Verified Companions in Mumbai | made4togethr", metaDescription: "Find companions for cafes, gigs, and Marine Drive strolls in Bandra, Colaba, and Juhu." },
-    { name: "Pune", slug: "pune", state: "Maharashtra", metaTitle: "Hire Verified Companions in Pune | made4togethr", metaDescription: "Connect with verified companions in Koregaon Park, Kalyani Nagar, and FC Road." },
-    { name: "Hyderabad", slug: "hyderabad", state: "Telangana", metaTitle: "Hire Verified Companions in Hyderabad | made4togethr", metaDescription: "Find verified companions in Jubilee Hills, Banjara Hills, and Gachibowli." },
-    { name: "Chennai", slug: "chennai", state: "Tamil Nadu", metaTitle: "Hire Verified Companions in Chennai | made4togethr", metaDescription: "Connect with companions for beach walks and cafes in Besant Nagar and Alwarpet." },
-    { name: "Kolkata", slug: "kolkata", state: "West Bengal", metaTitle: "Hire Verified Companions in Kolkata | made4togethr", metaDescription: "Explore heritage book alleys and colonial cafes in Park Street and Salt Lake." },
-    { name: "Ahmedabad", slug: "ahmedabad", state: "Gujarat", metaTitle: "Hire Verified Companions in Ahmedabad | made4togethr", metaDescription: "Connect with verified companions for evening riverfront strolls and food walks." },
-    { name: "Chandigarh", slug: "chandigarh", state: "Punjab/Haryana", metaTitle: "Hire Verified Companions in Chandigarh | made4togethr", metaDescription: "Find companions for Sector 17 cafes and Sukhna Lake walks." },
+    { name: "Bengaluru", slug: "bengaluru", state: "Karnataka", metaTitle: "Hire Verified Companions in Bengaluru | Meetzy Club", metaDescription: "Connect with verified companions in Koramangala, Indiranagar, Church Street, and HSR Layout." },
+    { name: "Delhi NCR", slug: "delhi", state: "Delhi NCR", metaTitle: "Hire Verified Companions in Delhi NCR | Meetzy Club", metaDescription: "Find verified companions in Connaught Place, Hauz Khas, Khan Market, and Cyber Hub." },
+    { name: "Mumbai", slug: "mumbai", state: "Maharashtra", metaTitle: "Hire Verified Companions in Mumbai | Meetzy Club", metaDescription: "Find companions for cafes, gigs, and Marine Drive strolls in Bandra, Colaba, and Juhu." },
+    { name: "Pune", slug: "pune", state: "Maharashtra", metaTitle: "Hire Verified Companions in Pune | Meetzy Club", metaDescription: "Connect with verified companions in Koregaon Park, Kalyani Nagar, and FC Road." },
+    { name: "Hyderabad", slug: "hyderabad", state: "Telangana", metaTitle: "Hire Verified Companions in Hyderabad | Meetzy Club", metaDescription: "Find verified companions in Jubilee Hills, Banjara Hills, and Gachibowli." },
+    { name: "Chennai", slug: "chennai", state: "Tamil Nadu", metaTitle: "Hire Verified Companions in Chennai | Meetzy Club", metaDescription: "Connect with companions for beach walks and cafes in Besant Nagar and Alwarpet." },
+    { name: "Kolkata", slug: "kolkata", state: "West Bengal", metaTitle: "Hire Verified Companions in Kolkata | Meetzy Club", metaDescription: "Explore heritage book alleys and colonial cafes in Park Street and Salt Lake." },
+    { name: "Ahmedabad", slug: "ahmedabad", state: "Gujarat", metaTitle: "Hire Verified Companions in Ahmedabad | Meetzy Club", metaDescription: "Connect with verified companions for evening riverfront strolls and food walks." },
+    { name: "Chandigarh", slug: "chandigarh", state: "Punjab/Haryana", metaTitle: "Hire Verified Companions in Chandigarh | Meetzy Club", metaDescription: "Find companions for Sector 17 cafes and Sukhna Lake walks." },
   ];
 
   const seededCities: Record<string, string> = {};

@@ -196,7 +196,7 @@ export default function WalletPage() {
         key: data.keyId,
         amount: data.amount,
         currency: data.currency,
-        name: 'made4togethr',
+        name: 'Meetzy Club',
         description: `Wallet Recharge: ${numAmount} Coins`,
         order_id: data.orderId,
         handler: async function (response: any) {
@@ -288,7 +288,7 @@ export default function WalletPage() {
 
   const shareWhatsApp = () => {
     const text = encodeURIComponent(
-      `Join me on Togethr to find ID-verified local buddies for gym, coffee, and city walks! Sign up with my link and get INR 100 free credit: ${activeLink}`
+      `Join me on Meetzy Club to find ID-verified local buddies for gym, coffee, and city walks! Sign up with my link and get INR 100 free credit: ${activeLink}`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };

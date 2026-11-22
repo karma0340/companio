@@ -38,7 +38,7 @@ export default function CommunityGuidelinesPage() {
             </h1>
 
             <p className="font-body text-base sm:text-lg text-ink-soft leading-relaxed">
-              Togethr is built on mutual respect, clear boundaries, and platonic camaraderie. Every member and host must adhere strictly to these rules.
+              Meetzy Club is built on mutual respect, clear boundaries, and platonic camaraderie. Every member and host must adhere strictly to these rules.
             </p>
           </div>
 
@@ -54,7 +54,7 @@ export default function CommunityGuidelinesPage() {
             </h2>
 
             <p className="font-body text-sm sm:text-base text-ink leading-relaxed">
-              Togethr is not a dating service, hookup platform, or escort agency. Any user who makes romantic advances, sexual propositions, requests for intimate favors, or asks for physical affection will be <strong>permanently banned immediately</strong> without refund, and reported to law enforcement where applicable.
+              Meetzy Club is not a dating service, hookup platform, or escort agency. Any user who makes romantic advances, sexual propositions, requests for intimate favors, or asks for physical affection will be <strong>permanently banned immediately</strong> without refund, and reported to law enforcement where applicable.
             </p>
           </div>
 
@@ -122,8 +122,8 @@ export default function CommunityGuidelinesPage() {
             </h2>
             <p className="font-body text-sm text-ink-soft leading-relaxed">
               If a host or member makes you feel uncomfortable or violates any guideline, end the meetup immediately and report them via the in-app SOS button or by emailing{' '}
-              <a href="mailto:safety@made4togethr.com" className="font-bold underline text-ink">
-                safety@made4togethr.com
+              <a href="mailto:safety@meetzy.club" className="font-bold underline text-ink">
+                safety@meetzy.club
               </a>
               . Our safety committee reviews all complaints within 15 minutes.
             </p>

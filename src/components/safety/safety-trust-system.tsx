@@ -49,7 +49,7 @@ const SAFEGUARDS: SafeguardItem[] = [
     color: '#34D399',
     iconPath:
       'M3 3l18 18 M10.6 6.1A10 10 0 0 1 12 6c6 0 10 6 10 6a17 17 0 0 1-3.2 3.9 M6.6 6.6A17 17 0 0 0 2 12s4 6 10 6a9.7 9.7 0 0 0 4-.9 M9.9 9.9a3 3 0 0 0 4.2 4.2',
-    body: "Your phone number, email, and full legal address are never displayed publicly. All coordination happens through Togethr's in-app communication channels to protect your personal privacy.",
+    body: "Your phone number, email, and full legal address are never displayed publicly. All coordination happens through Meetzy Club's in-app communication channels to protect your personal privacy.",
   },
 ];
 
@@ -61,7 +61,7 @@ const TIP_DATA = [
   {
     lead: 'Never accept off-platform payments.',
     detail:
-      'If a host or member asks you to pay via UPI directly outside Togethr, reject them immediately. Off-platform transactions void our escrow and safety protections.',
+      'If a host or member asks you to pay via UPI directly outside Meetzy Club, reject them immediately. Off-platform transactions void our escrow and safety protections.',
   },
   {
     lead: 'Trust your intuition.',
@@ -276,7 +276,7 @@ export function SafetyTrustSystem() {
           </h1>
 
           <p className="anim-rise-d2 m-0 max-w-[600px] text-base leading-relaxed text-[#4a4a4a] text-balance">
-            Togethr was designed from day one around safety, trust, and accountability. Every host,
+            Meetzy Club was designed from day one around safety, trust, and accountability. Every host,
             member, payment, and meetup is governed by strict, verified safeguards.
           </p>
         </div>
@@ -295,7 +295,7 @@ export function SafetyTrustSystem() {
             </div>
             <div className="text-sm leading-relaxed text-[#5a4545]">
               Our 24/7 Trust &amp; Safety Desk is monitored directly at{' '}
-              <b className="text-[#111]">safety@made4togethr.com</b> with priority incident response
+              <b className="text-[#111]">safety@meetzy.club</b> with priority incident response
               within 15 minutes.
             </div>
           </div>
@@ -308,11 +308,11 @@ export function SafetyTrustSystem() {
           </a>
         </div>
 
-        {/* THE TOGETHR TRUST SYSTEM: 6 TILES & DETAIL PANEL */}
+        {/* THE MEETZY CLUB TRUST SYSTEM: 6 TILES & DETAIL PANEL */}
         <div className="flex flex-col gap-5">
           <div className="flex flex-wrap gap-2 sm:gap-4 items-baseline justify-between">
             <h2 className="m-0 font-display font-extrabold text-[clamp(24px,4vw,32px)] text-[#111]">
-              The Togethr Trust System
+              The Meetzy Club Trust System
             </h2>
             <span className="text-sm font-medium text-[#555]">
               Tap any safeguard to see how it protects you
@@ -721,7 +721,7 @@ export function SafetyTrustSystem() {
                         <span className="tracking-widest text-[#555]">•••••••••••••</span>
                       </div>
                       <div className="bg-[#34D399] border-2 border-[#111] rounded-[12px] p-2 text-[13px] font-bold">
-                        Chat happens inside Togethr
+                        Chat happens inside Meetzy Club
                       </div>
                     </div>
                   )}

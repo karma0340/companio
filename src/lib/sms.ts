@@ -58,7 +58,7 @@ export async function sendSmsOtp(
         },
         body: JSON.stringify({
           route: "q",
-          message: `Your made4togethr verification code is ${otpCode}. Valid for 5 minutes.`,
+          message: `Your Meetzy Club verification code is ${otpCode}. Valid for 5 minutes.`,
           language: "english",
           flash: 0,
           numbers: tenDigit,
@@ -165,7 +165,7 @@ export async function sendSmsOtp(
       const bodyParams = new URLSearchParams({
         To: e164,
         From: fromNumber,
-        Body: `Your Togethr verification code is ${otpCode}. Valid for 5 minutes. Do not share this code with anyone.`,
+        Body: `Your Meetzy Club verification code is ${otpCode}. Valid for 5 minutes. Do not share this code with anyone.`,
       });
 
       const response = await fetch(

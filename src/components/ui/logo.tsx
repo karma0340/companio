@@ -10,31 +10,38 @@ interface LogoProps {
 }
 
 export function Logo({ size = 'md', className, href = '/' }: LogoProps) {
-  // Dimensions based on 1024x356 aspect ratio (~2.87:1)
+  // Dimensions based on 1024x341 aspect ratio (~3:1)
   const sizeMap = {
-    sm: { width: 115, height: 40 },
-    md: { width: 145, height: 50 },
-    lg: { width: 180, height: 63 },
-    xl: { width: 220, height: 77 },
+    sm: { width: 105, height: 35, maxHeight: 'max-h-[36px]' },
+    md: { width: 135, height: 45, maxHeight: 'max-h-[46px]' },
+    lg: { width: 175, height: 58, maxHeight: 'max-h-[58px]' },
+    xl: { width: 220, height: 73, maxHeight: 'max-h-[74px]' },
   };
 
-  const { width, height } = sizeMap[size];
+  const { width, height, maxHeight } = sizeMap[size];
 
   const content = (
     <div className={cn('relative inline-flex items-center select-none', className)}>
       <Image
         src="/logo.png"
-        alt="made4togethr"
+        alt="Meetzy Club"
         width={width}
         height={height}
         priority
-        className="h-auto w-auto object-contain max-h-[56px] transition-transform duration-200 hover:scale-105 mix-blend-multiply"
+        className={cn(
+          'h-auto w-auto object-contain transition-transform duration-200 hover:scale-105 mix-blend-multiply',
+          maxHeight
+        )}
       />
     </div>
   );
 
   if (href) {
-    return <Link href={href} aria-label="made4togethr home">{content}</Link>;
+    return (
+      <Link href={href} aria-label="Meetzy Club home">
+        {content}
+      </Link>
+    );
   }
 
   return content;
