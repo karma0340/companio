@@ -22,6 +22,7 @@ interface FilterBarProps {
   onSearchChange: (q: string) => void;
   onReset: () => void;
   totalCount: number;
+  cityCounts?: Record<string, number>;
 }
 
 export function FilterBar({
@@ -37,6 +38,7 @@ export function FilterBar({
   onSearchChange,
   onReset,
   totalCount,
+  cityCounts,
 }: FilterBarProps) {
   const hasActiveFilters =
     selectedCity !== 'all' ||
@@ -78,11 +80,14 @@ export function FilterBar({
             className="w-full rounded-xl border-brutal bg-white pl-10 pr-8 py-2.5 font-display text-xs sm:text-sm font-extrabold text-ink focus:outline-none focus:shadow-brutal appearance-none cursor-pointer"
           >
             <option value="all">All Cities Across India</option>
-            {CITIES.map((c) => (
-              <option key={c.slug} value={c.slug}>
-                {c.name} ({c.activeCount} verified hosts)
-              </option>
-            ))}
+            {CITIES.map((c) => {
+              const count = cityCounts ? (cityCounts[c.slug] ?? 0) : c.activeCount;
+              return (
+                <option key={c.slug} value={c.slug}>
+                  {c.name} ({count} verified hosts)
+                </option>
+              );
+            })}
           </select>
         </div>
       </div>

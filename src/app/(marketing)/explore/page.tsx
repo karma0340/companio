@@ -179,6 +179,16 @@ export default function ExplorePage() {
     });
   }, [companionsList, selectedCity, selectedActivity, freeTodayOnly, womenOnlyHosts, searchQuery]);
 
+  const cityCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const comp of companionsList) {
+      if (comp.city) {
+        counts[comp.city.toLowerCase()] = (counts[comp.city.toLowerCase()] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [companionsList]);
+
   const handleReset = () => {
     setSelectedCity('all');
     setSelectedActivity('all');
@@ -231,6 +241,7 @@ export default function ExplorePage() {
             onSearchChange={setSearchQuery}
             onReset={handleReset}
             totalCount={filteredCompanions.length}
+            cityCounts={cityCounts}
           />
 
           {/* Loading Indicator */}
