@@ -293,13 +293,16 @@ export default function BookPage({ params }: BookPageProps) {
         throw new Error(orderData.error || 'Failed to initialize payment gateway.');
       }
 
+      const orderAmountPaise = Number(orderData.amount || orderData.amountPaise) || Math.round(price.totalPayable * 100);
+      const rzpOrderId = String(orderData.orderId || '');
+
       await openRazorpayCheckout({
-        key: orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-        amount: orderData.amount,
+        key: orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_U1vu1rlfL1qiHG',
+        amount: orderAmountPaise,
         currency: orderData.currency || 'INR',
         name: 'Meetzy Club',
         description: `${companion.name} · ${duration} Hour Meetup`,
-        order_id: orderData.orderId,
+        order_id: rzpOrderId,
         prefill: {
           name: memberName.trim(),
           contact: `+91${cleanPhone}`,

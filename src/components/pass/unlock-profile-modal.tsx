@@ -94,11 +94,12 @@ export function UnlockProfileModal({
     setIsVerifyingOtp(true);
     try {
       const clean = phone.replace(/\D/g, '');
+      const cleanPhone = `+91${clean.slice(-10)}`;
       const res = await fetch('/api/auth/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: `+91${clean.slice(-10)}`,
+          phone: cleanPhone,
           code: otpCode,
           name: fullName.trim() || undefined,
         }),
@@ -108,7 +109,7 @@ export function UnlockProfileModal({
         await refreshSession();
         success('Mobile verified successfully.', 'Verified');
         // Continue directly to payment with the newly created session
-        await initiatePassPayment(`+91${clean.slice(-10)}`, data.user?.id);
+        await initiatePassPayment(cleanPhone, data.user?.id);
       } else {
         error(data.error || 'Verification failed. Please check code.', 'Invalid Code');
       }
@@ -127,7 +128,10 @@ export function UnlockProfileModal({
 
     setIsProcessingPayment(true);
     try {
-      const contactPhone = verifiedPhone || user?.phone || phone;
+      const cleanInputDigits = phone.replace(/\D/g, '').slice(-10);
+      const enteredPhone = cleanInputDigits.length === 10 ? `+91${cleanInputDigits}` : '';
+      const contactPhone = verifiedPhone || enteredPhone || user?.phone || '';
+      const contactName = fullName.trim() || user?.name || 'Member';
 
       // 1. Create order on server
       const orderRes = await fetch('/api/passes/create-order', {
@@ -136,6 +140,7 @@ export function UnlockProfileModal({
         body: JSON.stringify({
           tier: selectedTier,
           phone: contactPhone,
+          name: contactName,
           userId: verifiedUserId || user?.id,
         }),
       });
@@ -145,16 +150,21 @@ export function UnlockProfileModal({
         throw new Error(orderData.error || 'Failed to create pass order');
       }
 
+      const orderObj = orderData.order || orderData;
+      const orderAmount = Number(orderData.amount || orderObj?.amount) || Math.round(currentOption.price * 100);
+      const orderId = String(orderData.orderId || orderObj?.orderId || '');
+      const keyId = String(orderData.keyId || orderObj?.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_U1vu1rlfL1qiHG');
+
       // 2. Launch Razorpay Checkout Modal
       await openRazorpayCheckout({
-        key: orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-        amount: orderData.amount,
+        key: keyId,
+        amount: orderAmount,
         currency: 'INR',
         name: 'Meetzy Club',
         description: `${currentOption.name} Access Pass`,
-        order_id: orderData.orderId,
+        order_id: orderId,
         prefill: {
-          name: user?.name || fullName || 'Member',
+          name: contactName,
           contact: contactPhone,
         },
         theme: {
@@ -166,11 +176,12 @@ export function UnlockProfileModal({
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                orderId: paymentResponse.razorpay_order_id || orderData.orderId,
+                orderId: paymentResponse.razorpay_order_id || orderId,
                 paymentId: paymentResponse.razorpay_payment_id,
                 signature: paymentResponse.razorpay_signature,
                 tier: selectedTier,
                 phone: contactPhone,
+                name: contactName,
               }),
             });
 
@@ -368,53 +379,79 @@ export function UnlockProfileModal({
           </label>
         </div>
 
-        {/* Guest Mobile OTP Section (Only if not authenticated) */}
-        {!isAuthenticated && (
+        {/* Member Details or Guest Mobile OTP Section */}
+        {isAuthenticated ? (
+          <div className="mt-4 rounded-2xl border-2 border-ink bg-paper p-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-full border-2 border-ink bg-lime flex items-center justify-center font-black text-xs text-ink shadow-brutal-xs">
+                {user?.name?.[0]?.toUpperCase() || 'M'}
+              </div>
+              <div>
+                <div className="text-xs font-black text-ink">{user?.name || 'Verified Member'}</div>
+                <div className="text-[11px] font-mono font-bold text-ink-muted">{user?.phone || 'Logged in'}</div>
+              </div>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-wider bg-ink text-white px-2.5 py-1 rounded-lg">
+              Active Member
+            </span>
+          </div>
+        ) : (
           <div className="mt-4 rounded-2xl border-2 border-ink bg-white p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-ink" />
               <span className="text-xs font-black uppercase text-ink">
-                Step 1: Verify Mobile Number (+91)
+                Step 1: Your Details (+91)
               </span>
             </div>
 
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs font-black text-ink-muted">
-                  +91
-                </span>
-                <input
-                  type="tel"
-                  maxLength={10}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="98765 43210"
-                  disabled={otpSent}
-                  className="w-full rounded-xl border-2 border-ink bg-paper pl-11 pr-3 py-2 font-mono text-sm font-bold text-ink focus:outline-none focus:bg-white"
-                />
-              </div>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Your Full Name (e.g. Rahul Sharma)"
+                disabled={otpSent}
+                className="w-full rounded-xl border-2 border-ink bg-paper px-3 py-2 font-display text-xs font-bold text-ink focus:outline-none focus:bg-white"
+              />
 
-              {!otpSent ? (
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={isSendingOtp}
-                  className="rounded-xl border-2 border-ink bg-sunny px-3.5 py-2 font-display text-xs font-black text-ink shadow-brutal-xs hover:bg-sunny-soft transition cursor-pointer shrink-0 disabled:opacity-50"
-                >
-                  {isSendingOtp ? 'Sending...' : 'Send OTP'}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOtpSent(false);
-                    setOtpCode('');
-                  }}
-                  className="rounded-xl border border-ink/30 bg-paper px-2.5 py-2 text-[11px] font-bold text-ink-muted hover:text-ink cursor-pointer shrink-0"
-                >
-                  Change
-                </button>
-              )}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs font-black text-ink-muted">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="98765 43210"
+                    disabled={otpSent}
+                    className="w-full rounded-xl border-2 border-ink bg-paper pl-11 pr-3 py-2 font-mono text-sm font-bold text-ink focus:outline-none focus:bg-white"
+                  />
+                </div>
+
+                {!otpSent ? (
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={isSendingOtp}
+                    className="rounded-xl border-2 border-ink bg-sunny px-3.5 py-2 font-display text-xs font-black text-ink shadow-brutal-xs hover:bg-sunny-soft transition cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    {isSendingOtp ? 'Sending...' : 'Send OTP'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpSent(false);
+                      setOtpCode('');
+                    }}
+                    className="rounded-xl border border-ink/30 bg-paper px-2.5 py-2 text-[11px] font-bold text-ink-muted hover:text-ink cursor-pointer shrink-0"
+                  >
+                    Change
+                  </button>
+                )}
+              </div>
             </div>
 
             {otpSent && (
@@ -428,23 +465,14 @@ export function UnlockProfileModal({
                   <span className="underline text-[10px] uppercase font-black">Fill Code</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="6-digit OTP"
-                    className="w-full rounded-xl border-2 border-ink bg-paper px-3 py-2 font-mono text-sm font-bold tracking-widest text-ink focus:outline-none focus:bg-white text-center"
-                  />
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Your Full Name"
-                    className="w-full rounded-xl border-2 border-ink bg-paper px-3 py-2 font-display text-xs font-bold text-ink focus:outline-none focus:bg-white"
-                  />
-                </div>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Enter 6-digit OTP"
+                  className="w-full rounded-xl border-2 border-ink bg-paper px-3 py-2 font-mono text-sm font-bold tracking-widest text-ink focus:outline-none focus:bg-white text-center"
+                />
               </div>
             )}
           </div>

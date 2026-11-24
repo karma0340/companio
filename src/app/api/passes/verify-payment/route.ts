@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     const signature = body.signature ? String(body.signature).trim() : undefined;
     const tier = (body.tier as PassTier) || "ONE_MONTH";
     const phoneInput = body.phone ? String(body.phone).trim() : null;
+    const guestName = body.name ? String(body.name).trim() : null;
 
     // Cryptographic signature check
     const verification = verifyRazorpaySignature(orderId, paymentId, signature);
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     const session = await getSession();
     let userId = session?.userId;
-    let userPhone = session?.phone || (!isEmailInput && rawIdentifier ? rawIdentifier : "+919999999901");
+    let userPhone = phoneInput || session?.phone || (!isEmailInput && rawIdentifier ? rawIdentifier : "+919999999901");
     let userEmail = session?.email || (isEmailInput ? rawIdentifier.toLowerCase() : null);
 
     // Calculate expiry date
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
             activePassTier: tier as any,
             passExpiresAt: expiryDate,
             ...(userEmail ? { email: userEmail } : {}),
+            ...(guestName ? { name: guestName } : {}),
           },
         });
       } else if (isEmailInput) {
@@ -63,11 +65,12 @@ export async function POST(req: NextRequest) {
             isUnlocked: true,
             activePassTier: tier as any,
             passExpiresAt: expiryDate,
+            ...(guestName ? { name: guestName } : {}),
           },
           create: {
             email: cleanEmail,
             phone: dummyPhone,
-            name: "Member",
+            name: guestName || "Member",
             role: "MEMBER",
             isUnlocked: true,
             activePassTier: tier as any,
@@ -86,10 +89,11 @@ export async function POST(req: NextRequest) {
             isUnlocked: true,
             activePassTier: tier as any,
             passExpiresAt: expiryDate,
+            ...(guestName ? { name: guestName } : {}),
           },
           create: {
             phone: normalized,
-            name: "Member",
+            name: guestName || "Member",
             role: "MEMBER",
             isUnlocked: true,
             activePassTier: tier as any,
@@ -136,6 +140,7 @@ export async function POST(req: NextRequest) {
       userId: userId!,
       phone: userPhone,
       email: userEmail,
+      name: guestName || session?.name || "Member",
       role: "MEMBER",
       isUnlocked: true,
       activePassTier: tier,
