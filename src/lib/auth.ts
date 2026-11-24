@@ -18,6 +18,8 @@ export interface UserTokenPayload {
   email?: string | null;
   name?: string | null;
   role: "MEMBER" | "COMPANION" | "ADMIN";
+  activeRole?: "member" | "host" | "admin";
+  avatarUrl?: string | null;
   isUnlocked: boolean;
   activePassTier?: string | null;
   passExpiresAt?: string | null;

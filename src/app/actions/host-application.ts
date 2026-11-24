@@ -58,6 +58,7 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         blurredAvatarUrl = avatarRes.blurredAvatarUrl;
       } catch (uploadErr) {
         console.error('[CLOUDINARY AVATAR UPLOAD ERROR]:', uploadErr);
+        avatarUrl = input.avatarImage;
       }
     } else if (input.avatarImage && input.avatarImage.startsWith('http')) {
       avatarUrl = input.avatarImage;
@@ -215,9 +216,11 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         userId: user.id,
         phone: user.phone,
         email: user.email || null,
-        name: user.name || cleanDisplayName,
+        name: cleanDisplayName,
         role: 'COMPANION',
-        isUnlocked: user.isUnlocked,
+        activeRole: 'host',
+        avatarUrl,
+        isUnlocked: true,
         activePassTier: user.activePassTier,
         passExpiresAt: user.passExpiresAt ? user.passExpiresAt.toISOString() : null,
       });

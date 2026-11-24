@@ -23,6 +23,7 @@ export async function GET() {
       creditBalance: 100,
       referralCode: null as string | null,
       name: session.name || "Member",
+      avatarUrl: null as string | null,
     };
 
     let hostProfile: any = null;
@@ -72,6 +73,7 @@ export async function GET() {
           creditBalance: Number(dbUser.creditBalance ?? 100),
           referralCode: dbUser.referralCode,
           name: dbUser.name || "Member",
+          avatarUrl: dbUser.companion?.avatarUrl || null,
         };
 
         if (dbUser.companion) {
@@ -124,6 +126,7 @@ export async function GET() {
             locality: hostApp.locality || 'Indiranagar',
             travelRadiusKm: hostApp.travelRadiusKm || 10,
             hourlyRate: Number(hostApp.hourlyRate || 399),
+            avatarUrl: hostApp.selfieVideoUrl || null,
             verificationStatus: hostApp.screeningStatus.toLowerCase() === "approved" ? "approved" : "pending",
             isFreeToday: false,
             photoVerified: Boolean(hostApp.faceMatchScore && hostApp.faceMatchScore >= 80),
