@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getRazorpayKeyId, isRazorpayConfigured } from '@/lib/razorpay';
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,13 +20,13 @@ export async function POST(req: NextRequest) {
     const totalPayable = hostSubtotal + connectionFee + gst;
     const amountPaise = totalPayable * 100;
 
-    const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_U1vu1rlfL1qiHG';
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const keyId = getRazorpayKeyId();
+    const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
 
     let orderId = `order_rzp_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // If a valid live or test secret is provided, call the Razorpay Orders API
-    if (keySecret && !keySecret.includes('placeholder')) {
+    // If valid live or test keys are configured, call the Razorpay Orders API
+    if (isRazorpayConfigured() && keySecret) {
       try {
         const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
         const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
