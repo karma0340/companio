@@ -33,6 +33,7 @@ export interface CompanionSummary {
   spokenLanguages: string[];
   acceptedActivities: string[];
   isAvailable: boolean;
+  gender?: 'female' | 'male';
   isPreview?: boolean;
 }
 

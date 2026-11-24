@@ -73,7 +73,7 @@ export function TopRatedCarousel({ companions: initialCompanions }: TopRatedCaro
             id: c.id,
             name: c.displayName || c.name,
             age: 24,
-            gender: 'female' as const,
+            gender: (c.gender === 'male' ? 'male' : 'female') as const,
             city: c.citySlug,
             area: c.city,
             tagline: c.shortBio || 'Verified local companion',

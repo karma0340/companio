@@ -249,6 +249,7 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
       where,
       include: {
         city: true,
+        user: { select: { gender: true } },
         reviewsReceived: {
           include: { member: true },
           take: 5,
@@ -276,6 +277,7 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
         bio: c.bio,
         shortBio: c.shortBio,
         isAvailable: c.isAvailable,
+        gender: (c.user?.gender as 'female' | 'male') || (['aarav', 'kabir', 'rohan', 'aditya', 'vikram'].some(m => c.id.includes(m)) ? 'male' : 'female'),
       }));
 
       if (activitySlug && activitySlug !== 'all') {
@@ -367,6 +369,7 @@ export async function getCompanionById(id: string) {
       },
       include: {
         city: true,
+        user: { select: { gender: true } },
         reviewsReceived: {
           include: { member: true },
           orderBy: { createdAt: 'desc' },
@@ -382,7 +385,7 @@ export async function getCompanionById(id: string) {
         displayName: c.displayName,
         maskedName: c.maskedName,
         age: 24,
-        gender: 'female' as const,
+        gender: ((c.user?.gender as 'female' | 'male') || (['aarav', 'kabir', 'rohan', 'aditya', 'vikram'].some(m => c.id.includes(m)) ? 'male' : 'female')) as 'female' | 'male',
         city: c.city.slug,
         area: `${c.city.name} Central`,
         tagline: c.shortBio,
