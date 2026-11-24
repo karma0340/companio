@@ -29,7 +29,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center gap-2 border-brutal shadow-brutal font-display tracking-tight cursor-pointer select-none btn-press disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none',
+          'inline-flex items-center justify-center gap-2 border-brutal shadow-brutal font-display tracking-tight cursor-pointer select-none btn-press disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none disabled:hover:shadow-none disabled:hover:bg-inherit',
           variantClasses[variant],
           sizeClasses[size],
           fullWidth && 'w-full',

@@ -78,6 +78,7 @@ export default function HostKYCPage() {
   const legalName = watch('fullName');
   const dob = watch('dob');
   const upiId = watch('upiId');
+  const isUpiValid = Boolean(upiId && upiId.trim().length >= 5 && upiId.includes('@'));
 
   // Handle Aadhaar typing with strict 12-digit number-only restriction & auto-spacing
   const handleAadhaarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -549,11 +550,17 @@ export default function HostKYCPage() {
                       ← Back
                     </button>
 
+                    {!isUpiValid && upiId && upiId.trim().length > 0 && (
+                      <span className="text-[11px] font-bold text-amber-700 block">
+                        Please enter a valid handle with &apos;@&apos; (e.g. mobile@okaxis or name@upi).
+                      </span>
+                    )}
+
                     <Button
                       type="submit"
                       variant="primary"
                       size="md"
-                      disabled={isSubmitting || !upiId.trim()}
+                      disabled={isSubmitting || !isUpiValid}
                     >
                       {isSubmitting ? 'Submitting Details...' : 'Complete Verification →'}
                     </Button>

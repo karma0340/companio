@@ -76,7 +76,7 @@ export default function ProfilePage() {
     }
   }, [isAuthenticated]);
 
-  const { register, handleSubmit, reset } = useForm<ProfileFormValues>({
+  const { register, handleSubmit, reset, watch } = useForm<ProfileFormValues>({
     defaultValues: {
       fullName: memberProfile?.fullName || '',
       city: memberProfile?.city || 'bengaluru',
@@ -85,6 +85,9 @@ export default function ProfilePage() {
       emergencyContact: memberProfile?.emergencyContact || '',
     },
   });
+
+  const editedFullName = watch('fullName');
+  const isProfileValid = Boolean(editedFullName && editedFullName.trim().length >= 2);
 
   // Sync form values when memberProfile loads
   useEffect(() => {
@@ -418,7 +421,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="pt-2 flex gap-3">
-                  <Button type="submit" variant="primary" size="md" disabled={submitting}>
+                  <Button type="submit" variant="primary" size="md" disabled={submitting || !isProfileValid}>
                     <Save className="h-4 w-4" />
                     <span>{submitting ? 'Saving...' : 'Save Profile'}</span>
                   </Button>

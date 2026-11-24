@@ -68,6 +68,11 @@ export default function MemberOnboardingPage() {
   }, [setValue]);
 
   const currentCity = watch('city');
+  const fullName = watch('fullName');
+  const emergencyContact = watch('emergencyContact');
+  const isNameValid = Boolean(fullName && fullName.trim().length >= 2);
+  const isEmergencyValid = !emergencyContact || emergencyContact.trim().length === 0 || emergencyContact.replace(/\D/g, '').length === 10;
+  const canSubmit = isNameValid && isEmergencyValid;
 
   const handleGenderSelect = (gender: 'female' | 'male') => {
     setSelectedGender(gender);
@@ -431,12 +436,22 @@ export default function MemberOnboardingPage() {
               </span>
             </div>
 
+            {!canSubmit && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-900 animate-in fade-in">
+                {!isNameValid ? (
+                  <span>Please enter your full name (at least 2 characters) to enable completion.</span>
+                ) : (
+                  <span>Emergency contact number must be exactly 10 digits.</span>
+                )}
+              </div>
+            )}
+
             <Button
               type="submit"
               variant="primary"
               size="lg"
               fullWidth
-              disabled={submitting}
+              disabled={submitting || !canSubmit}
             >
               {submitting ? 'Saving Profile...' : 'Complete Profile & Explore Companions →'}
             </Button>

@@ -603,12 +603,18 @@ function LoginContent() {
                 )}
               </div>
 
+              {phone.length > 0 && phone.length < 10 && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">
+                  <span>Enter {10 - phone.length} more digit{10 - phone.length === 1 ? '' : 's'} to receive SMS code.</span>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 variant={intent === 'host' ? 'sunny' : 'primary'}
                 size="lg"
                 fullWidth
-                disabled={loading || (phone.length > 0 && !phoneValidation.isValid)}
+                disabled={loading || phone.length !== 10 || !phoneValidation.isValid}
               >
                 {loading
                   ? 'Dispatching Code...'

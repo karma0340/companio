@@ -73,7 +73,14 @@ export function Footer() {
               Cities
             </h4>
             <ul className="space-y-2 font-display text-xs font-bold text-ink-soft">
-              {CITIES.map((c) => (
+              {[
+                { slug: 'mumbai', name: 'Mumbai' },
+                { slug: 'delhi', name: 'Delhi NCR' },
+                { slug: 'bengaluru', name: 'Bengaluru' },
+                { slug: 'chandigarh', name: 'Chandigarh' },
+                { slug: 'pune', name: 'Pune' },
+                { slug: 'hyderabad', name: 'Hyderabad' },
+              ].map((c) => (
                 <li key={c.slug}>
                   <Link
                     href={`/${c.slug}/companions`}

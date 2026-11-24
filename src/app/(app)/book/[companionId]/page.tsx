@@ -18,6 +18,7 @@ import {
   Sparkles,
   Coins,
   CreditCard,
+  AlertTriangle,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
@@ -140,10 +141,28 @@ function BookPageContent({ params }: BookPageProps) {
     }
   }, [user, memberProfile, setValue]);
 
+  const memberName = watch('memberName');
   const meetingPoint = watch('meetingPoint');
   const agreedToPlatonic = watch('agreedToPlatonic');
 
   const price = calculatePrice(companion.hourlyRate, duration);
+
+  const isNameValid = Boolean(memberName && memberName.trim().length >= 2);
+  const isPhoneValid = phoneRaw.length === 10;
+  const isMeetingPointValid = Boolean(meetingPoint && meetingPoint.trim().length >= 3);
+  const isActivityValid = Boolean(selectedActivity);
+  const isAgreementValid = Boolean(agreedToPlatonic);
+  const isWalletSufficient = paymentMethod !== 'WALLET' || (user?.coinBalance ?? 100) >= price.totalPayable;
+
+  const isFormValid = isNameValid && isPhoneValid && isMeetingPointValid && isActivityValid && isAgreementValid && isWalletSufficient;
+
+  const missingRequirements: string[] = [];
+  if (!isNameValid) missingRequirements.push('Your name (at least 2 characters)');
+  if (!isPhoneValid) missingRequirements.push(`10-digit mobile number (${phoneRaw.length}/10 entered)`);
+  if (!isActivityValid) missingRequirements.push('Select an activity');
+  if (!isMeetingPointValid) missingRequirements.push('Public meeting venue/location');
+  if (!isWalletSufficient) missingRequirements.push(`Insufficient coin balance (need ${price.totalPayable - (user?.coinBalance ?? 100)} more coins or switch to UPI & Cards)`);
+  if (!isAgreementValid) missingRequirements.push('Check the 100% platonic meetup agreement box');
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -677,12 +696,27 @@ function BookPageContent({ params }: BookPageProps) {
                   </label>
                 </div>
 
+                {/* Real-time Missing Requirements Banner */}
+                {!isFormValid && (
+                  <div className="rounded-2xl border-2 border-amber-500 bg-amber-50 p-4 shadow-brutal-xs space-y-2 animate-in fade-in">
+                    <div className="flex items-center gap-2 text-amber-900 font-display text-xs font-black uppercase">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                      <span>Action required to enable booking:</span>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 font-body text-xs font-bold text-amber-900/90 pl-1">
+                      {missingRequirements.map((item, idx) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   variant="primary"
                   size="lg"
                   fullWidth
-                  disabled={isSubmitting || (paymentMethod === 'WALLET' && (user?.coinBalance ?? 100) < price.totalPayable)}
+                  disabled={!isFormValid || isSubmitting}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center justify-center gap-2">

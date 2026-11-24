@@ -22,6 +22,18 @@ export default function ContactPage() {
     { id: "general", label: "General Inquiry", icon: HelpCircle },
   ];
 
+  const isNameValid = form.name.trim().length >= 2;
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
+  const isMessageValid = form.message.trim().length >= 10;
+  const isPhoneValid = !form.phone || form.phone.trim().length === 0 || form.phone.replace(/\D/g, '').length === 10;
+  const isFormValid = isNameValid && isEmailValid && isMessageValid && isPhoneValid;
+
+  const missingFields: string[] = [];
+  if (!isNameValid) missingFields.push("Your full name (min 2 characters)");
+  if (!isEmailValid) missingFields.push("A valid email address (e.g. you@domain.com)");
+  if (!isMessageValid) missingFields.push(`Message details (${form.message.trim().length}/10 chars minimum)`);
+  if (!isPhoneValid) missingFields.push("10-digit mobile number");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -189,10 +201,23 @@ export default function ContactPage() {
                     />
                   </div>
 
+                  {!isFormValid && (
+                    <div className="border border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-900 space-y-1">
+                      <span className="block font-black uppercase text-[11px] text-amber-800">
+                        Please complete required fields to enable submit:
+                      </span>
+                      <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                        {missingFields.map((f, i) => (
+                          <li key={i}>{f}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="w-full border-2 border-ink bg-ink py-3.5 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-50 flex items-center justify-center gap-2"
+                    disabled={loading || !isFormValid}
+                    className="w-full border-2 border-ink bg-ink py-3.5 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer transition-all"
                   >
                     <Send className="h-4 w-4" />
                     <span>{loading ? "Submitting Ticket..." : "Submit Support Ticket"}</span>
@@ -211,7 +236,7 @@ export default function ContactPage() {
                 <div className="text-xs font-bold text-ink/80 space-y-1">
                   <p>Officer: Mohit Tyagi</p>
                   <p>Designation: Grievance Redressal Officer</p>
-                  <p>Email: <a href="mailto:grievance@companio.in" className="underline">grievance@companio.in</a></p>
+                  <p>Email: <a href="mailto:support@meetzy.club" className="underline">support@meetzy.club</a></p>
                   <p>Response SLA: Within 24-48 hours</p>
                 </div>
               </div>
