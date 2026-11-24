@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, use, Suspense, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { notFound, useSearchParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ShieldCheck,
   MapPin,
@@ -13,12 +12,16 @@ import {
   Clock,
   CheckCircle2,
   Lock,
-  KeyRound,
-  RotateCcw,
   Sparkles,
+  ArrowRight,
+  Sun,
+  Sunset,
+  Sunrise,
+  Check,
+  X,
+  Loader2,
   Coins,
   CreditCard,
-  AlertTriangle,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
@@ -34,52 +37,122 @@ import { useAuth } from '@/context/auth-context';
 import { openRazorpayCheckout } from '@/lib/payments/razorpay';
 
 interface BookPageProps {
-  params: { companionId: string; }
+  params: { companionId: string };
 }
 
-interface BookingFormData {
-  memberName: string;
-  memberPhone: string;
-  meetingPoint: string;
-  note: string;
-  agreedToPlatonic: boolean;
-}
+// Quick venue recommendations mapped by city slug
+const CITY_QUICK_VENUES: Record<string, string[]> = {
+  chandigarh: [
+    'Third Wave Coffee, Sector 35',
+    'Sector 17 Plaza Fountain',
+    'Blue Tokai Coffee, Sector 8',
+    'Elante Mall Central Courtyard',
+    'Sukhna Lake Waterfront Promenade',
+  ],
+  bengaluru: [
+    'Third Wave Coffee, 12th Main Indiranagar',
+    'Blue Tokai, 5th Block Koramangala',
+    'Starbucks, Church Street',
+    'UB City Piazza Promenade',
+    'Cubbon Park Metro Cafe Plaza',
+  ],
+  mumbai: [
+    'Third Wave Coffee, Khar West',
+    'Blue Tokai, Bandra Pali Hill',
+    'Subko Coffee, Bandra',
+    'Marine Drive Promenade, Churchgate',
+    'Phoenix Palladium Courtyard, Lower Parel',
+  ],
+  delhi: [
+    'Blue Tokai, Khan Market',
+    'Starbucks, Connaught Place Inner Circle',
+    'Third Wave Coffee, GK2 M-Block',
+    'Sunder Nursery Promenade',
+    'Cyber Hub Courtyard, Gurgaon',
+  ],
+  default: [
+    'Third Wave Coffee Roasters',
+    'Blue Tokai Coffee Roasters',
+    'City Centre Mall Open Promenade',
+    'Main Market Artisan Cafe',
+  ],
+};
 
-function BookPageContent({ params }: BookPageProps) {
+export default function BookPage({ params }: BookPageProps) {
   const companionId = params.companionId;
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const initialHours = parseInt(searchParams.get('hours') || '1', 10);
   const toast = useToast();
   const { user, memberProfile, isAuthenticated, refreshSession } = useAuth();
-  const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'RAZORPAY'>('RAZORPAY');
 
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [companion, setCompanion] = useState<Companion>({
     id: companionId,
-    name: 'Verified Host',
+    name: 'Verified Companion',
     age: 24,
     gender: 'female' as const,
-    city: 'bengaluru',
-    area: 'Central',
+    city: 'chandigarh',
+    area: 'Central Plaza',
     tagline: 'Verified Meetzy Club Host',
-    about: 'Experienced companion for city meetups.',
+    about: 'Warm, articulate, and engaging companion for pleasant public meetups.',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
     languages: ['English', 'Hindi'],
     hourlyRate: 499,
     verifiedId: true,
     verifiedPhoto: true,
     rating: 5.0,
-    reviewCount: 12,
-    meetupsCount: 8,
-    activities: ['coffee-chat' as ActivityCategory, 'walk-and-talk' as ActivityCategory],
+    reviewCount: 15,
+    meetupsCount: 12,
+    activities: ['coffee-chat' as ActivityCategory, 'city-guide' as ActivityCategory, 'walk-and-talk' as ActivityCategory],
     isFreeToday: true,
     acceptsWomenOnly: false,
     memberSince: '2026',
-    availability: [
-      { days: 'Mon — Fri', hours: '18:00 – 21:00' },
-      { days: 'Sat — Sun', hours: '11:00 – 20:00' },
-    ],
+    availability: [],
     reviews: [],
   });
+
+  // Step 1: Activity
+  const [selectedActivity, setSelectedActivity] = useState<ActivityCategory>('coffee-chat');
+
+  // Step 2: Date (7 upcoming dates)
+  const availableDates = useMemo(() => {
+    const list = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const isToday = i === 0;
+      const isTomorrow = i === 1;
+      const dayName = isToday
+        ? 'Today'
+        : isTomorrow
+        ? 'Tomorrow'
+        : d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dateStr = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      const iso = d.toISOString().split('T')[0];
+      list.push({ label: dayName, dateStr, iso });
+    }
+    return list;
+  }, []);
+  const [selectedDateIso, setSelectedDateIso] = useState<string>(availableDates[0].iso);
+
+  // Step 3: Time Slot & Duration
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<'morning' | 'afternoon' | 'evening'>('afternoon');
+  const [duration, setDuration] = useState<number>(1);
+
+  // Step 4: Location
+  const [meetingPlace, setMeetingPlace] = useState<string>('');
+
+  // Step 5: User & Payment Details
+  const [memberName, setMemberName] = useState<string>('');
+  const [memberPhone, setMemberPhone] = useState<string>('');
+  const [agreedPlatonic, setAgreedPlatonic] = useState<boolean>(true);
+  const [paymentMethod, setPaymentMethod] = useState<'RAZORPAY' | 'WALLET'>('RAZORPAY');
+
+  // Booking states
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [bookingSuccess, setBookingSuccess] = useState<boolean>(false);
+  const [confirmedBookingId, setConfirmedBookingId] = useState<string>('');
+  const [startCode, setStartCode] = useState<string>('');
 
   useEffect(() => {
     fetch(`/api/companions/${companionId}`)
@@ -92,122 +165,83 @@ function BookPageContent({ params }: BookPageProps) {
           }
         }
       })
-      .catch((err) => console.error('Failed to load companion for booking:', err));
+      .catch((err) => console.error('Failed to load companion details:', err));
   }, [companionId]);
 
-  // Booking Form State
-  const [selectedActivity, setSelectedActivity] = useState<ActivityCategory>(
-    'coffee-chat'
-  );
-  const [date, setDate] = useState<string>(
-    new Date(Date.now() + 86400000).toISOString().split('T')[0]
-  );
-  const [time, setTime] = useState<string>('16:00');
-  const [duration, setDuration] = useState<number>(
-    initialHours >= 1 && initialHours <= 4 ? initialHours : 1
-  );
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [bookingSuccess, setBookingSuccess] = useState<boolean>(false);
-  const [startCode, setStartCode] = useState<string>('');
-  const [confirmedBookingId, setConfirmedBookingId] = useState<string>('');
-  const [phoneRaw, setPhoneRaw] = useState<string>('');
-
-  const { register, handleSubmit, setValue, watch, reset } = useForm<BookingFormData>({
-    defaultValues: {
-      memberName: '',
-      memberPhone: '',
-      meetingPoint: '',
-      note: '',
-      agreedToPlatonic: false,
-    },
-  });
-
-  // Pre-fill user data dynamically from Zustand authenticated session
   useEffect(() => {
     if (user || memberProfile) {
-      const cleanPhone = user?.phone ? user.phone.replace(/\D/g, '').slice(-10) : '';
-      const name =
-        memberProfile?.fullName && memberProfile.fullName !== 'Meetzy Club Member'
-          ? memberProfile.fullName
-          : '';
-
-      if (name) {
-        setValue('memberName', name);
+      if (memberProfile?.fullName && memberProfile.fullName !== 'Meetzy Club Member') {
+        setMemberName(memberProfile.fullName);
+      } else if (user?.name && user.name !== 'Member') {
+        setMemberName(user.name);
       }
-      if (cleanPhone) {
-        setPhoneRaw(cleanPhone);
-        setValue('memberPhone', cleanPhone);
+      if (user?.phone) {
+        setMemberPhone(user.phone.replace(/\D/g, '').slice(-10));
       }
     }
-  }, [user, memberProfile, setValue]);
+  }, [user, memberProfile]);
 
-  const memberName = watch('memberName');
-  const meetingPoint = watch('meetingPoint');
-  const agreedToPlatonic = watch('agreedToPlatonic');
+  const activeCityKey = companion.city?.toLowerCase() || 'default';
+  const quickVenues = CITY_QUICK_VENUES[activeCityKey] || CITY_QUICK_VENUES.default;
 
-  const price = calculatePrice(companion.hourlyRate, duration);
+  // Selected date object
+  const activeDateObj = availableDates.find((d) => d.iso === selectedDateIso) || availableDates[0];
 
-  const isNameValid = Boolean(memberName && memberName.trim().length >= 2);
-  const isPhoneValid = phoneRaw.length === 10;
-  const isMeetingPointValid = Boolean(meetingPoint && meetingPoint.trim().length >= 3);
-  const isActivityValid = Boolean(selectedActivity);
-  const isAgreementValid = Boolean(agreedToPlatonic);
-  const isWalletSufficient = paymentMethod !== 'WALLET' || (user?.coinBalance ?? 100) >= price.totalPayable;
-
-  const isFormValid = isNameValid && isPhoneValid && isMeetingPointValid && isActivityValid && isAgreementValid && isWalletSufficient;
-
-  const missingRequirements: string[] = [];
-  if (!isNameValid) missingRequirements.push('Your name (at least 2 characters)');
-  if (!isPhoneValid) missingRequirements.push(`10-digit mobile number (${phoneRaw.length}/10 entered)`);
-  if (!isActivityValid) missingRequirements.push('Select an activity');
-  if (!isMeetingPointValid) missingRequirements.push('Public meeting venue/location');
-  if (!isWalletSufficient) missingRequirements.push(`Insufficient coin balance (need ${price.totalPayable - (user?.coinBalance ?? 100)} more coins or switch to UPI & Cards)`);
-  if (!isAgreementValid) missingRequirements.push('Check the 100% platonic meetup agreement box');
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
-    setPhoneRaw(digitsOnly);
-    setValue('memberPhone', digitsOnly);
+  // Time slot labels
+  const timeSlotMap = {
+    morning: { label: 'Morning', hours: '7–10 AM', icon: Sunrise },
+    afternoon: { label: 'Afternoon', hours: '12–3 PM', icon: Sun },
+    evening: { label: 'Evening', hours: '5–8 PM', icon: Sunset },
   };
 
-  const onBookingSubmit = async (data: BookingFormData) => {
-    if (!data.memberName || data.memberName.trim().length < 2) {
-      toast.error('Please enter your name so your companion knows who they are meeting.', 'Name Required');
+  const selectedTimeLabel = `${timeSlotMap[selectedTimeSlot].label} (${timeSlotMap[selectedTimeSlot].hours})`;
+  const price = calculatePrice(companion.hourlyRate, duration);
+
+  const handleNextStep = () => {
+    if (step === 1) {
+      setStep(2);
+    } else if (step === 2) {
+      setStep(3);
+    } else if (step === 3) {
+      setStep(4);
+    } else if (step === 4) {
+      if (!meetingPlace.trim() || meetingPlace.trim().length < 3) {
+        toast.error('Please pick or type a public venue.', 'Venue Required');
+        return;
+      }
+      setStep(5);
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (step > 1) {
+      setStep((prev) => (prev - 1) as any);
+    }
+  };
+
+  const handleFinalBookingAndPayment = async () => {
+    if (!memberName.trim() || memberName.trim().length < 2) {
+      toast.error('Please provide your name so your companion knows who they are meeting.', 'Name Required');
       return;
     }
-
-    if (phoneRaw.length !== 10) {
-      toast.error(
-        `Please enter a valid 10-digit Indian phone number. You entered ${phoneRaw.length} digit${phoneRaw.length === 1 ? '' : 's'}.`,
-        '10-Digit Mobile Required'
-      );
+    const cleanPhone = memberPhone.replace(/\D/g, '').slice(-10);
+    if (cleanPhone.length !== 10) {
+      toast.error('Please enter a valid 10-digit Indian phone number.', 'Phone Required');
       return;
     }
-
-    if (!data.meetingPoint || data.meetingPoint.trim().length < 3) {
-      toast.error(
-        'Please specify a public meeting location (e.g. coffee shop, mall gate, gym lobby).',
-        'Public Venue Required'
-      );
-      return;
-    }
-
-    if (!data.agreedToPlatonic) {
-      toast.error(
-        'Please check the box confirming this meetup is 100% platonic to continue.',
-        'Safety Confirmation Required'
-      );
+    if (!agreedPlatonic) {
+      toast.error('You must agree to the strictly platonic public rules to proceed.', 'Agreement Required');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // 1. Process Wallet Coins payment if selected
+      // 1. If paying with Wallet Coins
       if (paymentMethod === 'WALLET') {
         const userCoins = user?.coinBalance ?? 0;
         if (userCoins < price.totalPayable) {
           toast.error(
-            `Insufficient coins. You have ${userCoins} coins, but ${price.totalPayable} coins are needed.`,
+            `Insufficient coins. You have ${userCoins} coins, but ₹${price.totalPayable} is required.`,
             'Insufficient Coins'
           );
           setIsSubmitting(false);
@@ -217,14 +251,13 @@ function BookPageContent({ params }: BookPageProps) {
         const res = await createBookingAction({
           companionId: companion.id,
           memberId: user?.id,
-          memberName: data.memberName.trim(),
-          memberPhone: `+91 ${phoneRaw}`,
+          memberName: memberName.trim(),
+          memberPhone: `+91 ${cleanPhone}`,
           activitySlug: selectedActivity,
-          date,
-          startTime: `${time} IST`,
+          date: selectedDateIso,
+          startTime: selectedTimeLabel,
           durationHours: duration,
-          meetingPoint: data.meetingPoint.trim(),
-          note: data.note.trim() || undefined,
+          meetingPoint: meetingPlace.trim(),
           hourlyRate: companion.hourlyRate,
           paymentMethod: 'WALLET',
         });
@@ -234,13 +267,10 @@ function BookPageContent({ params }: BookPageProps) {
           setConfirmedBookingId(res.bookingId || '');
           setBookingSuccess(true);
           toast.success(
-            `${price.totalPayable} coins deducted from wallet! Meetup is reserved in Safe Escrow.`,
+            `₹${price.totalPayable} coins deducted from wallet! Meetup reserved in Safe Escrow.`,
             'Booking Confirmed'
           );
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          if (refreshSession) {
-            await refreshSession();
-          }
+          if (refreshSession) await refreshSession();
         } else {
           toast.error(res.error || 'Failed to complete wallet booking.', 'Booking Error');
         }
@@ -248,7 +278,7 @@ function BookPageContent({ params }: BookPageProps) {
         return;
       }
 
-      // 2. Initiate order with server for Razorpay
+      // 2. Paying via Razorpay
       const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -260,570 +290,712 @@ function BookPageContent({ params }: BookPageProps) {
 
       const orderData = await orderRes.json();
       if (!orderRes.ok || !orderData.success) {
-        toast.error(orderData.error || 'Failed to initiate secure checkout. Please try again.', 'Payment Error');
-        setIsSubmitting(false);
-        return;
+        throw new Error(orderData.error || 'Failed to initialize payment gateway.');
       }
 
-      // 2. Open Razorpay Standard Checkout Modal
+      const orderAmountPaise = Number(orderData.amount || orderData.amountPaise) || Math.round(price.totalPayable * 100);
+      const rzpOrderId = String(orderData.orderId || '');
+
       await openRazorpayCheckout({
-        key: orderData.keyId,
-        amount: orderData.amountPaise,
-        currency: 'INR',
-        name: 'Meetzy Club Safe Escrow',
-        description: `${selectedActivity.replace(/-/g, ' ')} with ${companion.name}`,
-        order_id: orderData.orderId,
+        key: orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_U1vu1rlfL1qiHG',
+        amount: orderAmountPaise,
+        currency: orderData.currency || 'INR',
+        name: 'Meetzy Club',
+        description: `${companion.name} · ${duration} Hour Meetup`,
+        order_id: rzpOrderId,
         prefill: {
-          name: data.memberName.trim(),
-          contact: phoneRaw,
-          email: user?.phone ? `${user.phone}@member.meetzy.club` : undefined,
+          name: memberName.trim(),
+          contact: `+91${cleanPhone}`,
         },
         theme: {
-          color: '#121212',
+          color: '#101828',
         },
-        modal: {
-          ondismiss: () => {
-            setIsSubmitting(false);
-            toast.error('Payment checkout was dismissed. Your meetup was not reserved.', 'Payment Cancelled');
-          },
-        },
-        handler: async (paymentResponse) => {
+        handler: async (response) => {
           try {
-            // 3. Confirm booking and lock funds into database
-            const res = await createBookingAction({
+            const bookingRes = await createBookingAction({
               companionId: companion.id,
               memberId: user?.id,
-              memberName: data.memberName.trim(),
-              memberPhone: `+91 ${phoneRaw}`,
+              memberName: memberName.trim(),
+              memberPhone: `+91 ${cleanPhone}`,
               activitySlug: selectedActivity,
-              date,
-              startTime: `${time} IST`,
+              date: selectedDateIso,
+              startTime: selectedTimeLabel,
               durationHours: duration,
-              meetingPoint: data.meetingPoint.trim(),
-              note: data.note.trim() || undefined,
+              meetingPoint: meetingPlace.trim(),
               hourlyRate: companion.hourlyRate,
-              razorpayPaymentId: paymentResponse.razorpay_payment_id,
-              razorpayOrderId: paymentResponse.razorpay_order_id || orderData.orderId,
-              razorpaySignature: paymentResponse.razorpay_signature,
+              paymentMethod: 'RAZORPAY',
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id || orderData.orderId,
+              razorpaySignature: response.razorpay_signature,
             });
 
-            if (res.success && res.startCode) {
-              setStartCode(res.startCode);
-              setConfirmedBookingId(res.bookingId || '');
+            if (bookingRes.success && bookingRes.startCode) {
+              setStartCode(bookingRes.startCode);
+              setConfirmedBookingId(bookingRes.bookingId || '');
               setBookingSuccess(true);
               toast.success(
-                `Payment verified (${paymentResponse.razorpay_payment_id}). Locked in Safe Escrow!`,
+                `Payment verified (${response.razorpay_payment_id}). Locked in Safe Escrow!`,
                 'Booking Confirmed'
               );
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              if (refreshSession) await refreshSession();
             } else {
-              toast.error(res.error || 'Failed to confirm booking record.', 'Booking Error');
+              toast.error(bookingRes.error || 'Failed to store booking record.', 'Error');
             }
-          } catch (err) {
-            console.error(err);
-            toast.error('Payment succeeded but failed to confirm booking record.', 'Sync Error');
+          } catch {
+            toast.error('Error confirming meetup payment.', 'Error');
           } finally {
             setIsSubmitting(false);
           }
         },
+        modal: {
+          ondismiss: () => {
+            setIsSubmitting(false);
+          },
+        },
       });
-    } catch (err) {
-      console.error('Checkout error:', err);
-      toast.error('Unable to open payment modal. Please check your internet connection.', 'Connection Error');
+    } catch (err: any) {
+      toast.error(err.message || 'Payment initiation failed.', 'Error');
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-8">
-      {/* Header Link */}
-      <div>
-        <Link
-          href={`/companions/${companion.id}`}
-          className="inline-flex items-center gap-1.5 font-display text-xs font-black text-ink hover:text-lavender transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to {companion.name}'s profile</span>
-        </Link>
-      </div>
+  // SUCCESS SCREEN
+  if (bookingSuccess) {
+    return (
+      <div className="min-h-screen bg-paper flex flex-col justify-between text-ink">
+        <Navbar />
+        <main className="flex-1 py-12 px-4 max-w-xl mx-auto w-full">
+          <div className="rounded-3xl border-3 border-ink bg-white p-6 sm:p-8 shadow-brutal-lg space-y-6 text-center animate-in zoom-in-95">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-ink bg-lime shadow-brutal-sm">
+              <CheckCircle2 className="h-8 w-8 text-ink" />
+            </div>
 
-      {bookingSuccess ? (
-        /* =========================================================================
-           SUCCESS SCREEN: PROTECTED MEETUP CONFIRMED & 4-DIGIT CODE
-           ========================================================================= */
-        <div className="rounded-3xl border-brutal bg-white p-6 sm:p-12 shadow-brutal-lg max-w-2xl mx-auto text-center space-y-7 animate-in fade-in duration-300">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border-brutal bg-lime shadow-brutal text-ink">
-            <CheckCircle2 className="h-10 w-10 stroke-[2.5]" />
-          </div>
+            <div className="space-y-2">
+              <h1 className="font-display text-2xl sm:text-3xl font-black text-ink">
+                Meetup Requested!
+              </h1>
+              <p className="text-xs sm:text-sm font-bold text-ink-muted">
+                Your payment is held in 100% safe escrow. {companion.name} has been notified to accept.
+              </p>
+            </div>
 
-          <div className="space-y-2">
-            <Badge variant="lime" size="md">
-              Booking Confirmed · 100% Protected Payment
-            </Badge>
-            <h1 className="font-display text-2xl sm:text-4xl font-black text-ink">
-              Meetup Confirmed with {companion.name}!
-            </h1>
-            <p className="font-body text-xs sm:text-sm text-ink-soft max-w-lg mx-auto leading-relaxed">
-              Your payment ({formatRupees(price.totalPayable)}) is held safely by Meetzy Club and only transferred to {companion.name} after you meet and share the code.
-            </p>
-          </div>
-
-          {/* The 4-Digit Start Code Box */}
-          <div className="rounded-2xl border-brutal bg-sunny p-6 sm:p-8 shadow-brutal space-y-3">
-            <div className="flex items-center justify-center gap-1.5 text-xs font-black uppercase text-ink">
-              <KeyRound className="h-4 w-4" />
-              <span>Your Secret Meetup Start Code</span>
-            </div>
-            <div className="font-mono text-5xl sm:text-6xl font-black tracking-widest text-ink select-all">
-              {startCode}
-            </div>
-            <p className="text-xs font-bold text-ink-soft max-w-md mx-auto leading-relaxed">
-              Tell this 4-digit code verbally to {companion.name} when you meet at {meetingPoint}. Once entered, your session begins.
-            </p>
-          </div>
-
-          {/* Booking Summary Card */}
-          <div className="rounded-2xl border-brutal-sm bg-paper p-5 text-left text-xs font-medium text-ink space-y-2.5">
-            <div className="flex justify-between">
-              <span className="font-bold text-ink-muted">Companion:</span>
-              <span className="font-extrabold">{companion.name} ({companion.area})</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-bold text-ink-muted">Activity:</span>
-              <span className="font-extrabold capitalize">{selectedActivity.replace(/-/g, ' ')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-bold text-ink-muted">Date & Time:</span>
-              <span className="font-extrabold">{date} at {time} IST</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-bold text-ink-muted">Public Venue:</span>
-              <span className="font-extrabold">{meetingPoint}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-bold text-ink-muted">Duration & Rate:</span>
-              <span className="font-extrabold">{duration} Hour{duration > 1 ? 's' : ''} (₹{companion.hourlyRate}/hr)</span>
-            </div>
-            <div className="flex justify-between border-t border-ink/20 pt-2 font-display text-sm font-black text-ink">
-              <span>Total Safe Deposit:</span>
-              <span className="font-mono text-base">{formatRupees(price.totalPayable)}</span>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-            {confirmedBookingId ? (
-              <Link href={`/session/${confirmedBookingId}`}>
-                <Button variant="primary" size="lg" fullWidth>
-                  Enter In-Person Session Room
-                </Button>
-              </Link>
-            ) : null}
-            <Link href="/bookings">
-              <Button variant="outline" size="lg" fullWidth>
-                View in My Bookings Portal
-              </Button>
-            </Link>
-          </div>
-        </div>
-      ) : (
-        /* =========================================================================
-           BOOKING FORM (2 COLUMNS)
-           ========================================================================= */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Form Steps */}
-          <div className="lg:col-span-8 space-y-6">
-            <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal space-y-6">
-              <div>
-                <Badge variant="sunny" size="sm">
-                  Step-by-Step Booking
-                </Badge>
-                <h1 className="font-display text-2xl sm:text-3xl font-black text-ink mt-1">
-                  Book a Meetup with {companion.name}
-                </h1>
-                <p className="font-body text-xs sm:text-sm text-ink-soft">
-                  Fill in your preferred public location and timing. Your money stays safe with Meetzy Club until you meet in person.
-                </p>
+            {/* Meetup Start PIN */}
+            <div className="rounded-2xl border-2 border-ink bg-sunny p-4 space-y-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-ink/70">
+                Secret Meetup Start Code
+              </span>
+              <div className="font-mono text-3xl font-black tracking-widest text-ink">
+                {startCode || '7492'}
               </div>
+              <p className="text-[11px] font-bold text-ink-soft">
+                Only share this 4-digit code in-person when you meet at the public venue.
+              </p>
+            </div>
 
-              <form onSubmit={handleSubmit(onBookingSubmit)} className="space-y-6">
-                {/* Contact Information */}
-                <div className="space-y-3">
-                  <label className="block font-display text-sm font-black text-ink">
-                    1. Your Contact Details (for Meetup Updates):
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="block font-display text-xs font-black uppercase text-ink">
-                        Your Full Name
-                      </label>
-                      <input
-                        type="text"
-                        {...register('memberName', { required: true })}
-                        placeholder="Enter your full name"
-                        className="w-full rounded-xl border-brutal bg-white px-3.5 py-3 font-display text-xs sm:text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
-                      />
-                    </div>
+            {/* Summary Details */}
+            <div className="rounded-2xl border-2 border-ink bg-paper p-4 space-y-2 text-left text-xs font-bold text-ink-soft">
+              <div className="flex justify-between">
+                <span>Companion:</span>
+                <span className="text-ink font-black">{companion.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Date &amp; Time:</span>
+                <span className="text-ink font-black">{activeDateObj.label}, {activeDateObj.dateStr} · {selectedTimeLabel}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Place:</span>
+                <span className="text-ink font-black">{meetingPlace}</span>
+              </div>
+              <div className="flex justify-between border-t border-ink/20 pt-2 font-display text-sm">
+                <span className="text-ink font-black">Escrow Total:</span>
+                <span className="text-ink font-black">₹{price.totalPayable}</span>
+              </div>
+            </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <label className="block font-display text-xs font-black uppercase text-ink">
-                          Mobile Number
-                        </label>
-                        <span className="font-mono text-[11px] text-ink-muted">
-                          {phoneRaw.length} / 10 digits
-                        </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <Link
+                href="/bookings"
+                className="w-full flex items-center justify-center rounded-xl border-2 border-ink bg-lime py-3 font-display text-xs font-black text-ink shadow-brutal-sm hover:bg-sunny transition"
+              >
+                <span>View in My Meetups</span>
+              </Link>
+              <Link
+                href={`/chat`}
+                className="w-full flex items-center justify-center rounded-xl border-2 border-ink bg-ink py-3 font-display text-xs font-black text-white shadow-brutal-sm hover:bg-black transition"
+              >
+                <span>Go to Messages</span>
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FBFCFF] flex flex-col justify-between text-ink">
+      {/* Top Persistent Header */}
+      <header className="border-b-2 border-ink bg-white px-4 py-3 sticky top-0 z-30">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <Link
+            href={`/companions/${companion.id}`}
+            className="flex items-center gap-1.5 text-xs font-bold text-ink-muted hover:text-ink transition"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">{companion.name}'s profile</span>
+            <span className="sm:hidden">Back</span>
+          </Link>
+
+          <Link href="/" className="font-display text-lg font-black tracking-tight text-ink">
+            Meetzy<span className="text-pink-600">Club</span>
+          </Link>
+
+          <Link
+            href="/explore"
+            className="flex items-center gap-1 text-xs font-bold text-ink-muted hover:text-ink transition"
+          >
+            <span>Exit to explore</span>
+            <X className="h-4 w-4" />
+          </Link>
+        </div>
+      </header>
+
+      <main className="flex-1 py-8 px-4 sm:px-6 max-w-2xl mx-auto w-full">
+        {/* Companion Micro Subheader */}
+        <div className="flex flex-col items-center justify-center text-center space-y-2 mb-8">
+          <div className="flex items-center gap-2">
+            <div className="relative h-9 w-9 rounded-full overflow-hidden border-2 border-ink">
+              <Image
+                src={companion.avatarUrl}
+                alt={companion.name}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <span className="font-display text-sm font-black text-ink">
+              {companion.name} · ₹{companion.hourlyRate}/h
+            </span>
+          </div>
+
+          {/* 5-Step Visual Progress Dots */}
+          <div className="flex items-center gap-1.5 pt-1">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <div
+                key={s}
+                className={`h-2 rounded-full transition-all ${
+                  s === step
+                    ? 'w-8 bg-ink border border-ink'
+                    : s < step
+                    ? 'w-2 bg-lime border border-ink'
+                    : 'w-2 bg-paper-deep border border-ink/40'
+                }`}
+              />
+            ))}
+          </div>
+
+          <span className="text-xs font-black uppercase tracking-wider text-ink-muted">
+            Step {step} of 5 · {
+              step === 1 ? 'Activity' :
+              step === 2 ? 'Date' :
+              step === 3 ? 'Time' :
+              step === 4 ? 'Location' : 'Review'
+            }
+          </span>
+        </div>
+
+        {/* STEP 1: ACTIVITY */}
+        {step === 1 && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-1.5 text-center">
+              <h2 className="font-display text-2xl sm:text-3xl font-black text-ink">
+                What would you like to do?
+              </h2>
+              <p className="text-xs sm:text-sm font-bold text-ink-muted max-w-md mx-auto">
+                Strictly platonic, always in public. Every meetup happens somewhere public, like a café, a promenade or an event. You pick the spot in two steps, and your companion confirms it.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              {ACTIVITIES.map((act) => {
+                const isSelected = selectedActivity === act.slug;
+                return (
+                  <div
+                    key={act.slug}
+                    onClick={() => setSelectedActivity(act.slug)}
+                    className={`p-4 rounded-2xl border-2 border-ink cursor-pointer transition-all flex items-center justify-between ${
+                      isSelected
+                        ? 'bg-ink text-white shadow-brutal'
+                        : 'bg-white hover:bg-paper text-ink'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl border border-ink/20 bg-paper-deep text-ink">
+                        <ActivityIcon slug={act.slug} size="sm" />
                       </div>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-display text-xs font-black text-ink-muted">
-                          +91
+                      <div>
+                        <span className="font-display text-sm font-black block">
+                          {act.name}
                         </span>
-                        <input
-                          type="tel"
-                          inputMode="numeric"
-                          maxLength={10}
-                          value={phoneRaw}
-                          onChange={handlePhoneChange}
-                          placeholder="Enter 10-digit number"
-                          className="w-full rounded-xl border-brutal bg-white pl-12 pr-3.5 py-3 font-mono text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 2: Choose Activity */}
-                <div className="space-y-3">
-                  <label className="block font-display text-sm font-black text-ink">
-                    2. Select What You're Doing:
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {companion.activities.map((slug) => {
-                      const act = ACTIVITIES.find((a) => a.slug === slug);
-                      const isSelected = selectedActivity === slug;
-                      return (
-                        <button
-                          key={slug}
-                          type="button"
-                          onClick={() => setSelectedActivity(slug)}
-                          className={`group inline-flex items-center gap-1.5 rounded-xl border-brutal-sm px-3.5 py-2 font-display text-xs font-black transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-ink text-paper shadow-brutal-sm'
-                              : 'bg-paper-deep text-ink hover:bg-sunny'
+                        <span
+                          className={`text-[11px] font-medium line-clamp-1 ${
+                            isSelected ? 'text-white/80' : 'text-ink-soft'
                           }`}
                         >
-                          <ActivityIcon slug={slug} size="xs" animated />
-                          <span>{act?.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Step 3: Date & Time Picker */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Date */}
-                  <div className="space-y-1.5">
-                    <label className="block font-display text-xs font-black uppercase text-ink">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full rounded-xl border-brutal bg-white px-3.5 py-2.5 font-display text-xs font-bold text-ink focus:outline-none focus:shadow-brutal"
-                      required
-                    />
-                  </div>
-
-                  {/* Time */}
-                  <div className="space-y-1.5">
-                    <label className="block font-display text-xs font-black uppercase text-ink">
-                      Start Time (IST)
-                    </label>
-                    <select
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      className="w-full rounded-xl border-brutal bg-white px-3.5 py-2.5 font-display text-xs font-bold text-ink focus:outline-none focus:shadow-brutal appearance-none cursor-pointer"
-                    >
-                      <option value="10:00">10:00 AM</option>
-                      <option value="12:00">12:00 PM</option>
-                      <option value="14:00">02:00 PM</option>
-                      <option value="16:00">04:00 PM</option>
-                      <option value="18:00">06:00 PM</option>
-                      <option value="19:30">07:30 PM</option>
-                      <option value="20:30">08:30 PM</option>
-                    </select>
-                  </div>
-
-                  {/* Duration */}
-                  <div className="space-y-1.5">
-                    <label className="block font-display text-xs font-black uppercase text-ink">
-                      Duration
-                    </label>
-                    <select
-                      value={duration}
-                      onChange={(e) => setDuration(parseInt(e.target.value, 10))}
-                      className="w-full rounded-xl border-brutal bg-white px-3.5 py-2.5 font-display text-xs font-bold text-ink focus:outline-none focus:shadow-brutal appearance-none cursor-pointer"
-                    >
-                      <option value="1">1 Hour</option>
-                      <option value="2">2 Hours</option>
-                      <option value="3">3 Hours</option>
-                      <option value="4">4 Hours</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Step 4: Public Meeting Point */}
-                <div className="space-y-1.5">
-                  <label className="block font-display text-sm font-black text-ink">
-                    3. Public Meeting Point:
-                  </label>
-                  <input
-                    type="text"
-                    {...register('meetingPoint', { required: true })}
-                    placeholder="e.g. Third Wave Coffee (Indiranagar), Starbucks, or Mall Main Gate"
-                    className="w-full rounded-xl border-brutal bg-white px-3.5 py-3 font-display text-xs sm:text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
-                  />
-                  <span className="block text-[11px] text-ink-muted">
-                    Public places only for safety: cafes, malls, gym branches, or metro gates.
-                  </span>
-                </div>
-
-                {/* Step 5: Note for Companion */}
-                <div className="space-y-1.5">
-                  <label className="block font-display text-sm font-black text-ink">
-                    4. Note for {companion.name} (Optional):
-                  </label>
-                  <textarea
-                    {...register('note')}
-                    rows={3}
-                    placeholder="Any specific topics you'd like to chat about, workout goals, or movies you want to watch..."
-                    className="w-full rounded-xl border-brutal bg-white p-3.5 font-body text-xs sm:text-sm font-medium text-ink placeholder:text-ink-muted/70 focus:outline-none focus:shadow-brutal"
-                  />
-                </div>
-
-                {/* Step 5: Choose Payment Method */}
-                <div className="space-y-2">
-                  <label className="block font-display text-sm font-black text-ink">
-                    4. Choose Payment Method:
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Wallet Coins Option */}
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('WALLET')}
-                      className={`p-3.5 rounded-xl border-brutal text-left transition ${
-                        paymentMethod === 'WALLET'
-                          ? 'bg-[#D4F7A5] shadow-brutal'
-                          : 'bg-white hover:bg-paper-deep shadow-brutal-sm'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <Coins className="h-4 w-4 text-ink" />
-                          <span className="font-display text-xs font-black uppercase text-ink">
-                            Pay with Coins
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-black uppercase bg-ink text-white px-1.5 py-0.5 rounded">
-                          1 Coin = INR 1
+                          {act.description}
                         </span>
                       </div>
-                      <p className="text-xs font-bold text-ink">
-                        Wallet Balance: {user?.coinBalance ?? 100} Coins
-                      </p>
-                      <div className="text-[11px] text-ink-muted mt-1">
-                        {(user?.coinBalance ?? 100) >= price.totalPayable ? (
-                          <span className="text-emerald-700 font-black">
-                            Balance Available &middot; {price.totalPayable} coins
-                          </span>
-                        ) : (
-                          <span className="text-danger font-black">
-                            Need {price.totalPayable - (user?.coinBalance ?? 100)} more coins &middot;{' '}
-                            <Link href="/wallet" className="underline text-ink">
-                              Top Up Wallet
-                            </Link>
-                          </span>
-                        )}
-                      </div>
-                    </button>
-
-                    {/* Razorpay UPI / Card Option */}
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('RAZORPAY')}
-                      className={`p-3.5 rounded-xl border-brutal text-left transition ${
-                        paymentMethod === 'RAZORPAY'
-                          ? 'bg-sunny shadow-brutal'
-                          : 'bg-white hover:bg-paper-deep shadow-brutal-sm'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="h-4 w-4 text-ink" />
-                          <span className="font-display text-xs font-black uppercase text-ink">
-                            UPI &amp; Cards
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-black uppercase bg-emerald-600 text-white px-1.5 py-0.5 rounded">
-                          Safe Escrow
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-ink">
-                        Instant GPay, PhonePe, Cards
-                      </p>
-                      <p className="text-[11px] text-ink-muted mt-1 font-bold">
-                        100% Escrow Protection &middot; PIN Release
-                      </p>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Step 6: Platonic Agreement Checkbox */}
-                <div className="rounded-2xl border-brutal-sm bg-pink-soft/50 p-4 space-y-2">
-                  <label className="flex items-start gap-3 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      {...register('agreedToPlatonic', { required: true })}
-                      className="mt-1 h-5 w-5 rounded border-brutal text-ink accent-ink cursor-pointer"
-                    />
-                    <div className="text-xs font-bold text-ink leading-relaxed">
-                      <span>
-                        I confirm that this meetup is <strong>100% platonic and respectful</strong>, will occur strictly in a public place, and follows the Meetzy Club Community Guidelines.
-                      </span>
                     </div>
-                  </label>
-                </div>
 
-                {/* Real-time Missing Requirements Banner */}
-                {!isFormValid && (
-                  <div className="rounded-2xl border-2 border-amber-500 bg-amber-50 p-4 shadow-brutal-xs space-y-2 animate-in fade-in">
-                    <div className="flex items-center gap-2 text-amber-900 font-display text-xs font-black uppercase">
-                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                      <span>Action required to enable booking:</span>
-                    </div>
-                    <ul className="list-disc list-inside space-y-1 font-body text-xs font-bold text-amber-900/90 pl-1">
-                      {missingRequirements.map((item, idx) => (
-                        <li key={idx}>{item}</li>
-                      ))}
-                    </ul>
+                    {isSelected && (
+                      <div className="h-5 w-5 rounded-full bg-lime border border-white flex items-center justify-center shrink-0">
+                        <Check className="h-3 w-3 text-ink stroke-[3]" />
+                      </div>
+                    )}
                   </div>
-                )}
+                );
+              })}
+            </div>
 
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  disabled={!isFormValid || isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Lock className="h-4 w-4 animate-spin" />
-                      <span>{paymentMethod === 'WALLET' ? 'Deducting coins & generating PIN...' : 'Connecting to Razorpay Secure Vault...'}</span>
-                    </span>
-                  ) : paymentMethod === 'WALLET' ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Coins className="h-4 w-4" />
-                      <span>Pay {price.totalPayable} Coins &amp; Confirm Meetup &rarr;</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      <span>Pay &amp; Lock in Safe Escrow ({formatRupees(price.totalPayable)}) &rarr;</span>
-                    </span>
-                  )}
-                </Button>
-              </form>
+            <div className="pt-4">
+              <button
+                type="button"
+                onClick={handleNextStep}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl border-3 border-ink bg-ink text-white py-3.5 font-display text-sm font-black shadow-brutal hover:bg-black transition btn-press cursor-pointer"
+              >
+                <span>Continue</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Right Column: Sticky Summary & Breakdown */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="sticky top-24 rounded-2xl border-brutal bg-white p-6 shadow-brutal space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b-brutal-sm">
-                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border-brutal bg-paper-deep">
+        {/* STEP 2: DATE */}
+        {step === 2 && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-1.5 text-center">
+              <h2 className="font-display text-2xl sm:text-3xl font-black text-ink">
+                When works for you?
+              </h2>
+              <p className="text-xs sm:text-sm font-bold text-ink-muted">
+                Pick a day within the next week.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              {availableDates.map((d) => {
+                const isSelected = selectedDateIso === d.iso;
+                return (
+                  <div
+                    key={d.iso}
+                    onClick={() => setSelectedDateIso(d.iso)}
+                    className={`p-4 rounded-2xl border-2 border-ink cursor-pointer transition-all text-center flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-ink text-white shadow-brutal'
+                        : 'bg-white hover:bg-paper text-ink'
+                    }`}
+                  >
+                    <span className="font-display text-xs font-black uppercase tracking-wider block">
+                      {d.label}
+                    </span>
+                    <span className="font-display text-base font-black pt-1 block">
+                      {d.dateStr}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="rounded-2xl border-2 border-ink bg-white px-5 py-3 font-display text-xs font-black text-ink hover:bg-paper transition cursor-pointer"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleNextStep}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-3 border-ink bg-ink text-white py-3 font-display text-sm font-black shadow-brutal hover:bg-black transition btn-press cursor-pointer"
+              >
+                <span>Choose {activeDateObj.label}</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: TIME & DURATION */}
+        {step === 3 && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-1.5 text-center">
+              <h2 className="font-display text-2xl sm:text-3xl font-black text-ink">
+                What time suits you?
+              </h2>
+              <p className="text-xs sm:text-sm font-bold text-ink-muted">
+                Times for {activeDateObj.label}, {activeDateObj.dateStr}
+              </p>
+            </div>
+
+            {/* Time Slot Picker */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              {(['morning', 'afternoon', 'evening'] as const).map((slotKey) => {
+                const isSelected = selectedTimeSlot === slotKey;
+                const slot = timeSlotMap[slotKey];
+                const SlotIcon = slot.icon;
+                return (
+                  <div
+                    key={slotKey}
+                    onClick={() => setSelectedTimeSlot(slotKey)}
+                    className={`p-4 rounded-2xl border-2 border-ink cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-ink text-white shadow-brutal'
+                        : 'bg-white hover:bg-paper text-ink'
+                    }`}
+                  >
+                    <SlotIcon className="h-5 w-5" />
+                    <span className="font-display text-sm font-black block">
+                      {slot.label}
+                    </span>
+                    <span
+                      className={`text-xs font-bold ${
+                        isSelected ? 'text-white/80' : 'text-ink-soft'
+                      }`}
+                    >
+                      {slot.hours}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Duration Selector */}
+            <div className="space-y-2 pt-2">
+              <label className="block text-xs font-black uppercase tracking-wider text-ink text-center">
+                How long do you want to meet?
+              </label>
+
+              <div className="grid grid-cols-3 gap-3">
+                {[1, 2, 3].map((hrs) => {
+                  const isSelected = duration === hrs;
+                  return (
+                    <button
+                      key={hrs}
+                      type="button"
+                      onClick={() => setDuration(hrs)}
+                      className={`py-3 rounded-2xl border-2 border-ink font-display text-sm font-black cursor-pointer transition-all ${
+                        isSelected
+                          ? 'bg-lime text-ink shadow-brutal border-ink'
+                          : 'bg-white hover:bg-paper text-ink'
+                      }`}
+                    >
+                      {hrs} {hrs === 1 ? 'Hour' : 'Hours'}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="text-center text-xs font-extrabold text-ink-muted pt-1">
+                {duration} hour{duration > 1 ? 's' : ''} · ₹{companion.hourlyRate * duration}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="rounded-2xl border-2 border-ink bg-white px-5 py-3 font-display text-xs font-black text-ink hover:bg-paper transition cursor-pointer"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleNextStep}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-3 border-ink bg-ink text-white py-3 font-display text-sm font-black shadow-brutal hover:bg-black transition btn-press cursor-pointer"
+              >
+                <span>Continue</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: LOCATION */}
+        {step === 4 && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-1.5 text-center">
+              <h2 className="font-display text-2xl sm:text-3xl font-black text-ink">
+                Where would you like to meet?
+              </h2>
+              <p className="text-xs sm:text-sm font-bold text-ink-muted max-w-md mx-auto">
+                Public places only, for everyone's comfort and safety.
+              </p>
+            </div>
+
+            {/* Quick Picks */}
+            <div className="space-y-2">
+              <label className="block text-xs font-black uppercase tracking-wider text-ink">
+                Quick picks in {companion.city || 'your city'}
+              </label>
+
+              <div className="flex flex-wrap gap-2">
+                {quickVenues.map((v) => {
+                  const isSelected = meetingPlace === v;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setMeetingPlace(v)}
+                      className={`px-3 py-1.5 rounded-xl border-2 border-ink text-xs font-bold transition cursor-pointer ${
+                        isSelected
+                          ? 'bg-ink text-white shadow-brutal-xs'
+                          : 'bg-white hover:bg-paper text-ink'
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom Public Place Input */}
+            <div className="space-y-1.5 pt-2">
+              <label className="block text-xs font-black uppercase tracking-wider text-ink">
+                Name a public place in {companion.city || 'your city'}
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
+                <input
+                  type="text"
+                  value={meetingPlace}
+                  onChange={(e) => setMeetingPlace(e.target.value)}
+                  placeholder="e.g., Third Wave Coffee, MG Road"
+                  className="w-full rounded-xl border-2 border-ink bg-white pl-10 pr-4 py-3 font-display text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
+                />
+              </div>
+              <p className="text-[11px] font-bold text-ink-muted">
+                Always choose a public venue. Your companion will review and confirm the location before accepting. Type or pick a meeting place to continue.
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="rounded-2xl border-2 border-ink bg-white px-5 py-3 font-display text-xs font-black text-ink hover:bg-paper transition cursor-pointer"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleNextStep}
+                disabled={!meetingPlace.trim()}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-3 border-ink bg-ink text-white py-3 font-display text-sm font-black shadow-brutal hover:bg-black transition btn-press cursor-pointer disabled:opacity-50"
+              >
+                <span>Continue</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: REVIEW & ESCROW PAYMENT */}
+        {step === 5 && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-1.5 text-center">
+              <h2 className="font-display text-2xl sm:text-3xl font-black text-ink">
+                Review your meetup
+              </h2>
+              <p className="text-xs sm:text-sm font-bold text-ink-muted">
+                Make sure everything looks right.
+              </p>
+            </div>
+
+            {/* Meetup Summary Card */}
+            <div className="rounded-3xl border-3 border-ink bg-white p-5 sm:p-6 shadow-brutal space-y-4">
+              <div className="flex items-center gap-3 border-b-2 border-ink/10 pb-4">
+                <div className="relative h-12 w-12 rounded-full overflow-hidden border-2 border-ink">
                   <Image
                     src={companion.avatarUrl}
                     alt={companion.name}
                     fill
-                    sizes="56px"
                     className="object-cover"
                   />
                 </div>
                 <div>
-                  <h3 className="font-display text-lg font-black text-ink">{companion.name}</h3>
-                  <p className="text-xs font-bold text-ink-muted">{companion.area}</p>
-                  <Badge variant="lime" size="sm" className="mt-0.5">
-                    ID Verified
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Price Calculation */}
-              <div className="space-y-2 text-xs font-medium text-ink-soft">
-                <div className="flex justify-between">
-                  <span>
-                    Rate: {formatRupees(companion.hourlyRate)} × {duration} hr{duration > 1 ? 's' : ''}
+                  <h3 className="font-display text-base font-black text-ink">
+                    {companion.name}
+                  </h3>
+                  <span className="text-xs font-extrabold text-ink-muted">
+                    {companion.area}, {companion.city}
                   </span>
-                  <span className="font-bold text-ink font-mono">{formatRupees(price.hostSubtotal)}</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span>Meetzy Club Protection & Platform Fee</span>
-                  <span className="font-bold text-ink font-mono">{formatRupees(price.connectionFee)}</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span>GST (18%)</span>
-                  <span className="font-bold text-ink font-mono">{formatRupees(price.gst)}</span>
-                </div>
-
-                <div className="border-t-brutal-sm pt-2.5 flex items-baseline justify-between font-display text-base font-black text-ink">
-                  <span>Total Payable</span>
-                  <span className="text-2xl font-black text-ink">{formatRupees(price.totalPayable)}</span>
                 </div>
               </div>
 
-              {/* Escrow Guarantee Pill */}
-              <div className="rounded-xl border-brutal-sm bg-lime-soft p-3.5 space-y-1.5 text-xs text-ink">
-                <div className="flex items-center gap-1.5 font-black font-display">
-                  <Lock className="h-4 w-4 text-ink" />
-                  <span>100% Money-Back Guarantee</span>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <span className="block text-[11px] font-black uppercase text-ink-muted">Activity</span>
+                  <span className="font-display font-black text-ink capitalize">
+                    {selectedActivity.replace(/-/g, ' ')} · {duration} {duration === 1 ? 'hour' : 'hours'}
+                  </span>
                 </div>
-                <p className="font-body text-[11px] text-ink-soft leading-relaxed">
-                  Your payment is never given upfront. It is safely held by Meetzy Club Escrow and released only after your meetup takes place.
-                </p>
+
+                <div>
+                  <span className="block text-[11px] font-black uppercase text-ink-muted">Date &amp; time</span>
+                  <span className="font-display font-black text-ink">
+                    {activeDateObj.label}, {activeDateObj.dateStr} · {selectedTimeLabel}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="block text-[11px] font-black uppercase text-ink-muted">Place</span>
+                  <span className="font-display font-black text-ink">
+                    {meetingPlace}
+                  </span>
+                </div>
               </div>
 
-              {/* Cancellation Policy */}
-              <div className="rounded-xl border-brutal-sm bg-paper p-3 text-[11px] font-medium text-ink-soft space-y-1">
-                <div className="flex items-center gap-1 font-bold text-ink">
-                  <RotateCcw className="h-3 w-3" />
-                  <span>Free Cancellation</span>
+              {/* Price Breakdown */}
+              <div className="rounded-2xl border-2 border-ink bg-paper p-4 space-y-1 border-t-2">
+                <div className="flex justify-between items-baseline font-display">
+                  <div>
+                    <span className="text-sm font-black text-ink block">Total today</span>
+                    <span className="text-[11px] font-bold text-ink-muted">for {duration} {duration === 1 ? 'hour' : 'hours'} · Price includes GST</span>
+                  </div>
+                  <span className="text-xl font-black text-ink">₹{price.totalPayable}</span>
                 </div>
-                <span>
-                  100% full refund if cancelled up to 2 hours before the meetup time.
-                </span>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-export default function BookPage({ params }: BookPageProps) {
-  return (
-    <div className="min-h-screen flex flex-col bg-paper">
-      <Navbar />
-      <main className="flex-1 py-8 sm:py-12">
-        <Suspense fallback={<div className="p-12 text-center font-display font-bold">Loading booking form...</div>}>
-          <BookPageContent params={params} />
-        </Suspense>
+            {/* Meetzy Club Escrow Protection Guarantee */}
+            <div className="rounded-2xl border border-ink/30 bg-paper p-4 text-xs text-ink-soft space-y-2 leading-relaxed">
+              <div className="flex items-center gap-1.5 font-display font-black text-ink text-xs">
+                <ShieldCheck className="h-4 w-4 text-emerald-700 shrink-0" />
+                <span>Protected by Meetzy Club: your payment is held until you meet.</span>
+              </div>
+              <p>
+                Declined, or withdrawn before it&apos;s accepted? The full amount is back in your Companio wallet at once. Not accepted within 12 hours (not counting 11 pm–8 am)? It&apos;s back within about an hour of that deadline. Use it for any meetup, or send it back to the card or UPI you paid with, minus a 12% processing fee. If your companion accepts and then doesn&apos;t turn up, tap &ldquo;No, it didn&apos;t happen&rdquo; on the meetup and our team checks it.
+              </p>
+              <p>
+                Booked for {duration} {duration === 1 ? 'hour' : 'hours'}. If you both want longer on the day, you can ask {companion.name} for extra time.
+              </p>
+              <p>
+                Need another time later? Ask from your dashboard; {companion.name} confirms it.
+              </p>
+              <p className="text-[11px] font-medium text-ink-muted pt-1 border-t border-ink/10">
+                Payments are processed securely by Razorpay. Questions?{' '}
+                <Link href="/contact" className="underline font-bold text-ink hover:text-ink-muted">
+                  Contact The Companio Team
+                </Link>
+              </p>
+            </div>
+
+            {/* Member Details Input */}
+            <div className="rounded-2xl border-2 border-ink bg-white p-4 space-y-3">
+              <span className="text-xs font-black uppercase text-ink block">
+                Your Details for Host Confirmation
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={memberName}
+                  onChange={(e) => setMemberName(e.target.value)}
+                  placeholder="Your Name"
+                  className="rounded-xl border-2 border-ink bg-paper px-3 py-2 font-display text-xs font-bold text-ink focus:outline-none focus:bg-white"
+                />
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={memberPhone}
+                  onChange={(e) => setMemberPhone(e.target.value.replace(/\D/g, ''))}
+                  placeholder="10-digit Phone (+91)"
+                  className="rounded-xl border-2 border-ink bg-paper px-3 py-2 font-mono text-xs font-bold text-ink focus:outline-none focus:bg-white"
+                />
+              </div>
+
+              {/* Platonic Checkbox */}
+              <div className="flex items-start gap-2 pt-1">
+                <input
+                  id="review-platonic"
+                  type="checkbox"
+                  checked={agreedPlatonic}
+                  onChange={(e) => setAgreedPlatonic(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-2 border-ink text-ink focus:ring-0 cursor-pointer"
+                />
+                <label htmlFor="review-platonic" className="text-xs font-bold text-ink-soft cursor-pointer">
+                  I agree to keep this meetup strictly platonic in a public place.
+                </label>
+              </div>
+            </div>
+
+            {/* Payment Method Selector */}
+            <div className="space-y-2">
+              <label className="block text-xs font-black uppercase tracking-wider text-ink">
+                Payment Method
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('RAZORPAY')}
+                  className={`p-3 rounded-2xl border-2 border-ink font-display text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition ${
+                    paymentMethod === 'RAZORPAY'
+                      ? 'bg-ink text-white shadow-brutal'
+                      : 'bg-white text-ink hover:bg-paper'
+                  }`}
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span>Razorpay / UPI</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('WALLET')}
+                  className={`p-3 rounded-2xl border-2 border-ink font-display text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition ${
+                    paymentMethod === 'WALLET'
+                      ? 'bg-ink text-white shadow-brutal'
+                      : 'bg-white text-ink hover:bg-paper'
+                  }`}
+                >
+                  <Coins className="h-4 w-4 text-sunny" />
+                  <span>Wallet ({user?.coinBalance ?? 0} Coins)</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="rounded-2xl border-2 border-ink bg-white px-5 py-3.5 font-display text-xs font-black text-ink hover:bg-paper transition cursor-pointer"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalBookingAndPayment}
+                disabled={isSubmitting || !agreedPlatonic}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-3 border-ink bg-lime text-ink py-3.5 font-display text-sm font-black shadow-brutal hover:bg-sunny transition btn-press cursor-pointer disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin text-ink" />
+                    <span>Processing Escrow...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4 w-4 text-emerald-800" />
+                    <span>Pay ₹{price.totalPayable} &amp; Request Meetup</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </main>
+
       <Footer />
     </div>
   );

@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
       success: true,
       orderId,
       keyId,
+      amount: amountPaise,
       amountPaise,
       totalPayable,
       hostSubtotal,

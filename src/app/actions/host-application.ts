@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { uploadHostAvatar, uploadKycDocument } from '@/lib/cloudinary';
 import { validateIndianMobileNumber } from '@/lib/phone';
+import { setSessionCookie } from '@/lib/session';
 
 export interface SubmitHostApplicationInput {
   fullName: string;
@@ -208,6 +209,21 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         isAvailable: true,
       },
     });
+
+    try {
+      await setSessionCookie({
+        userId: user.id,
+        phone: user.phone,
+        email: user.email || null,
+        name: user.name || cleanDisplayName,
+        role: 'COMPANION',
+        isUnlocked: user.isUnlocked,
+        activePassTier: user.activePassTier,
+        passExpiresAt: user.passExpiresAt ? user.passExpiresAt.toISOString() : null,
+      });
+    } catch (cookieErr) {
+      console.warn('[HOST APPLICATION COOKIE UPDATE]:', cookieErr);
+    }
 
     try {
       revalidatePath('/explore');

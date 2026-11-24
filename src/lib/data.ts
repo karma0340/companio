@@ -6,7 +6,7 @@ export const PASS_TIER_OPTIONS: PassTierOption[] = [
   {
     tier: "ONE_MONTH",
     name: "1 month",
-    price: 99.50,
+    price: 199,
     durationDays: 30,
     tagline: "30 days full access",
     features: [
@@ -19,9 +19,9 @@ export const PASS_TIER_OPTIONS: PassTierOption[] = [
   {
     tier: "THREE_MONTH",
     name: "3 months",
-    price: 249.50,
+    price: 499,
     durationDays: 90,
-    tagline: "Save 16% vs monthly · ₹83 a month · 90 days full access",
+    tagline: "Save 16% vs monthly · ₹166 a month · 90 days full access",
     features: [
       "All 1-month features included",
       "Save 16% compared to monthly pass",
@@ -33,11 +33,11 @@ export const PASS_TIER_OPTIONS: PassTierOption[] = [
   {
     tier: "ONE_YEAR",
     name: "12 months",
-    price: 499.50,
+    price: 999,
     durationDays: 365,
-    tagline: "Best value · ₹41 a month · 365 days full access",
+    tagline: "Best value · ₹82 a month · 365 days full access",
     features: [
-      "Best long-term value at ₹41/month",
+      "Best long-term value at ₹82/month",
       "Unlimited profile views across India",
       "Early access to newly verified companions",
       "Active for 365 calendar days",
@@ -46,7 +46,7 @@ export const PASS_TIER_OPTIONS: PassTierOption[] = [
   {
     tier: "LIFETIME",
     name: "Lifetime",
-    price: 999.50,
+    price: 1999,
     durationDays: null,
     tagline: "Pay once. Access for life.",
     features: [

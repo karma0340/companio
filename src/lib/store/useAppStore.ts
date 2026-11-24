@@ -13,6 +13,12 @@ export interface User {
   coinBalance?: number;
   creditBalance?: number;
   referralCode?: string | null;
+  isUnlocked?: boolean;
+  activePassTier?: string | null;
+  passExpiresAt?: string | null;
+  city?: string | null;
+  area?: string | null;
+  bio?: string | null;
 }
 
 export interface MemberProfile {
@@ -209,6 +215,7 @@ export const useAppStore = create<AppState>()(
           });
           if (typeof window !== 'undefined') {
             localStorage.removeItem('companio-auth-storage');
+            sessionStorage.clear();
             window.location.href = '/';
           }
         }

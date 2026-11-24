@@ -510,7 +510,11 @@ export default function ProfilePage() {
             </div>
 
             <button
-              onClick={() => logout()}
+              type="button"
+              onClick={async (e) => {
+                e.preventDefault();
+                await logout();
+              }}
               className="inline-flex items-center gap-2 rounded-xl border-brutal bg-danger/10 px-4 py-2 font-display text-xs font-black text-danger hover:bg-danger hover:text-white transition-colors btn-press cursor-pointer"
             >
               <LogOut className="h-4 w-4" />

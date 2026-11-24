@@ -225,8 +225,13 @@ export async function getBookingById(bookingId: string): Promise<BookingRecord |
 
   // Query database
   try {
-    const dbRecord = await prisma.booking.findUnique({
-      where: { id: bookingId },
+    const dbRecord = await prisma.booking.findFirst({
+      where: {
+        OR: [
+          { id: bookingId },
+          { bookingNumber: bookingId },
+        ],
+      },
       include: {
         member: { select: { id: true, name: true, phone: true } },
         companion: { select: { id: true, displayName: true, avatarUrl: true } },
@@ -281,15 +286,84 @@ export async function getBookingsForUser(
   userId: string,
   role: "MEMBER" | "COMPANION" | "ALL" = "ALL"
 ): Promise<BookingRecord[]> {
-  const records = Array.from(bookingsStore.values());
+  const inMem = Array.from(bookingsStore.values());
+  let filteredMem = inMem;
   if (role === "MEMBER") {
-    return records.filter((b) => b.memberId === userId);
+    filteredMem = inMem.filter((b) => b.memberId === userId);
+  } else if (role === "COMPANION") {
+    filteredMem = inMem.filter((b) => b.companionId === userId || b.companionId === "comp_01");
   }
-  if (role === "COMPANION") {
-    // For demo/companion host view, if companionId matches or comp_01 default
-    return records.filter((b) => b.companionId === userId || b.companionId === "comp_01");
+
+  try {
+    const where: any = {};
+    if (role === "MEMBER") {
+      where.memberId = userId;
+    } else if (role === "COMPANION") {
+      where.OR = [
+        { companionId: userId },
+        { companion: { userId } },
+      ];
+    }
+
+    const dbBookings = await prisma.booking.findMany({
+      where,
+      include: {
+        member: { select: { id: true, name: true, phone: true } },
+        companion: { select: { id: true, displayName: true, avatarUrl: true } },
+        city: { select: { id: true, name: true } },
+        activity: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (dbBookings && dbBookings.length > 0) {
+      const dbRecords: BookingRecord[] = dbBookings.map((dbRecord) => ({
+        id: dbRecord.id,
+        bookingNumber: dbRecord.bookingNumber,
+        memberId: dbRecord.memberId,
+        memberName: dbRecord.member?.name || "Member",
+        memberPhone: dbRecord.member?.phone || "",
+        companionId: dbRecord.companionId,
+        companionName: dbRecord.companion?.displayName || "Companion",
+        companionAvatar: dbRecord.companion?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+        cityId: dbRecord.cityId,
+        cityName: dbRecord.city?.name || "Bengaluru",
+        activityId: dbRecord.activityId,
+        activityTitle: dbRecord.activity?.title || "Meetup",
+        scheduledDate: dbRecord.scheduledDate ? dbRecord.scheduledDate.toISOString() : new Date().toISOString(),
+        durationHours: dbRecord.durationHours,
+        venueName: dbRecord.venueName,
+        venueAddress: dbRecord.venueAddress,
+        totalAmount: Number(dbRecord.totalAmount),
+        companionFee: Number(dbRecord.companionFee),
+        platformFee: Number(dbRecord.platformFee),
+        gstAmount: Number(dbRecord.gstAmount),
+        escrowStatus: dbRecord.escrowStatus as EscrowStatusType,
+        status: dbRecord.status as BookingStatusType,
+        verificationPin: dbRecord.verificationPin,
+        pinVerifiedAt: dbRecord.pinVerifiedAt?.toISOString() || null,
+        sessionStartedAt: dbRecord.sessionStartedAt?.toISOString() || null,
+        sessionEndedAt: dbRecord.sessionEndedAt?.toISOString() || null,
+        hostAcceptanceDeadline: dbRecord.hostAcceptanceDeadline.toISOString(),
+        createdAt: dbRecord.createdAt.toISOString(),
+        updatedAt: dbRecord.updatedAt.toISOString(),
+      }));
+
+      const seen = new Set<string>();
+      const combined: BookingRecord[] = [];
+      for (const b of [...dbRecords, ...filteredMem]) {
+        if (!seen.has(b.id)) {
+          seen.add(b.id);
+          combined.push(b);
+        }
+      }
+      return combined;
+    }
+  } catch (err) {
+    console.warn("[GET BOOKINGS PRISMA WARN]:", (err as Error).message);
   }
-  return records;
+
+  return filteredMem;
 }
 
 export async function respondToBooking(
