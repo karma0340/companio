@@ -215,6 +215,7 @@ export const useAppStore = create<AppState>()(
           });
           if (typeof window !== 'undefined') {
             localStorage.removeItem('companio-auth-storage');
+            sessionStorage.clear();
             window.location.href = '/';
           }
         }

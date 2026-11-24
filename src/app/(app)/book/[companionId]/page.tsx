@@ -512,7 +512,7 @@ export default function BookPage({ params }: BookPageProps) {
                 What would you like to do?
               </h2>
               <p className="text-xs sm:text-sm font-bold text-ink-muted max-w-md mx-auto">
-                Strictly platonic, always in public. Every meetup happens somewhere public, like a café, a promenade or an event.
+                Strictly platonic, always in public. Every meetup happens somewhere public, like a café, a promenade or an event. You pick the spot in two steps, and your companion confirms it.
               </p>
             </div>
 
@@ -763,7 +763,7 @@ export default function BookPage({ params }: BookPageProps) {
             {/* Custom Public Place Input */}
             <div className="space-y-1.5 pt-2">
               <label className="block text-xs font-black uppercase tracking-wider text-ink">
-                Or name a public place
+                Name a public place in {companion.city || 'your city'}
               </label>
               <div className="relative">
                 <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
@@ -776,7 +776,7 @@ export default function BookPage({ params }: BookPageProps) {
                 />
               </div>
               <p className="text-[11px] font-bold text-ink-muted">
-                Always choose a public venue. Your companion will review and confirm the location before accepting.
+                Always choose a public venue. Your companion will review and confirm the location before accepting. Type or pick a meeting place to continue.
               </p>
             </div>
 
@@ -872,16 +872,23 @@ export default function BookPage({ params }: BookPageProps) {
             {/* Meetzy Club Escrow Protection Guarantee */}
             <div className="rounded-2xl border border-ink/30 bg-paper p-4 text-xs text-ink-soft space-y-2 leading-relaxed">
               <div className="flex items-center gap-1.5 font-display font-black text-ink text-xs">
-                <ShieldCheck className="h-4 w-4 text-emerald-700" />
+                <ShieldCheck className="h-4 w-4 text-emerald-700 shrink-0" />
                 <span>Protected by Meetzy Club: your payment is held until you meet.</span>
               </div>
               <p>
-                Declined, or withdrawn before it's accepted? The full amount is back in your wallet at once.
-                Not accepted within 12 hours (not counting 11 pm–8 am)? It's automatically refunded.
-                If your companion accepts and doesn't turn up, tap "No, it didn't happen" on the meetup and our team verifies it.
+                Declined, or withdrawn before it&apos;s accepted? The full amount is back in your Companio wallet at once. Not accepted within 12 hours (not counting 11 pm–8 am)? It&apos;s back within about an hour of that deadline. Use it for any meetup, or send it back to the card or UPI you paid with, minus a 12% processing fee. If your companion accepts and then doesn&apos;t turn up, tap &ldquo;No, it didn&apos;t happen&rdquo; on the meetup and our team checks it.
               </p>
-              <p className="text-[11px] font-medium text-ink-muted">
-                Payments are processed securely by Razorpay. Questions? Contact Meetzy Club Support.
+              <p>
+                Booked for {duration} {duration === 1 ? 'hour' : 'hours'}. If you both want longer on the day, you can ask {companion.name} for extra time.
+              </p>
+              <p>
+                Need another time later? Ask from your dashboard; {companion.name} confirms it.
+              </p>
+              <p className="text-[11px] font-medium text-ink-muted pt-1 border-t border-ink/10">
+                Payments are processed securely by Razorpay. Questions?{' '}
+                <Link href="/contact" className="underline font-bold text-ink hover:text-ink-muted">
+                  Contact The Companio Team
+                </Link>
               </p>
             </div>
 

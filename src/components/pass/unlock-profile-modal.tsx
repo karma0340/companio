@@ -290,8 +290,8 @@ export function UnlockProfileModal({
                         {opt.name}
                       </span>
                       {opt.isPopular && (
-                        <span className="rounded-md border border-ink bg-lime px-2 py-0.2 text-[10px] font-black uppercase text-ink">
-                          Popular
+                        <span className="rounded-md border border-ink bg-lime px-2 py-0.5 text-[10px] font-black uppercase text-ink">
+                          Recommended
                         </span>
                       )}
                       {opt.tier === 'ONE_YEAR' && (
