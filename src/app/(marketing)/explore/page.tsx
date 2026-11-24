@@ -113,7 +113,7 @@ export default function ExplorePage() {
             id: c.id,
             name: c.displayName || c.name,
             age: 24,
-            gender: (c.gender === 'male' ? 'male' : 'female') as const,
+            gender: (c.gender === 'male' ? 'male' : 'female') as 'female' | 'male',
             city: (c.citySlug || (c.city ? c.city.toLowerCase() : 'delhi')).trim(),
             area: c.city || 'Central Area',
             tagline: c.shortBio || 'Verified local companion',
