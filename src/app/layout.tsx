@@ -33,6 +33,7 @@ export const metadata: Metadata = {
     "Looking for a gym partner, movie buddy, or coffee companion? Connect with ID-verified local buddies across India. 100% platonic, escrow-safe, public places only. Zero awkwardness.",
   icons: {
     icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico" },
       { url: "/favicon.png", type: "image/png", sizes: "32x32" },
       { url: "/icon.png", type: "image/png", sizes: "512x512" },
