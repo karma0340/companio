@@ -47,11 +47,40 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    let newWalletBalance = hostPayout;
+    if (matchedBooking.companion?.userId) {
+      try {
+        const updatedHostUser = await prisma.user.update({
+          where: { id: matchedBooking.companion.userId },
+          data: {
+            walletBalance: { increment: hostPayout },
+          },
+        });
+        newWalletBalance = Number(updatedHostUser.walletBalance);
+
+        await prisma.transaction.create({
+          data: {
+            userId: matchedBooking.companion.userId,
+            bookingId: matchedBooking.id,
+            type: "HOST_PAYOUT",
+            amount: hostPayout,
+            feeAmount: 0,
+            netAmount: hostPayout,
+            gateway: "WALLET",
+            gatewayTransactionId: `escrow_release_${Date.now()}`,
+            status: "SUCCESS",
+          },
+        });
+      } catch (walletErr) {
+        console.warn("[HOST WALLET UPDATE WARN]:", walletErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: "Start code verified! Meetup is officially in progress.",
+      message: "Start code verified! Meetup is officially in progress and payment credited to wallet.",
       payoutAdded: hostPayout,
-      newWalletBalance: hostPayout,
+      newWalletBalance,
       bookingId: matchedBooking.id,
     });
   } catch (error) {

@@ -208,7 +208,7 @@ export default function WalletPage() {
               body: JSON.stringify({
                 action: 'verify',
                 amount: numAmount,
-                razorpayOrderId: response.razorpay_order_id,
+                razorpayOrderId: response.razorpay_order_id || data.orderId,
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature,
               }),

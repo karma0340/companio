@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
-import { CompanionCard } from '@/components/companion/companion-card';
+import { GatedCompanionGrid } from '@/components/companion/gated-companion-grid';
 import { Badge } from '@/components/ui/badge';
 import { ActivityIcon } from '@/components/ui/activity-icon';
 import { ACTIVITIES } from '@/lib/data/activities';
@@ -222,11 +222,7 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {relevantCompanions.map((comp) => (
-                  <CompanionCard key={comp.id} companion={comp} />
-                ))}
-              </div>
+              <GatedCompanionGrid companions={relevantCompanions} />
             )}
           </div>
         </div>

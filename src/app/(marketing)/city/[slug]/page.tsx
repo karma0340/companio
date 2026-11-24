@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { MapPin, ArrowLeft } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
-import { CompanionCard } from '@/components/companion/companion-card';
+import { GatedCompanionGrid } from '@/components/companion/gated-companion-grid';
 import { Badge } from '@/components/ui/badge';
 import { CITIES } from '@/lib/data/cities';
 import { getCompanions } from '@/lib/data';
@@ -200,11 +200,7 @@ export default async function CityCompanionsPage({ params }: CityPageProps) {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {cityCompanions.map((comp) => (
-                  <CompanionCard key={comp.id} companion={comp} />
-                ))}
-              </div>
+              <GatedCompanionGrid companions={cityCompanions} />
             )}
           </div>
         </div>
