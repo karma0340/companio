@@ -40,5 +40,20 @@ export async function getSession(): Promise<UserTokenPayload | null> {
 export async function clearSessionCookie(): Promise<void> {
   const cookieStore = cookies();
   const cookieName = getSessionCookieName();
-  cookieStore.delete(cookieName);
+  try {
+    cookieStore.set(cookieName, "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+      expires: new Date(0),
+    });
+    cookieStore.delete({
+      name: cookieName,
+      path: "/",
+    });
+  } catch (err) {
+    console.warn("[SESSION COOKIE CLEAR WARN]:", err);
+  }
 }

@@ -24,6 +24,7 @@ import { BookingRecord } from "@/lib/bookings";
 import { filterChatMessage } from "@/lib/filters";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/context/auth-context";
+import { CoinTopupModal } from "@/components/chat/coin-topup-modal";
 
 interface UnlockInfo {
   id: string;
@@ -51,6 +52,7 @@ export default function ChatRoomPage() {
   const [currentUserId, setCurrentUserId] = useState<string>("user_member_demo");
   const [preflightWarning, setPreflightWarning] = useState<string | null>(null);
   const [isRenewing, setIsRenewing] = useState<boolean>(false);
+  const [isTopupModalOpen, setIsTopupModalOpen] = useState<boolean>(false);
 
   const socketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -228,10 +230,9 @@ export default function ChatRoomPage() {
     if (coinsAvailable < 69) {
       toast({
         title: "Insufficient Coins",
-        description: `You have ${coinsAvailable} coins. Please top up your wallet to renew.`,
-        variant: "destructive",
+        description: `You have ${coinsAvailable} coins. Please recharge coins to renew.`,
       });
-      router.push("/wallet");
+      setIsTopupModalOpen(true);
       return;
     }
 
@@ -309,6 +310,16 @@ export default function ChatRoomPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsTopupModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-xl border-2 border-ink bg-[#D4F7A5] px-2.5 py-1 text-xs font-black text-ink shadow-brutal-xs hover:bg-lime transition cursor-pointer"
+                title="Recharge Chat Coins (1 Coin = ₹1)"
+              >
+                <Coins className="h-3.5 w-3.5" />
+                <span>{user?.coinBalance ?? 0}</span>
+                <span className="text-[10px] text-ink-muted underline font-black">+ Recharge</span>
+              </button>
               <span
                 className={`border-2 border-ink px-2.5 py-0.5 text-xs font-black uppercase ${
                   isConnected ? "bg-lime text-ink" : "bg-paper text-ink"
@@ -474,6 +485,15 @@ export default function ChatRoomPage() {
           )}
         </div>
       </main>
+
+      <CoinTopupModal
+        isOpen={isTopupModalOpen}
+        onClose={() => setIsTopupModalOpen(false)}
+        onSuccess={() => {
+          refreshSession();
+          fetchChatData();
+        }}
+      />
 
       <Footer />
     </div>

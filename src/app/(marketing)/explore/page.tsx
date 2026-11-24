@@ -6,6 +6,8 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { FilterBar } from '@/components/companion/filter-bar';
 import { CompanionCard } from '@/components/companion/companion-card';
+import { UnlockProfileModal } from '@/components/pass/unlock-profile-modal';
+import { useAuth } from '@/context/auth-context';
 import { Companion, ActivityCategory } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Search, Loader2 } from 'lucide-react';
@@ -88,6 +90,11 @@ function mapToActivityCategories(activities: string[] = []): ActivityCategory[] 
 }
 
 export default function ExplorePage() {
+  const { user } = useAuth();
+  const isUnlocked = Boolean(user?.isUnlocked);
+  const [selectedCompanionForUnlock, setSelectedCompanionForUnlock] = useState<Companion | null>(null);
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState<boolean>(false);
+
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [selectedActivity, setSelectedActivity] = useState<ActivityCategory | 'all'>('all');
   const [freeTodayOnly, setFreeTodayOnly] = useState<boolean>(false);
@@ -258,7 +265,15 @@ export default function ExplorePage() {
           ) : filteredCompanions.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredCompanions.map((companion) => (
-                <CompanionCard key={companion.id} companion={companion} />
+                <CompanionCard
+                  key={companion.id}
+                  companion={companion}
+                  isLocked={!isUnlocked}
+                  onUnlockClick={(comp) => {
+                    setSelectedCompanionForUnlock(comp);
+                    setIsUnlockModalOpen(true);
+                  }}
+                />
               ))}
             </div>
           ) : (
@@ -284,6 +299,12 @@ export default function ExplorePage() {
           )}
         </div>
       </main>
+
+      <UnlockProfileModal
+        isOpen={isUnlockModalOpen}
+        onClose={() => setIsUnlockModalOpen(false)}
+        companion={selectedCompanionForUnlock}
+      />
 
       <Footer />
     </div>

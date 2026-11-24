@@ -277,9 +277,11 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
       <div className="mt-5 space-y-2.5 pt-3 border-t-brutal">
         {isAuthenticated && (
           <button
-            onClick={() => {
-              logout();
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
               onClose();
+              await logout();
             }}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-ink/40 bg-white p-2.5 font-display text-xs font-black text-danger shadow-brutal-xs hover:bg-danger/10 transition cursor-pointer"
           >

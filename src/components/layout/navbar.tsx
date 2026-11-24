@@ -504,9 +504,11 @@ export function Navbar() {
                     {/* Logout */}
                     <div className="border-t-brutal-sm pt-1 mt-1">
                       <button
-                        onClick={() => {
-                          logout();
+                        type="button"
+                        onClick={async (e) => {
+                          e.preventDefault();
                           setIsUserMenuOpen(false);
+                          await logout();
                         }}
                         className="flex w-full items-center gap-2.5 rounded-xl p-2 text-left font-display text-xs font-bold text-danger hover:bg-danger/10 transition-colors cursor-pointer group"
                       >
