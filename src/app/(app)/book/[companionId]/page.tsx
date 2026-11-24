@@ -91,11 +91,11 @@ export default function BookPage({ params }: BookPageProps) {
     name: 'Verified Companion',
     age: 24,
     gender: 'female' as const,
-    city: 'chandigarh',
+    city: 'delhi',
     area: 'Central Plaza',
     tagline: 'Verified Meetzy Club Host',
     about: 'Warm, articulate, and engaging companion for pleasant public meetups.',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+    avatarUrl: '/companions/girl1.jpg',
     languages: ['English', 'Hindi'],
     hourlyRate: 499,
     verifiedId: true,
@@ -965,33 +965,58 @@ export default function BookPage({ params }: BookPageProps) {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className="rounded-2xl border-2 border-ink bg-white px-5 py-3.5 font-display text-xs font-black text-ink hover:bg-paper transition cursor-pointer"
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={handleFinalBookingAndPayment}
-                disabled={isSubmitting || !agreedPlatonic}
-                className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-3 border-ink bg-lime text-ink py-3.5 font-display text-sm font-black shadow-brutal hover:bg-sunny transition btn-press cursor-pointer disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin text-ink" />
-                    <span>Processing Escrow...</span>
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck className="h-4 w-4 text-emerald-800" />
-                    <span>Pay ₹{price.totalPayable} &amp; Request Meetup</span>
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Step 5 Validation Check */}
+            {(() => {
+              const isNameValid = Boolean(memberName && memberName.trim().length >= 2);
+              const isPhoneValid = memberPhone.replace(/\D/g, '').length === 10;
+              const isPlatonicValid = Boolean(agreedPlatonic);
+              const isWalletSufficient = paymentMethod !== 'WALLET' || (user?.coinBalance ?? 0) >= price.totalPayable;
+              const isStep5Valid = isNameValid && isPhoneValid && isPlatonicValid && isWalletSufficient;
+
+              return (
+                <>
+                  {!isStep5Valid && (
+                    <div className="rounded-2xl border-2 border-amber-500 bg-amber-50 p-3.5 text-xs font-bold text-amber-950 space-y-1">
+                      <span className="font-black uppercase text-[11px] text-amber-900 block">Required to proceed with booking:</span>
+                      <ul className="list-disc list-inside space-y-0.5 text-[11px] text-amber-900/90 pl-1">
+                        {!isNameValid && <li>Enter your full name (at least 2 characters)</li>}
+                        {!isPhoneValid && <li>Enter 10-digit mobile number ({memberPhone.replace(/\D/g, '').length}/10 entered)</li>}
+                        {!isPlatonicValid && <li>Confirm the 100% platonic meetup agreement</li>}
+                        {!isWalletSufficient && <li>Insufficient wallet coins (need {price.totalPayable - (user?.coinBalance ?? 0)} more coins or switch to Razorpay / UPI)</li>}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={handlePrevStep}
+                      className="rounded-2xl border-2 border-ink bg-white px-5 py-3.5 font-display text-xs font-black text-ink hover:bg-paper transition cursor-pointer"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleFinalBookingAndPayment}
+                      disabled={isSubmitting || !isStep5Valid}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-2xl border-3 border-ink bg-lime text-ink py-3.5 font-display text-sm font-black shadow-brutal hover:bg-sunny transition btn-press cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-ink" />
+                          <span>Processing Escrow...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck className="h-4 w-4 text-emerald-800" />
+                          <span>Pay ₹{price.totalPayable} &amp; Request Meetup</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         )}
       </main>
