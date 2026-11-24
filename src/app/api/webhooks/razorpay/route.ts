@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 import { PASS_TIER_OPTIONS } from "@/lib/data";
 import { PassTier } from "@/types";
+import { creditCoins } from "@/lib/wallet";
+import { CoinTransactionType } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,55 +33,89 @@ export async function POST(req: NextRequest) {
       const orderId = paymentEntity?.order_id || orderEntity?.id;
       const paymentId = paymentEntity?.id;
       const notes = paymentEntity?.notes || orderEntity?.notes || {};
-      const tier = (notes.tier as PassTier) || "ONE_MONTH";
       const userId = notes.userId;
-
-      const tierOption = PASS_TIER_OPTIONS.find((p) => p.tier === tier) || PASS_TIER_OPTIONS[0];
-      const expiryDate = tierOption.durationDays
-        ? new Date(Date.now() + tierOption.durationDays * 24 * 60 * 60 * 1000)
-        : null;
 
       if (userId && userId !== "guest") {
         try {
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              isUnlocked: true,
-              activePassTier: tier as any,
-              passExpiresAt: expiryDate,
-            },
-          });
+          if (notes.type === "COIN_TOPUP") {
+            const baseCoins = Number(notes.baseCoins) || 0;
+            const bonusCoins = Number(notes.bonusCoins) || 0;
+            const totalCoins = baseCoins + bonusCoins;
 
-          const existingPass = orderId
-            ? await prisma.accessPass.findFirst({
-                where: { razorpayOrderId: orderId },
-              })
-            : null;
+            const existingTx = paymentId
+              ? await prisma.coinTransaction.findFirst({
+                  where: { referenceId: paymentId },
+                })
+              : null;
 
-          if (existingPass) {
-            await prisma.accessPass.update({
-              where: { id: existingPass.id },
-              data: {
-                status: "ACTIVE",
-                razorpayPaymentId: paymentId,
-                validUntil: expiryDate,
-              },
-            });
-          } else {
-            await prisma.accessPass.create({
-              data: {
+            if (!existingTx && totalCoins > 0) {
+              await creditCoins({
                 userId,
-                tier: tier as any,
-                pricePaid: tierOption.price,
-                razorpayOrderId: orderId,
-                razorpayPaymentId: paymentId,
-                status: "ACTIVE",
-                validUntil: expiryDate,
+                amount: baseCoins,
+                type: CoinTransactionType.TOPUP,
+                description: `Wallet top-up (INR ${baseCoins}) [Webhook]`,
+                referenceId: paymentId,
+              });
+
+              if (bonusCoins > 0) {
+                await creditCoins({
+                  userId,
+                  amount: bonusCoins,
+                  type: CoinTransactionType.TOPUP_BONUS,
+                  description: `Top-up bonus (+${bonusCoins} coins) [Webhook]`,
+                  referenceId: `${paymentId}_bonus`,
+                });
+              }
+
+              console.log(`[RAZORPAY WEBHOOK] Successfully credited ${totalCoins} coins to user ${userId}`);
+            }
+          } else {
+            const tier = (notes.tier as PassTier) || "ONE_MONTH";
+            const tierOption = PASS_TIER_OPTIONS.find((p) => p.tier === tier) || PASS_TIER_OPTIONS[0];
+            const expiryDate = tierOption.durationDays
+              ? new Date(Date.now() + tierOption.durationDays * 24 * 60 * 60 * 1000)
+              : null;
+
+            await prisma.user.update({
+              where: { id: userId },
+              data: {
+                isUnlocked: true,
+                activePassTier: tier as any,
+                passExpiresAt: expiryDate,
               },
             });
-          }
 
-          console.log(`[RAZORPAY WEBHOOK] Successfully unlocked pass for user ${userId}`);
+            const existingPass = orderId
+              ? await prisma.accessPass.findFirst({
+                  where: { razorpayOrderId: orderId },
+                })
+              : null;
+
+            if (existingPass) {
+              await prisma.accessPass.update({
+                where: { id: existingPass.id },
+                data: {
+                  status: "ACTIVE",
+                  razorpayPaymentId: paymentId,
+                  validUntil: expiryDate,
+                },
+              });
+            } else {
+              await prisma.accessPass.create({
+                data: {
+                  userId,
+                  tier: tier as any,
+                  pricePaid: tierOption.price,
+                  razorpayOrderId: orderId,
+                  razorpayPaymentId: paymentId,
+                  status: "ACTIVE",
+                  validUntil: expiryDate,
+                },
+              });
+            }
+
+            console.log(`[RAZORPAY WEBHOOK] Successfully unlocked pass for user ${userId}`);
+          }
         } catch (dbErr) {
           console.error("[RAZORPAY WEBHOOK DB ERROR]:", dbErr);
         }
