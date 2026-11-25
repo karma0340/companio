@@ -98,7 +98,12 @@ export function CompareModal({
                   <div className="flex items-center gap-3 pr-8">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 border-ink bg-paper-deep">
                       <Image
-                        src={comp.avatarUrl}
+                        src={
+                          comp.avatarUrl ||
+                          (comp.gender === 'male'
+                            ? 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/aarav-mum.jpg'
+                            : 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg')
+                        }
                         alt={comp.name}
                         fill
                         sizes="64px"

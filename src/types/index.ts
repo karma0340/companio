@@ -39,7 +39,6 @@ export interface CompanionSummary {
   displayName: string;
   maskedName: string;
   age?: number;
-  gender?: string;
   avatarUrl: string;
   blurredAvatarUrl: string;
   city: string;
@@ -56,6 +55,7 @@ export interface CompanionSummary {
   availabilitySlots?: string[];
   preferredVenues?: string[];
   isAvailable: boolean;
+  gender?: 'female' | 'male' | 'non-binary';
   isPreview?: boolean;
 }
 

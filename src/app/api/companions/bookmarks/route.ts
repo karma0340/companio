@@ -25,8 +25,8 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    const companionIds = rows.map((r) => r.companionId);
-    const companions = rows.map((r) => ({
+    const companionIds = rows.map((r: any) => r.companionId);
+    const companions = rows.map((r: any) => ({
       id: r.companion.id,
       displayName: r.companion.displayName,
       city: r.companion.city?.name || 'India',
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       saved,
-      companionIds: allSaved.map((r) => r.companionId),
+      companionIds: allSaved.map((r: any) => r.companionId),
     });
   } catch (err) {
     console.error('[POST /api/companions/bookmarks] Error:', err);

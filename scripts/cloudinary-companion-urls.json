@@ -1,0 +1,107 @@
+[
+  {
+    "id": "ananya-del",
+    "name": "Ananya",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/ananya-del.jpg",
+    "success": true
+  },
+  {
+    "id": "priya-blr",
+    "name": "Priya",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/priya-blr.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/priya-blr.jpg",
+    "success": true
+  },
+  {
+    "id": "sneha-mum",
+    "name": "Sneha",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/sneha-mum.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/sneha-mum.jpg",
+    "success": true
+  },
+  {
+    "id": "tanvi-chd",
+    "name": "Tanvi",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/tanvi-chd.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/tanvi-chd.jpg",
+    "success": true
+  },
+  {
+    "id": "rhea-pune",
+    "name": "Rhea",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/rhea-pune.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/rhea-pune.jpg",
+    "success": true
+  },
+  {
+    "id": "isha-hyd",
+    "name": "Isha",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/isha-hyd.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/isha-hyd.jpg",
+    "success": true
+  },
+  {
+    "id": "meera-del",
+    "name": "Meera",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/meera-del.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/meera-del.jpg",
+    "success": true
+  },
+  {
+    "id": "dia-mum",
+    "name": "Dia",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/dia-mum.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/dia-mum.jpg",
+    "success": true
+  },
+  {
+    "id": "kritika-blr",
+    "name": "Kritika",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/kritika-blr.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/kritika-blr.jpg",
+    "success": true
+  },
+  {
+    "id": "simran-chd",
+    "name": "Simran",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/simran-chd.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/simran-chd.jpg",
+    "success": true
+  },
+  {
+    "id": "aarav-mum",
+    "name": "Aarav",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/aarav-mum.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/aarav-mum.jpg",
+    "success": true
+  },
+  {
+    "id": "kabir-del",
+    "name": "Kabir",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/kabir-del.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/kabir-del.jpg",
+    "success": true
+  },
+  {
+    "id": "rohan-pune",
+    "name": "Rohan",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/rohan-pune.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/rohan-pune.jpg",
+    "success": true
+  },
+  {
+    "id": "aditya-blr",
+    "name": "Aditya",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/aditya-blr.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/aditya-blr.jpg",
+    "success": true
+  },
+  {
+    "id": "vikram-chd",
+    "name": "Vikram",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/vikram-chd.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/vikram-chd.jpg",
+    "success": true
+  }
+]

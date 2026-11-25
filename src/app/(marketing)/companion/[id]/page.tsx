@@ -234,7 +234,7 @@ export default async function CompanionProfilePage({ params }: CompanionProfileP
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {companion.availability.map((slot, idx) => (
+                  {companion.availability.map((slot: { days: string; hours: string }, idx: number) => (
                     <div
                       key={idx}
                       className="flex items-center justify-between rounded-xl border-brutal-sm bg-paper-deep p-3 text-xs font-bold"
@@ -254,7 +254,7 @@ export default async function CompanionProfilePage({ params }: CompanionProfileP
                       Preferred Public Venues
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {companion.preferredVenues.map((venue) => (
+                      {companion.preferredVenues.map((venue: string) => (
                         <span
                           key={venue}
                           className="inline-flex items-center gap-1 rounded-lg border-brutal-sm bg-sunny/60 px-2.5 py-1 text-xs font-bold text-ink"
