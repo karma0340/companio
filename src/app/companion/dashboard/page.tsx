@@ -58,6 +58,20 @@ interface HostProfileData {
   isAvailable: boolean;
   upiId: string | null;
   walletBalance: number;
+  withdrawableBalance?: number;
+  pendingSettlementBalance?: number;
+  nextUnlockAt?: string | null;
+}
+
+interface PendingSettlementItem {
+  transactionId: string;
+  bookingNumber: string;
+  amount: number;
+  creditedAt: string;
+  unlocksAt: string;
+  tPlus2Elapsed: boolean;
+  razorpaySettled: boolean;
+  reason: string;
 }
 
 interface HostBookingItem {
@@ -122,6 +136,10 @@ export default function CompanionDashboardPage() {
   const [upiVerified, setUpiVerified] = useState(false);
   const [razorpayXConfigured, setRazorpayXConfigured] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [withdrawableBalance, setWithdrawableBalance] = useState(0);
+  const [pendingSettlementBalance, setPendingSettlementBalance] = useState(0);
+  const [nextUnlockAt, setNextUnlockAt] = useState<string | null>(null);
+  const [pendingCredits, setPendingCredits] = useState<PendingSettlementItem[]>([]);
 
   const [isAvailable, setIsAvailable] = useState(true);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
@@ -188,6 +206,9 @@ export default function CompanionDashboardPage() {
       setProfile(p);
       setIsAvailable(p.isAvailable);
       setWalletBalance(p.walletBalance ?? 0);
+      setWithdrawableBalance(p.withdrawableBalance ?? 0);
+      setPendingSettlementBalance(p.pendingSettlementBalance ?? 0);
+      setNextUnlockAt(p.nextUnlockAt ?? null);
       setPayoutUpi(p.upiId || '');
       setInlineUpiInput(p.upiId || '');
 
@@ -216,6 +237,14 @@ export default function CompanionDashboardPage() {
         if (typeof payoutsData.walletBalance === 'number') {
           setWalletBalance(payoutsData.walletBalance);
         }
+        if (typeof payoutsData.withdrawableBalance === 'number') {
+          setWithdrawableBalance(payoutsData.withdrawableBalance);
+        }
+        if (typeof payoutsData.pendingSettlementBalance === 'number') {
+          setPendingSettlementBalance(payoutsData.pendingSettlementBalance);
+        }
+        setNextUnlockAt(payoutsData.nextUnlockAt || null);
+        setPendingCredits(Array.isArray(payoutsData.pendingCredits) ? payoutsData.pendingCredits : []);
         if (payoutsData.upiId && !p.upiId) {
           setPayoutUpi(payoutsData.upiId);
           setEditUpiId(payoutsData.upiId);
@@ -340,8 +369,22 @@ export default function CompanionDashboardPage() {
       toast.error('Minimum withdrawal amount is INR 100.');
       return;
     }
-    if (amountNum > walletBalance) {
-      toast.error(`Insufficient balance. Available: INR ${walletBalance.toLocaleString('en-IN')}.`);
+    if (amountNum > withdrawableBalance) {
+      if (pendingSettlementBalance > 0) {
+        const unlockDateLabel = nextUnlockAt
+          ? new Date(nextUnlockAt).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              timeZone: 'Asia/Kolkata',
+            })
+          : 'after 2 days';
+        toast.error(
+          `Your INR ${pendingSettlementBalance.toLocaleString('en-IN')} earnings are in Razorpay's T+2 hold. You can withdraw after 2 days (${unlockDateLabel}) once Razorpay releases settlement. Available now: INR ${withdrawableBalance.toLocaleString('en-IN')}.`
+        );
+      } else {
+        toast.error(`Insufficient withdrawable balance. Available: INR ${withdrawableBalance.toLocaleString('en-IN')}.`);
+      }
       return;
     }
     if (!payoutUpi.trim() || !payoutUpi.includes('@')) {
@@ -696,24 +739,38 @@ export default function CompanionDashboardPage() {
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="rounded-2xl border-brutal bg-white p-5 shadow-brutal-sm flex flex-col justify-between">
             <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-ink/60">
-              <span>Wallet Balance</span>
+              <span>Withdrawable Cash</span>
               <Wallet className="h-4 w-4 text-emerald-700" />
             </div>
             <div className="mt-3 flex items-baseline justify-between gap-2">
               <p className="font-display text-2xl sm:text-3xl font-black text-ink">
-                INR {walletBalance.toLocaleString('en-IN')}
+                INR {withdrawableBalance.toLocaleString('en-IN')}
               </p>
               <button
                 type="button"
                 onClick={() => setShowPayoutModal(true)}
-                className="rounded-lg border-brutal-thin bg-lime px-3 py-1 text-xs font-black text-ink hover:bg-lime/80 transition-colors"
+                className="rounded-lg border-brutal-thin bg-lime px-3 py-1 text-xs font-black text-ink hover:bg-lime/80 transition-colors cursor-pointer"
               >
                 Cash Out UPI
               </button>
             </div>
-            <p className="mt-1.5 text-[11px] font-semibold text-ink/60">
-              Total Earned: INR {totalEarned.toLocaleString('en-IN')}
-            </p>
+            <div className="mt-1.5 space-y-0.5 text-[11px] font-semibold text-ink/65">
+              {pendingSettlementBalance > 0 && (
+                <p className="text-amber-800 font-bold">
+                  In 2-Day (T+2) Hold: INR {pendingSettlementBalance.toLocaleString('en-IN')}
+                  {nextUnlockAt
+                    ? ` (unlocks ${new Date(nextUnlockAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        timeZone: 'Asia/Kolkata',
+                      })} via Razorpay)`
+                    : ' (after Razorpay releases)'}
+                </p>
+              )}
+              <p>
+                Total Released: INR {totalEarned.toLocaleString('en-IN')}
+              </p>
+            </div>
           </div>
 
           <div className="rounded-2xl border-brutal bg-white p-5 shadow-brutal-sm">
@@ -1056,10 +1113,52 @@ export default function CompanionDashboardPage() {
                 </div>
               )}
 
+              {pendingCredits.length > 0 && (
+                <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-3.5 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-black text-amber-950 uppercase tracking-wider text-[11px]">
+                      In Razorpay 2-Day (T+2) Clearing
+                    </span>
+                    <span className="font-mono font-black text-amber-950">
+                      INR {pendingSettlementBalance.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-semibold text-amber-900">
+                    Meetup earnings become withdrawable 2 days (48h) after meetup completion once Razorpay releases settlement funds.
+                  </p>
+                  <div className="space-y-1.5 pt-1">
+                    {pendingCredits.slice(0, 3).map((pc) => (
+                      <div
+                        key={pc.transactionId}
+                        className="flex items-center justify-between rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-[11px]"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <span className="font-black text-ink">#{pc.bookingNumber}</span>
+                          <span className="block text-[10px] font-semibold text-ink/65 truncate">
+                            Unlocks{' '}
+                            {new Date(pc.unlocksAt).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZone: 'Asia/Kolkata',
+                            })}{' '}
+                            • {pc.razorpaySettled ? 'Razorpay Settled' : 'Pending Razorpay Release'}
+                          </span>
+                        </div>
+                        <span className="font-mono font-black text-ink shrink-0">
+                          INR {pc.amount.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <p className="text-[11px] font-semibold text-ink/65">
                 {razorpayXConfigured
-                  ? 'RazorpayX Auto-Payout active: completed meetup earnings transfer directly to your UPI ID.'
-                  : '70% of each completed meetup credits to your Host Wallet; request instant UPI payouts anytime.'}
+                  ? '70% meetup earnings unlock 2 days after completion once Razorpay releases settlement, then transfer to your UPI via RazorpayX.'
+                  : '70% meetup earnings unlock for withdrawal 2 days (T+2) after meetup completion once Razorpay releases the funds.'}
               </p>
 
               {payouts.length === 0 ? (
@@ -1199,11 +1298,32 @@ export default function CompanionDashboardPage() {
               </button>
             </div>
 
-            <div className="rounded-2xl border-brutal-thin bg-lime/30 p-3.5 flex items-center justify-between">
-              <span className="text-xs font-bold text-ink/80">Withdrawable Balance</span>
-              <span className="font-display text-lg font-black text-ink">
-                INR {walletBalance.toLocaleString('en-IN')}
-              </span>
+            <div className="space-y-2">
+              <div className="rounded-2xl border-brutal-thin bg-lime/30 p-3.5 flex items-center justify-between">
+                <span className="text-xs font-bold text-ink/80">Withdrawable Now (Released)</span>
+                <span className="font-display text-lg font-black text-ink">
+                  INR {withdrawableBalance.toLocaleString('en-IN')}
+                </span>
+              </div>
+              {pendingSettlementBalance > 0 && (
+                <div className="rounded-2xl border border-amber-400 bg-amber-50 p-3 text-xs space-y-1">
+                  <div className="flex items-center justify-between font-black text-amber-950">
+                    <span>In 2-Day (T+2) Razorpay Hold</span>
+                    <span>INR {pendingSettlementBalance.toLocaleString('en-IN')}</span>
+                  </div>
+                  <p className="text-[11px] font-semibold text-amber-900">
+                    You can withdraw meetup earnings 2 days after completion once Razorpay releases settlement
+                    {nextUnlockAt
+                      ? ` (next unlock: ${new Date(nextUnlockAt).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          timeZone: 'Asia/Kolkata',
+                        })})`
+                      : ''}.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
@@ -1211,13 +1331,13 @@ export default function CompanionDashboardPage() {
                 <label className="block text-xs font-black uppercase tracking-wider text-ink/70">
                   Withdrawal Amount (INR)
                 </label>
-                {walletBalance >= 100 && (
+                {withdrawableBalance >= 100 && (
                   <button
                     type="button"
-                    onClick={() => setPayoutAmount(walletBalance.toFixed(2))}
+                    onClick={() => setPayoutAmount(withdrawableBalance.toFixed(2))}
                     className="text-[11px] font-black uppercase text-ink underline hover:text-ink/70 cursor-pointer"
                   >
-                    Use Max (INR {walletBalance.toFixed(2)})
+                    Use Max (INR {withdrawableBalance.toFixed(2)})
                   </button>
                 )}
               </div>
@@ -1225,11 +1345,12 @@ export default function CompanionDashboardPage() {
                 type="number"
                 step="0.01"
                 min={100}
-                max={walletBalance}
+                max={withdrawableBalance}
+                disabled={withdrawableBalance < 100}
                 value={payoutAmount}
                 onChange={(e) => setPayoutAmount(e.target.value)}
-                placeholder="Minimum 100"
-                className="w-full rounded-xl border-brutal bg-cream px-3.5 py-2.5 text-sm font-bold text-ink focus:outline-none"
+                placeholder={withdrawableBalance < 100 ? 'Locked until T+2 settlement' : 'Minimum 100'}
+                className="w-full rounded-xl border-brutal bg-cream px-3.5 py-2.5 text-sm font-bold text-ink focus:outline-none disabled:opacity-60"
                 required
               />
             </div>
@@ -1250,15 +1371,21 @@ export default function CompanionDashboardPage() {
 
             <div className="flex items-start gap-2 rounded-xl border-brutal-thin bg-cream p-3 text-[11px] font-semibold text-ink/70">
               <AlertCircle className="h-4 w-4 text-ink shrink-0 mt-0.5" />
-              <span>Funds are transferred to your UPI handle within 24 business hours.</span>
+              <span>
+                Only meetup earnings where the meetup was accepted, completed, cleared the 2-day (T+2) hold, and released by Razorpay are withdrawable.
+              </span>
             </div>
 
             <button
               type="submit"
-              disabled={isRequestingPayout}
-              className="w-full rounded-xl border-brutal bg-ink py-3 font-display text-sm font-black text-white shadow-brutal-sm hover:bg-ink/90 disabled:opacity-50"
+              disabled={isRequestingPayout || withdrawableBalance < 100}
+              className="w-full rounded-xl border-brutal bg-ink py-3 font-display text-sm font-black text-white shadow-brutal-sm hover:bg-ink/90 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
-              {isRequestingPayout ? 'Processing Payout...' : 'Confirm UPI Withdrawal'}
+              {isRequestingPayout
+                ? 'Processing Payout...'
+                : withdrawableBalance < 100
+                ? 'Available After 2-Day T+2 & Razorpay Release'
+                : 'Confirm UPI Withdrawal'}
             </button>
           </form>
         </div>

@@ -1,7 +1,6 @@
 import { prisma } from "./prisma";
 import { calculateEscrowBreakdown } from "./escrow";
-import { createRazorpayRefund, isRazorpayConfigured, isRazorpayXConfigured, isValidUpiId } from "./razorpay";
-import { dispatchHostUpiPayout } from "./payouts";
+import { createRazorpayRefund, isRazorpayConfigured } from "./razorpay";
 import { HostLevel } from "@prisma/client";
 
 export type BookingStatusType =
@@ -793,24 +792,8 @@ export async function completeSession(
     console.warn("[REFERRAL REWARD WARN]:", refErr);
   }
 
-  // Auto-dispatch 70% Host Share directly to Host UPI via RazorpayX when configured
-  let autoPayoutResult: Awaited<ReturnType<typeof dispatchHostUpiPayout>> | null = null;
-  if (
-    booking.escrowStatus !== "RELEASED_TO_HOST" &&
-    updated.companion?.userId &&
-    updated.companion?.upiId &&
-    isValidUpiId(updated.companion.upiId) &&
-    isRazorpayXConfigured()
-  ) {
-    autoPayoutResult = await dispatchHostUpiPayout({
-      userId: updated.companion.userId,
-      amountInr: hostPayoutAmount,
-      upiId: updated.companion.upiId,
-      bookingId: booking.id,
-      narration: `Meetzy #${booking.bookingNumber} 70pct`,
-    }).catch(() => null);
-  }
-
+  // 70% Host Share stays in T+2 settlement clearing for 2 days until Razorpay releases funds;
+  // do NOT auto-dispatch RazorpayX payouts immediately on meetup completion.
   const record = sanitizeBookingForViewer(mapPrismaBooking(updated), callerUserId);
   bookingsStore.set(booking.id, record);
 
@@ -818,13 +801,13 @@ export async function completeSession(
     success: true,
     booking: record,
     payout: {
-      transferId: autoPayoutResult?.payoutId || transferId,
-      utr: autoPayoutResult?.utr || utr,
-      gateway: autoPayoutResult?.gateway || "WALLET",
+      transferId,
+      utr,
+      gateway: "WALLET",
       amount: hostPayoutAmount,
       recipientUpiId: updated.companion?.upiId || recipientUpi,
       timestamp: now.toISOString(),
-      status: autoPayoutResult?.status === "FAILED" ? "SUCCESS" : (autoPayoutResult?.status || "SUCCESS"),
+      status: "SUCCESS",
     },
   };
 }

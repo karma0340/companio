@@ -1,11 +1,187 @@
 import { prisma } from "@/lib/prisma";
 import {
   isValidUpiId,
+  isRazorpayConfigured,
   isRazorpayXConfigured,
   ensureRazorpayXContactAndUpiFundAccount,
   createRazorpayXUpiPayout,
+  fetchRazorpayPaymentDetails,
 } from "@/lib/razorpay";
 import { PaymentGateway, TransactionStatus } from "@prisma/client";
+
+export const SETTLEMENT_HOLD_DAYS = 2;
+export const SETTLEMENT_HOLD_MS = SETTLEMENT_HOLD_DAYS * 24 * 60 * 60 * 1000;
+
+export interface PendingSettlementItem {
+  transactionId: string;
+  bookingNumber: string;
+  amount: number;
+  creditedAt: string;
+  unlocksAt: string;
+  tPlus2Elapsed: boolean;
+  razorpaySettled: boolean;
+  reason: string;
+}
+
+export interface HostWalletSummary {
+  walletBalance: number;
+  withdrawableBalance: number;
+  pendingSettlementBalance: number;
+  nextUnlockAt: string | null;
+  pendingCredits: PendingSettlementItem[];
+}
+
+function roundInr(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * Computes withdrawable vs T+2 settlement-locked Host cash balance.
+ * Money is only withdrawable when:
+ * 1. The meetup booking was accepted & completed (RELEASED_TO_HOST), AND
+ * 2. At least 2 days (48h T+2 clearing window) have passed since earning credit, AND
+ * 3. For live Razorpay payments (pay_*), Razorpay has released settlement (settlement_id present).
+ */
+export async function getHostWalletSummary(userId: string): Promise<HostWalletSummary> {
+  const [user, payoutCredits, cashoutTxs] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { walletBalance: true },
+    }),
+    prisma.transaction.findMany({
+      where: {
+        userId,
+        type: "HOST_PAYOUT",
+        status: "SUCCESS",
+      },
+      include: {
+        booking: {
+          select: {
+            id: true,
+            bookingNumber: true,
+            status: true,
+            escrowStatus: true,
+            razorpayPaymentId: true,
+            sessionEndedAt: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.transaction.findMany({
+      where: {
+        userId,
+        type: "WALLET_CASHOUT",
+        status: { in: ["SUCCESS", "PENDING"] },
+      },
+      select: { amount: true, netAmount: true },
+    }),
+  ]);
+
+  const totalWalletLedger = Math.max(0, roundInr(Number(user?.walletBalance || 0)));
+  const rzpEnabled = isRazorpayConfigured();
+  const nowMs = Date.now();
+
+  const evaluated = await Promise.all(
+    payoutCredits.map(async (tx) => {
+      const amount = roundInr(Number(tx.netAmount || tx.amount || 0));
+      const b = tx.booking;
+
+      // Must belong to an accepted & completed meetup released to host
+      const isCompletedRelease = b
+        ? b.status === "COMPLETED" && b.escrowStatus === "RELEASED_TO_HOST"
+        : true;
+
+      if (!isCompletedRelease || amount <= 0) {
+        return {
+          amount: 0,
+          withdrawable: false,
+          pendingItem: null as PendingSettlementItem | null,
+        };
+      }
+
+      const creditedDate = b?.sessionEndedAt || tx.createdAt;
+      const unlocksAtDate = new Date(creditedDate.getTime() + SETTLEMENT_HOLD_MS);
+      const tPlus2Elapsed = nowMs >= unlocksAtDate.getTime();
+
+      let razorpaySettled = true;
+      const paymentId = (b?.razorpayPaymentId || "").trim();
+      if (rzpEnabled && paymentId.startsWith("pay_")) {
+        const paymentCheck = await fetchRazorpayPaymentDetails(paymentId);
+        razorpaySettled = Boolean(paymentCheck.success && paymentCheck.settled);
+      }
+
+      const isReleased = tPlus2Elapsed && razorpaySettled;
+      let reason = "Settled & ready to withdraw";
+      if (!tPlus2Elapsed && !razorpaySettled) {
+        reason = "In 2-day (T+2) & Razorpay settlement hold";
+      } else if (!tPlus2Elapsed) {
+        reason = "Available to withdraw 2 days after meetup completion";
+      } else if (!razorpaySettled) {
+        reason = "Waiting for Razorpay to release settlement funds";
+      }
+
+      return {
+        amount,
+        withdrawable: isReleased,
+        pendingItem: isReleased
+          ? null
+          : {
+              transactionId: tx.id,
+              bookingNumber: b?.bookingNumber || tx.id.slice(-8).toUpperCase(),
+              amount,
+              creditedAt: creditedDate.toISOString(),
+              unlocksAt: unlocksAtDate.toISOString(),
+              tPlus2Elapsed,
+              razorpaySettled,
+              reason,
+            },
+      };
+    })
+  );
+
+  let totalEligibleCredits = 0;
+  let settledCreditsTotal = 0;
+  const pendingCredits: PendingSettlementItem[] = [];
+
+  for (const row of evaluated) {
+    totalEligibleCredits += row.amount;
+    if (row.withdrawable) {
+      settledCreditsTotal += row.amount;
+    } else if (row.pendingItem) {
+      pendingCredits.push(row.pendingItem);
+    }
+  }
+
+  const totalCashouts = cashoutTxs.reduce(
+    (sum, t) => sum + roundInr(Number(t.netAmount || t.amount || 0)),
+    0
+  );
+
+  const pendingSettlementBalance = Math.max(0, roundInr(totalEligibleCredits - settledCreditsTotal));
+  const netCreditsOutstanding = Math.max(0, roundInr(totalEligibleCredits - totalCashouts));
+  const legacyDirectBalance = Math.max(0, roundInr(totalWalletLedger - netCreditsOutstanding));
+  const withdrawableBalance = Math.max(
+    0,
+    Math.min(
+      totalWalletLedger,
+      roundInr(settledCreditsTotal + legacyDirectBalance - totalCashouts)
+    )
+  );
+
+  const sortedUnlocks = pendingCredits
+    .map((p) => p.unlocksAt)
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  return {
+    walletBalance: totalWalletLedger,
+    withdrawableBalance,
+    pendingSettlementBalance,
+    nextUnlockAt: sortedUnlocks[0] || null,
+    pendingCredits,
+  };
+}
 
 export interface DispatchUpiPayoutParams {
   userId: string;
@@ -56,6 +232,34 @@ export async function dispatchHostUpiPayout(
       status: "FAILED",
       recipientUpiId: cleanUpi,
       error: "Payout amount must be greater than INR 0.",
+    };
+  }
+
+  const walletSummary = await getHostWalletSummary(params.userId);
+  if (amountInr > walletSummary.withdrawableBalance) {
+    if (walletSummary.pendingSettlementBalance > 0) {
+      const unlockText = walletSummary.nextUnlockAt
+        ? new Date(walletSummary.nextUnlockAt).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            timeZone: "Asia/Kolkata",
+          })
+        : "in 2 days";
+      return {
+        success: false,
+        gateway: "WALLET",
+        status: "FAILED",
+        recipientUpiId: cleanUpi,
+        error: `Funds are still in Razorpay's T+2 settlement hold (unlocks after 2 days on ${unlockText} once Razorpay releases settlement). Withdrawable now: INR ${walletSummary.withdrawableBalance.toFixed(2)}.`,
+      };
+    }
+    return {
+      success: false,
+      gateway: "WALLET",
+      status: "FAILED",
+      recipientUpiId: cleanUpi,
+      error: `Insufficient withdrawable balance. Available: INR ${walletSummary.withdrawableBalance.toFixed(2)}.`,
     };
   }
 

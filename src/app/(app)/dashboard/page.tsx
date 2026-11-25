@@ -101,8 +101,14 @@ function DashboardContent() {
   const [reminderEmails, setReminderEmails] = useState(true);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
 
-  // Active pass details
+  // Active pass & Host settlement details
   const [passData, setPassData] = useState<any>(null);
+  const [hostWalletSummary, setHostWalletSummary] = useState<{
+    withdrawableBalance: number;
+    pendingSettlementBalance: number;
+    nextUnlockAt: string | null;
+    upiId: string;
+  } | null>(null);
   const [notifications, setNotifications] = useState<
     Array<{ id: string; title: string; message: string; time: string; isUnread?: boolean }>
   >([]);
@@ -122,9 +128,10 @@ function DashboardContent() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [passRes, notifRes] = await Promise.all([
+        const [passRes, notifRes, payoutsRes] = await Promise.all([
           fetch('/api/passes/active', { cache: 'no-store' }),
           fetch('/api/notifications', { cache: 'no-store' }),
+          hostProfile ? fetch('/api/wallet/payouts', { cache: 'no-store' }) : Promise.resolve(null),
         ]);
 
         const passJson = await passRes.json();
@@ -136,6 +143,18 @@ function DashboardContent() {
           const notifJson = await notifRes.json();
           if (Array.isArray(notifJson.notifications)) {
             setNotifications(notifJson.notifications);
+          }
+        }
+
+        if (payoutsRes && payoutsRes.ok) {
+          const payoutsJson = await payoutsRes.json();
+          if (payoutsJson.success) {
+            setHostWalletSummary({
+              withdrawableBalance: Number(payoutsJson.withdrawableBalance ?? 0),
+              pendingSettlementBalance: Number(payoutsJson.pendingSettlementBalance ?? 0),
+              nextUnlockAt: payoutsJson.nextUnlockAt || null,
+              upiId: payoutsJson.upiId || '',
+            });
           }
         }
       } catch (err) {
@@ -161,7 +180,7 @@ function DashboardContent() {
     if (isAuthenticated) {
       loadData();
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, hostProfile]);
 
   // Greeting by hour
   const getGreeting = () => {
@@ -276,25 +295,68 @@ function DashboardContent() {
 
         {/* Host Onboarding or Studio Switch Banner */}
         {hostProfile ? (
-          <div className="rounded-2xl border-2 border-ink bg-[#D4F7A5]/70 p-4 sm:p-5 shadow-brutal-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-ink" />
-                <h2 className="font-display text-sm font-black text-ink uppercase">
-                  Host Studio Active ({hostProfile.displayName})
-                </h2>
+          <div className="rounded-2xl border-2 border-ink bg-[#D4F7A5]/70 p-4 sm:p-5 shadow-brutal-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-ink" />
+                  <h2 className="font-display text-sm font-black text-ink uppercase">
+                    Host Studio Active ({hostProfile.displayName})
+                  </h2>
+                </div>
+                <p className="text-xs font-bold text-ink-soft">
+                  Manage your incoming meetup requests, 4-digit Start PIN verification, UPI editing, and 70% cashouts from Host Studio.
+                </p>
               </div>
-              <p className="text-xs font-bold text-ink-soft">
-                Manage your incoming meetup requests, 4-digit Start PIN verification, and 70% UPI cashouts from your Host Studio.
-              </p>
+              <Link
+                href="/companion/dashboard"
+                className="inline-flex items-center gap-1 rounded-xl border-2 border-ink bg-ink text-white px-4 py-2 font-display text-xs font-black shadow-brutal-xs hover:bg-ink/90 transition cursor-pointer shrink-0"
+              >
+                <span>Open Host Studio</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
-            <Link
-              href="/companion/dashboard"
-              className="inline-flex items-center gap-1 rounded-xl border-2 border-ink bg-ink text-white px-4 py-2 font-display text-xs font-black shadow-brutal-xs hover:bg-ink/90 transition cursor-pointer shrink-0"
-            >
-              <span>Open Host Studio</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+
+            {hostWalletSummary && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t-2 border-ink/15 pt-3 text-xs">
+                <div className="rounded-xl border border-ink bg-white px-3 py-2">
+                  <span className="block text-[10px] font-black uppercase text-ink-muted">
+                    Withdrawable Cash (Released)
+                  </span>
+                  <span className="font-display text-base font-black text-emerald-700">
+                    INR {hostWalletSummary.withdrawableBalance.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="rounded-xl border border-ink bg-white px-3 py-2">
+                  <span className="block text-[10px] font-black uppercase text-ink-muted">
+                    In 2-Day (T+2) Razorpay Hold
+                  </span>
+                  <span className="font-display text-base font-black text-amber-800">
+                    INR {hostWalletSummary.pendingSettlementBalance.toLocaleString('en-IN')}
+                  </span>
+                  {hostWalletSummary.pendingSettlementBalance > 0 && (
+                    <span className="block text-[10px] font-bold text-ink-muted">
+                      Unlocks after 2 days &amp; Razorpay release
+                      {hostWalletSummary.nextUnlockAt
+                        ? ` (${new Date(hostWalletSummary.nextUnlockAt).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            timeZone: 'Asia/Kolkata',
+                          })})`
+                        : ''}
+                    </span>
+                  )}
+                </div>
+                <div className="rounded-xl border border-ink bg-white px-3 py-2">
+                  <span className="block text-[10px] font-black uppercase text-ink-muted">
+                    Linked Payout UPI
+                  </span>
+                  <span className="font-mono text-xs font-black text-ink break-all">
+                    {hostWalletSummary.upiId || 'Not set yet'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="rounded-2xl border-2 border-ink bg-sunny/60 p-4 sm:p-5 shadow-brutal-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">

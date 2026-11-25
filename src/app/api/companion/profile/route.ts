@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { uploadHostAvatar } from "@/lib/cloudinary";
 import { isValidUpiId } from "@/lib/razorpay";
+import { getHostWalletSummary } from "@/lib/payouts";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export async function GET() {
     }
 
     const c = user.companion;
+    const walletSummary = await getHostWalletSummary(session.userId);
     return NextResponse.json({
       success: true,
       hasProfile: true,
@@ -56,7 +58,11 @@ export async function GET() {
         totalReviews: c.totalReviews,
         isAvailable: c.isAvailable,
         upiId: c.upiId || "",
-        walletBalance: Number(user.walletBalance || 0),
+        walletBalance: walletSummary.walletBalance,
+        withdrawableBalance: walletSummary.withdrawableBalance,
+        pendingSettlementBalance: walletSummary.pendingSettlementBalance,
+        nextUnlockAt: walletSummary.nextUnlockAt,
+        pendingCredits: walletSummary.pendingCredits,
       },
     });
   } catch (error) {

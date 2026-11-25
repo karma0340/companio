@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { isRazorpayXConfigured } from "@/lib/razorpay";
-import { dispatchHostUpiPayout } from "@/lib/payouts";
+import { dispatchHostUpiPayout, getHostWalletSummary } from "@/lib/payouts";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +13,8 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const [user, companion, transactions] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: session.userId },
-        select: { walletBalance: true },
-      }),
+    const [walletSummary, companion, transactions] = await Promise.all([
+      getHostWalletSummary(session.userId),
       prisma.companion.findFirst({
         where: { userId: session.userId },
         select: { upiId: true, upiVerified: true },
@@ -34,7 +31,11 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      walletBalance: Number(user?.walletBalance || 0),
+      walletBalance: walletSummary.walletBalance,
+      withdrawableBalance: walletSummary.withdrawableBalance,
+      pendingSettlementBalance: walletSummary.pendingSettlementBalance,
+      nextUnlockAt: walletSummary.nextUnlockAt,
+      pendingCredits: walletSummary.pendingCredits,
       upiId: companion?.upiId || "",
       upiVerified: Boolean(companion?.upiVerified),
       razorpayXConfigured: isRazorpayXConfigured(),

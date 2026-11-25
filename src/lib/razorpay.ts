@@ -390,3 +390,73 @@ export async function createRazorpayRefund(params: {
     return { success: false, error: (err as Error).message || "Razorpay refund API failed." };
   }
 }
+
+export async function fetchRazorpayPaymentDetails(paymentId: string): Promise<{
+  success: boolean;
+  paymentId: string;
+  captured: boolean;
+  status: string;
+  settlementId: string | null;
+  settled: boolean;
+  error?: string;
+}> {
+  const cleanId = (paymentId || "").trim();
+  const authHeader = getRazorpayAuthHeader();
+  if (!cleanId.startsWith("pay_") || !authHeader || !isRazorpayConfigured()) {
+    return {
+      success: false,
+      paymentId: cleanId,
+      captured: false,
+      status: "unverified",
+      settlementId: null,
+      settled: false,
+      error: "Razorpay credentials or payment ID unavailable.",
+    };
+  }
+
+  try {
+    const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(cleanId)}`, {
+      method: "GET",
+      headers: {
+        Authorization: authHeader,
+      },
+      cache: "no-store",
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.id) {
+      return {
+        success: false,
+        paymentId: cleanId,
+        captured: false,
+        status: "error",
+        settlementId: null,
+        settled: false,
+        error: data?.error?.description || "Unable to fetch Razorpay payment status.",
+      };
+    }
+
+    const settlementId = data.settlement_id ? String(data.settlement_id) : null;
+    const status = String(data.status || "").toLowerCase();
+    const captured = Boolean(data.captured) || status === "captured";
+
+    return {
+      success: true,
+      paymentId: cleanId,
+      captured,
+      status,
+      settlementId,
+      settled: Boolean(settlementId),
+    };
+  } catch (err) {
+    return {
+      success: false,
+      paymentId: cleanId,
+      captured: false,
+      status: "error",
+      settlementId: null,
+      settled: false,
+      error: (err as Error).message || "Razorpay status check failed.",
+    };
+  }
+}
