@@ -3,12 +3,14 @@ import type { Metadata } from 'next';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { HowItWorksJourney } from '@/components/how-it-works/how-it-works-journey';
+import { buildMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
-  title: 'How It Works, Meetzy Club — In Five Steps',
+export const metadata: Metadata = buildMetadata({
+  title: 'How Meetzy Club Works — Safe 5-Step Platonic Meetups',
   description:
-    'From the first browse to the second meetup. Strictly platonic, always in public. Learn how Meetzy Club works from discovery to safe completion in public venues.',
-};
+    'From browsing verified hosts to choosing a public venue, paying via escrow, and starting with a 4-digit in-person PIN. Learn how Meetzy Club keeps meetups safe.',
+  path: '/how-it-works',
+});
 
 export default function HowItWorksPage() {
   return (

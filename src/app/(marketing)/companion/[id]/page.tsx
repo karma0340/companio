@@ -25,6 +25,7 @@ import { getCompanionById, getCompanions } from '@/lib/data';
 import { ACTIVITIES } from '@/lib/data/activities';
 import { ActivityCategory } from '@/lib/types';
 import type { Metadata } from 'next';
+import { buildMetadata, SITE_URL } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,12 +37,22 @@ interface CompanionProfilePageProps {
 
 export async function generateMetadata({ params }: CompanionProfilePageProps): Promise<Metadata> {
   const companion = await getCompanionById(params.id);
-  if (!companion) return { title: 'Companion Not Found | Meetzy Club' };
+  if (!companion) {
+    return buildMetadata({
+      title: 'Companion Not Found',
+      description: 'Browse verified platonic companions across India on Meetzy Club.',
+      path: `/companions/${params.id}`,
+      noIndex: true,
+    });
+  }
 
-  return {
-    title: `${companion.name}, ${companion.age} — Verified Companion in ${companion.area} (₹${companion.hourlyRate}/hr) | Meetzy Club`,
+  return buildMetadata({
+    title: `${companion.name}, ${companion.age} — Verified Companion in ${companion.area} (₹${companion.hourlyRate}/hr)`,
     description: `Book a verified meetup with ${companion.name} in ${companion.area}. "${companion.tagline}" 100% platonic & escrow protected on Meetzy Club.`,
-  };
+    path: `/companions/${companion.id}`,
+    image: companion.avatarUrl || undefined,
+    type: 'profile',
+  });
 }
 
 export default async function CompanionProfilePage({ params }: CompanionProfilePageProps) {
@@ -56,8 +67,62 @@ export default async function CompanionProfilePage({ params }: CompanionProfileP
     .map((slug) => ACTIVITIES.find((a) => a.slug === slug))
     .filter(Boolean);
 
+  const companionJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Service',
+        name: `${companion.name} — Verified Platonic Companion in ${companion.area}`,
+        description: companion.tagline || companion.about,
+        provider: {
+          '@type': 'Person',
+          name: companion.name,
+          image: companion.avatarUrl,
+        },
+        areaServed: {
+          '@type': 'City',
+          name: companion.city,
+        },
+        offers: {
+          '@type': 'Offer',
+          price: companion.hourlyRate,
+          priceCurrency: 'INR',
+          url: `${SITE_URL}/companions/${companion.id}`,
+        },
+        ...(companion.reviewCount > 0
+          ? {
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: Number(companion.rating).toFixed(1),
+                reviewCount: companion.reviewCount,
+                bestRating: 5,
+                worstRating: 1,
+              },
+            }
+          : {}),
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Explore', item: `${SITE_URL}/explore` },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: companion.name,
+            item: `${SITE_URL}/companions/${companion.id}`,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-paper">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(companionJsonLd) }}
+      />
       <Navbar />
 
       <main className="flex-1 py-8 sm:py-12">

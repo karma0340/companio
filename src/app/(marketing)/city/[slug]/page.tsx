@@ -10,6 +10,7 @@ import { CITIES } from '@/lib/data/cities';
 import { getCompanions } from '@/lib/data';
 import { Companion, ActivityCategory } from '@/lib/types';
 import type { Metadata } from 'next';
+import { buildMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,12 +64,26 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: CityPageProps): Metadata {
   const citySlug = params.slug;
   const currentCity = CITIES.find((c) => c.slug === citySlug);
-  if (!currentCity) return { title: 'City Not Found | Meetzy Club' };
+  if (!currentCity) {
+    return buildMetadata({
+      title: 'City Not Found',
+      description: 'Explore verified platonic companions across India on Meetzy Club.',
+      path: `/city/${citySlug}`,
+      noIndex: true,
+    });
+  }
 
-  return {
-    title: `Verified Local Companions in ${currentCity.name} — Gym, Movies & Coffee Buddies | Meetzy Club`,
-    description: `Connect with ID-verified local buddies in ${currentCity.name} (${currentCity.popularAreas.slice(0, 3).join(', ')}). 100% platonic, escrow-safe companionship on Meetzy Club.`,
-  };
+  return buildMetadata({
+    title: `Verified Local Companions in ${currentCity.name} — Gym, Movies & Coffee Buddies`,
+    description: `Connect with OTP-verified local buddies in ${currentCity.name} (${currentCity.popularAreas.slice(0, 3).join(', ')}). 100% platonic, escrow-safe companionship on Meetzy Club.`,
+    path: `/city/${currentCity.slug}`,
+    keywords: [
+      `companions in ${currentCity.name}`,
+      `movie buddy ${currentCity.name}`,
+      `coffee companion ${currentCity.name}`,
+      `gym partner ${currentCity.name}`,
+    ],
+  });
 }
 
 export default async function CityCompanionsPage({ params }: CityPageProps) {

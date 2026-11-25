@@ -11,6 +11,7 @@ import { ACTIVITIES } from '@/lib/data/activities';
 import { getCompanions } from '@/lib/data';
 import { Companion, ActivityCategory } from '@/lib/types';
 import type { Metadata } from 'next';
+import { buildMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,12 +65,25 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: ActivityPageProps): Metadata {
   const activitySlug = params.activity;
   const currentActivity = ACTIVITIES.find((a) => a.slug === activitySlug);
-  if (!currentActivity) return { title: 'Activity Not Found' };
+  if (!currentActivity) {
+    return buildMetadata({
+      title: 'Activity Not Found',
+      description: 'Browse verified local activity companions on Meetzy Club.',
+      path: `/explore/${activitySlug}`,
+      noIndex: true,
+    });
+  }
 
-  return {
-    title: `Find a Verified ${currentActivity.name} in India — ${currentActivity.tagline} | Meetzy Club`,
+  return buildMetadata({
+    title: `Find a Verified ${currentActivity.name} in India — ${currentActivity.tagline}`,
     description: currentActivity.description,
-  };
+    path: `/explore/${currentActivity.slug}`,
+    keywords: [
+      `${currentActivity.name} India`,
+      `verified ${currentActivity.name.toLowerCase()}`,
+      'platonic meetup India',
+    ],
+  });
 }
 
 export default async function ActivityPage({ params }: ActivityPageProps) {

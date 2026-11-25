@@ -1,10 +1,26 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { getCompanionsPaginated } from '@/lib/data';
 import { mapApiCompanionToCard } from '@/lib/companion-mapper';
 import { ExploreClient } from '@/components/companion/explore-client';
 import { ActivityCategory } from '@/lib/types';
+import { buildMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = buildMetadata({
+  title: 'Explore Verified Local Companions Across India',
+  description:
+    'Browse mobile OTP-verified companions in Chandigarh, Delhi NCR, Bengaluru, Mumbai, Pune, and Hyderabad. Filter by city, activity, gender, or availability.',
+  path: '/explore',
+  keywords: [
+    'explore companions India',
+    'verified local buddy',
+    'gym partner',
+    'coffee companion',
+    'movie buddy',
+  ],
+});
 
 interface ExplorePageProps {
   searchParams?: {

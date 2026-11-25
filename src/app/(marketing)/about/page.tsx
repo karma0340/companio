@@ -1,8 +1,17 @@
 import React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ShieldCheck, HeartHandshake, Compass, ArrowRight, Lock, CheckCircle2, Users } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "About Meetzy Club — India's Verified Platonic Companion Platform",
+  description:
+    "Learn how Meetzy Club builds safe, mobile OTP-verified, strictly platonic social meetups in public venues across India with escrow and 4-digit Start PIN protection.",
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (
