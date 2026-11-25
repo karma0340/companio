@@ -239,7 +239,7 @@ export default function PassReceiptPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-between border-t border-ink/20 pt-4 text-[10px] text-ink-muted font-bold gap-2">
             <div>This is a computer-generated tax invoice. No signature is required.</div>
-            <div>support@trycompanio.in</div>
+            <div>meetzyclub@gmail.com</div>
           </div>
         </div>
       </div>

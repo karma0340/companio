@@ -122,8 +122,8 @@ export default function CommunityGuidelinesPage() {
             </h2>
             <p className="font-body text-sm text-ink-soft leading-relaxed">
               If a host or member makes you feel uncomfortable or violates any guideline, end the meetup immediately and report them via the in-app SOS button or by emailing{' '}
-              <a href="mailto:safety@meetzy.club" className="font-bold underline text-ink">
-                safety@meetzy.club
+              <a href="mailto:meetzyclub@gmail.com" className="font-bold underline text-ink">
+                meetzyclub@gmail.com
               </a>
               . Our safety committee reviews all complaints within 15 minutes.
             </p>

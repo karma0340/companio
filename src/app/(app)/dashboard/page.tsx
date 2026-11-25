@@ -758,8 +758,8 @@ function DashboardContent() {
               </div>
 
               <div className="rounded-xl border-2 border-ink bg-paper p-4 space-y-1">
-                <div className="text-[10px] font-black uppercase text-ink-muted">Companio Trust &amp; Grievance</div>
-                <div className="font-display text-base font-black text-ink">support@trycompanio.in</div>
+                <div className="text-[10px] font-black uppercase text-ink-muted">Meetzy Club Trust &amp; Grievance</div>
+                <div className="font-display text-base font-black text-ink">meetzyclub@gmail.com</div>
                 <p className="text-xs text-ink-soft">Average response time is under 15 minutes.</p>
               </div>
             </div>

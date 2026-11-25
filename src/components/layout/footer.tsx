@@ -35,8 +35,8 @@ export function Footer() {
               </p>
               <p className="text-xs text-ink-soft">
                 Safety & Moderation Desk:{' '}
-                <a href="mailto:safety@meetzy.club" className="font-bold underline text-ink">
-                  safety@meetzy.club
+                <a href="mailto:meetzyclub@gmail.com" className="font-bold underline text-ink">
+                  meetzyclub@gmail.com
                 </a>
               </p>
             </div>

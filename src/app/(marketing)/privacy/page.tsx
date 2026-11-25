@@ -157,8 +157,8 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong className="text-ink">Right to Erasure / Deletion:</strong> Request permanent deletion of your account and associated records by emailing our Data Grievance Officer at{' '}
-                  <a href="mailto:privacy@trycompanio.in" className="font-bold underline text-ink">
-                    privacy@trycompanio.in
+                  <a href="mailto:meetzyclub@gmail.com" className="font-bold underline text-ink">
+                    meetzyclub@gmail.com
                   </a>
                   . Account deletion is executed within 72 hours.
                 </li>
@@ -175,7 +175,7 @@ export default function PrivacyPage() {
               <div className="rounded-xl border border-ink/20 bg-paper p-3.5 space-y-1 font-mono text-xs text-ink">
                 <p><strong>Grievance Officer:</strong> Legal &amp; Compliance Cell</p>
                 <p><strong>Platform:</strong> Companio / Meetzy Club (India)</p>
-                <p><strong>Email:</strong> grievance@trycompanio.in</p>
+                <p><strong>Email:</strong> meetzyclub@gmail.com</p>
                 <p><strong>Response SLA:</strong> Acknowledgement within 24 hours, resolution within 15 days</p>
               </div>
             </section>

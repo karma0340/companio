@@ -29,7 +29,7 @@ export async function sendEmailOtp(
           Authorization: `Bearer ${resendApiKey}`,
         },
         body: JSON.stringify({
-          from: process.env.EMAIL_FROM || "Meetzy Club <auth@meetzy.club>",
+          from: process.env.EMAIL_FROM || "Meetzy Club <meetzyclub@gmail.com>",
           to: [normalizedEmail],
           subject: `${otpCode} is your Meetzy Club verification code`,
           html: `

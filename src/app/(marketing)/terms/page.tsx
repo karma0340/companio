@@ -196,8 +196,8 @@ export default function TermsPage() {
               </h2>
               <p>
                 For legal inquiries, terms interpretation, or platform safety concerns, contact our legal team at{' '}
-                <a href="mailto:legal@trycompanio.in" className="font-bold underline text-ink">
-                  legal@trycompanio.in
+                <a href="mailto:meetzyclub@gmail.com" className="font-bold underline text-ink">
+                  meetzyclub@gmail.com
                 </a>{' '}
                 or visit our <Link href="/contact" className="underline font-bold text-ink">Contact Page</Link>.
               </p>

@@ -236,7 +236,7 @@ export default function ContactPage() {
                 <div className="text-xs font-bold text-ink/80 space-y-1">
                   <p>Officer: Mohit Tyagi</p>
                   <p>Designation: Grievance Redressal Officer</p>
-                  <p>Email: <a href="mailto:support@meetzy.club" className="underline">support@meetzy.club</a></p>
+                  <p>Email: <a href="mailto:meetzyclub@gmail.com" className="underline">meetzyclub@gmail.com</a></p>
                   <p>Response SLA: Within 24-48 hours</p>
                 </div>
               </div>

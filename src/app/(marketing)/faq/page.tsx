@@ -158,7 +158,7 @@ export default function FAQPage() {
               Our support and safety team is active 24/7 to assist with bookings, verification, or questions.
             </p>
             <div className="pt-2">
-              <a href="mailto:support@meetzy.club">
+              <a href="mailto:meetzyclub@gmail.com">
                 <Button variant="primary" size="md">
                   <span>Contact Meetzy Club Support →</span>
                 </Button>

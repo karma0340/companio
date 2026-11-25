@@ -295,7 +295,7 @@ export function SafetyTrustSystem() {
             </div>
             <div className="text-sm leading-relaxed text-[#5a4545]">
               Our 24/7 Trust &amp; Safety Desk is monitored directly at{' '}
-              <b className="text-[#111]">safety@meetzy.club</b> with priority incident response
+              <b className="text-[#111]">meetzyclub@gmail.com</b> with priority incident response
               within 15 minutes.
             </div>
           </div>
