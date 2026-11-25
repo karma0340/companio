@@ -279,7 +279,7 @@ export default function ProfilePage() {
                   </h2>
                 </div>
                 <p className="text-xs font-bold text-ink-soft">
-                  Coins power direct messaging with verified hosts and meetup escrow. 1 Coin = INR 1.
+                  Coins power direct in-app messaging with verified hosts (10 Coins/message). Meetup bookings are paid safely in INR via Razorpay Escrow.
                 </p>
               </div>
 
@@ -307,7 +307,7 @@ export default function ProfilePage() {
               <div className="rounded-xl border-2 border-ink bg-paper p-3 space-y-1">
                 <div className="text-[10px] font-black uppercase text-ink-muted">Signup Bonus</div>
                 <div className="font-display text-sm font-black text-ink">100 Free Coins</div>
-                <div className="text-[10px] font-medium text-ink-soft">Used first for messages &amp; bookings</div>
+                <div className="text-[10px] font-medium text-ink-soft">Used first for in-app chat messages</div>
               </div>
 
               <div className="rounded-xl border-2 border-ink bg-paper p-3 space-y-1">

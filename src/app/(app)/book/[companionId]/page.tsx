@@ -20,7 +20,6 @@ import {
   Check,
   X,
   Loader2,
-  Coins,
   CreditCard,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
@@ -125,7 +124,6 @@ export default function BookPage({ params }: BookPageProps) {
   const [memberName, setMemberName] = useState<string>('');
   const [memberPhone, setMemberPhone] = useState<string>('');
   const [agreedPlatonic, setAgreedPlatonic] = useState<boolean>(true);
-  const [paymentMethod, setPaymentMethod] = useState<'RAZORPAY' | 'WALLET'>('RAZORPAY');
 
   // Booking states
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -235,50 +233,7 @@ export default function BookPage({ params }: BookPageProps) {
 
     setIsSubmitting(true);
     try {
-      // 1. If paying with Wallet Coins
-      if (paymentMethod === 'WALLET') {
-        const userCoins = user?.coinBalance ?? 0;
-        if (userCoins < price.totalPayable) {
-          toast.error(
-            `Insufficient coins. You have ${userCoins} coins, but ₹${price.totalPayable} is required.`,
-            'Insufficient Coins'
-          );
-          setIsSubmitting(false);
-          return;
-        }
-
-        const res = await createBookingAction({
-          companionId: companion.id,
-          memberId: user?.id,
-          memberName: memberName.trim(),
-          memberPhone: `+91 ${cleanPhone}`,
-          activitySlug: selectedActivity,
-          date: selectedDateIso,
-          startTime: selectedTimeLabel,
-          durationHours: duration,
-          meetingPoint: meetingPlace.trim(),
-          hourlyRate: companion.hourlyRate,
-          paymentMethod: 'WALLET',
-        });
-
-        if (res.success && res.startCode) {
-          setStartCode(res.startCode);
-          setConfirmedBookingId(res.bookingId || '');
-          setBookingSuccess(true);
-          triggerCelebration('Meetup Requested! Escrow Protected');
-          toast.success(
-            `₹${price.totalPayable} coins deducted from wallet! Meetup reserved in Safe Escrow.`,
-            'Booking Confirmed'
-          );
-          if (refreshSession) await refreshSession();
-        } else {
-          toast.error(res.error || 'Failed to complete wallet booking.', 'Booking Error');
-        }
-        setIsSubmitting(false);
-        return;
-      }
-
-      // 2. Paying via Razorpay
+      // Meetup escrow requires real INR via Razorpay (never bonus/chat coins)
       const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -984,38 +939,23 @@ export default function BookPage({ params }: BookPageProps) {
               </div>
             </div>
 
-            {/* Payment Method Selector */}
+            {/* Payment Method (Razorpay Real-Money Escrow Only) */}
             <div className="space-y-2">
               <label className="block text-xs font-black uppercase tracking-wider text-ink">
                 Payment Method
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('RAZORPAY')}
-                  className={`p-3 rounded-2xl border-2 border-ink font-display text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition ${
-                    paymentMethod === 'RAZORPAY'
-                      ? 'bg-ink text-white shadow-brutal'
-                      : 'bg-white text-ink hover:bg-paper'
-                  }`}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  <span>Razorpay / UPI</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('WALLET')}
-                  className={`p-3 rounded-2xl border-2 border-ink font-display text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition ${
-                    paymentMethod === 'WALLET'
-                      ? 'bg-ink text-white shadow-brutal'
-                      : 'bg-white text-ink hover:bg-paper'
-                  }`}
-                >
-                  <Coins className="h-4 w-4 text-sunny" />
-                  <span>Wallet ({user?.coinBalance ?? 0} Coins)</span>
-                </button>
+              <div className="p-3.5 rounded-2xl border-2 border-ink bg-ink text-white shadow-brutal flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 font-display text-xs font-black">
+                  <CreditCard className="h-4 w-4 text-lime" />
+                  <span>Razorpay / UPI / Cards</span>
+                </div>
+                <span className="rounded-lg bg-lime px-2 py-0.5 text-[10px] font-black uppercase text-ink">
+                  Escrow Protected
+                </span>
               </div>
+              <p className="text-[11px] font-bold text-ink-muted">
+                Meetup bookings require real INR via Razorpay Escrow. Chat Coins are used exclusively for in-app messaging.
+              </p>
             </div>
 
             {/* Step 5 Validation Check */}
@@ -1023,8 +963,7 @@ export default function BookPage({ params }: BookPageProps) {
               const isNameValid = Boolean(memberName && memberName.trim().length >= 2);
               const isPhoneValid = memberPhone.replace(/\D/g, '').length === 10;
               const isPlatonicValid = Boolean(agreedPlatonic);
-              const isWalletSufficient = paymentMethod !== 'WALLET' || (user?.coinBalance ?? 0) >= price.totalPayable;
-              const isStep5Valid = isNameValid && isPhoneValid && isPlatonicValid && isWalletSufficient;
+              const isStep5Valid = isNameValid && isPhoneValid && isPlatonicValid;
 
               return (
                 <>
@@ -1035,7 +974,6 @@ export default function BookPage({ params }: BookPageProps) {
                         {!isNameValid && <li>Enter your full name (at least 2 characters)</li>}
                         {!isPhoneValid && <li>Enter 10-digit mobile number ({memberPhone.replace(/\D/g, '').length}/10 entered)</li>}
                         {!isPlatonicValid && <li>Confirm the 100% platonic meetup agreement</li>}
-                        {!isWalletSufficient && <li>Insufficient wallet coins (need {price.totalPayable - (user?.coinBalance ?? 0)} more coins or switch to Razorpay / UPI)</li>}
                       </ul>
                     </div>
                   )}

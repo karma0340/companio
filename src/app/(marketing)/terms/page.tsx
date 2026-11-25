@@ -165,7 +165,7 @@ export default function TermsPage() {
                 7. Virtual Coins Economy &amp; Accept-First Chat
               </h2>
               <p>
-                Coins power direct in-app messaging and meetup wallet bookings (1 Coin = INR 1). Every new member receives 100 promotional bonus coins upon verified registration. To prevent unsolicited spam, chat with a companion opens only after they accept your meetup request, after which member messages cost 10 Coins per sent message (starting with your bonus coins; host replies are free). Coins hold no cash redemption value outside the platform.
+                Coins power direct in-app messaging with hosts after meetup acceptance (1 Coin = INR 1). Every new member receives 100 promotional bonus coins upon verified registration. To prevent unsolicited spam, chat with a companion opens only after they accept your meetup request, after which member messages cost 10 Coins per sent message (starting with your bonus coins; host replies are free). Meetup bookings are always paid in real INR via Razorpay Escrow; coins cannot be used for meetup payouts or withdrawn for cash.
               </p>
             </section>
 

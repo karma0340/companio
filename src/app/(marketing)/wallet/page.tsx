@@ -368,7 +368,7 @@ export default function WalletPage() {
           </div>
 
           <p className="text-xs sm:text-sm font-medium text-ink-soft">
-            INR {currentMoney} money &middot; INR {currentCoins} credit &amp; coins for meetups and chats, can&apos;t be withdrawn
+            INR {currentMoney} money &middot; {currentCoins} chat coins for in-app host messaging (meetup bookings use Razorpay INR), can&apos;t be withdrawn
           </p>
         </div>
 
@@ -380,7 +380,7 @@ export default function WalletPage() {
               <span>Add Coins</span>
             </h2>
             <p className="text-xs sm:text-sm font-medium text-ink-muted mt-1">
-              1 coin = INR 1. Use coins to message hosts or pay for meetups. Coins can&apos;t be withdrawn.
+              1 coin = INR 1 value for in-app host messaging (10 coins per sent message). Meetup bookings are paid directly via Razorpay. Coins can&apos;t be withdrawn.
             </p>
           </div>
 

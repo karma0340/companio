@@ -2,11 +2,9 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { debitCoins } from '@/lib/wallet';
 import { calculateEscrowBreakdown } from '@/lib/escrow';
 import { verifyRazorpaySignature } from '@/lib/razorpay';
 import { getSession } from '@/lib/session';
-import { CoinTransactionType } from '@prisma/client';
 
 export interface CreateBookingInput {
   companionId: string;
@@ -84,20 +82,25 @@ export async function createBookingAction(input: CreateBookingInput) {
     const startCode = Math.floor(1000 + Math.random() * 9000).toString();
     const bookingId = `cmp-book-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    // Verify Razorpay cryptographic signature strictly on Razorpay payments
-    if (input.paymentMethod !== 'WALLET') {
-      const orderId = String(input.razorpayOrderId || '');
-      const paymentId = String(input.razorpayPaymentId || '');
-      if (!paymentId) {
-        return { success: false, error: 'Payment confirmation ID is missing.' };
-      }
-      const sigResult = verifyRazorpaySignature(orderId, paymentId, input.razorpaySignature);
-      if (!sigResult.isValid) {
-        return {
-          success: false,
-          error: sigResult.reason || 'Payment signature verification failed.',
-        };
-      }
+    // Verify Razorpay cryptographic signature strictly on every meetup booking (never allow bonus/wallet coins for meetup payouts)
+    if (input.paymentMethod === 'WALLET') {
+      return {
+        success: false,
+        error: 'Meetup bookings require real INR payment via Razorpay. Wallet coins can only be used for in-app chat messages.',
+      };
+    }
+
+    const orderId = String(input.razorpayOrderId || '');
+    const paymentId = String(input.razorpayPaymentId || '');
+    if (!paymentId) {
+      return { success: false, error: 'Payment confirmation ID is missing.' };
+    }
+    const sigResult = verifyRazorpaySignature(orderId, paymentId, input.razorpaySignature);
+    if (!sigResult.isValid) {
+      return {
+        success: false,
+        error: sigResult.reason || 'Payment signature verification failed.',
+      };
     }
 
     // Resolve authenticated member record
@@ -124,23 +127,6 @@ export async function createBookingAction(input: CreateBookingInput) {
         success: false,
         error: 'You cannot book your own companion profile.',
       };
-    }
-
-    if (input.paymentMethod === 'WALLET') {
-      if (user.coinBalance < breakdown.totalAmount) {
-        return {
-          success: false,
-          error: `Insufficient wallet coins. You have ${user.coinBalance} coins, but ${breakdown.totalAmount} coins are needed.`,
-        };
-      }
-
-      await debitCoins({
-        userId: user.id,
-        amount: Math.round(breakdown.totalAmount),
-        type: CoinTransactionType.MEETUP_PAYMENT,
-        description: `Escrow payment for meetup with ${companion.displayName} (Booking #${bookingId})`,
-        referenceId: bookingId,
-      });
     }
 
     const cityId = companion.cityId;
@@ -202,8 +188,8 @@ export async function createBookingAction(input: CreateBookingInput) {
           amount: breakdown.totalAmount,
           feeAmount: breakdown.platformShareTotal,
           netAmount: breakdown.companionFee,
-          gateway: input.paymentMethod === 'WALLET' ? 'WALLET' : 'RAZORPAY',
-          gatewayTransactionId: input.razorpayPaymentId || `wallet_escrow_${Date.now()}`,
+          gateway: 'RAZORPAY',
+          gatewayTransactionId: input.razorpayPaymentId || paymentId,
           status: 'SUCCESS',
         },
       })
