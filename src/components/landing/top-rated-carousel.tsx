@@ -15,6 +15,7 @@ const FILTERS = [
   { id: 'freeToday', label: 'Free Today' },
   { id: 'weekend', label: 'Weekend Only' },
   { id: 'womenOnly', label: 'Women Hosts' },
+  { id: 'menOnly', label: 'Men Hosts' },
 ];
 
 interface TopRatedCarouselProps {
@@ -49,7 +50,7 @@ export function TopRatedCarousel({
       return;
     }
 
-    fetch('/api/companions?limit=12', { cache: 'no-store' })
+    fetch('/api/companions?limit=48', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.companions)) {
@@ -65,7 +66,8 @@ export function TopRatedCarousel({
   const filteredCompanions = companionsList.filter((comp) => {
     if (activeFilter === 'freeToday') return comp.isFreeToday;
     if (activeFilter === 'weekend') return comp.isWeekendOnly;
-    if (activeFilter === 'womenOnly') return comp.acceptsWomenOnly || comp.gender === 'female';
+    if (activeFilter === 'womenOnly') return comp.gender === 'female';
+    if (activeFilter === 'menOnly') return comp.gender === 'male';
     return true;
   });
 
@@ -87,7 +89,10 @@ export function TopRatedCarousel({
               <button
                 key={f.id}
                 type="button"
-                onClick={() => setActiveFilter(f.id)}
+                onClick={() => {
+                  setActiveFilter(f.id);
+                  if (scrollRef.current) scrollRef.current.scrollLeft = 0;
+                }}
                 className={`rounded-full border-brutal-sm px-3.5 py-1.5 font-display text-xs font-black transition-all cursor-pointer ${
                   isSelected
                     ? 'bg-pink text-ink shadow-brutal-xs scale-105'
@@ -127,6 +132,19 @@ export function TopRatedCarousel({
           {Array.from({ length: 4 }).map((_, idx) => (
             <CompanionCardSkeleton key={idx} />
           ))}
+        </div>
+      ) : filteredCompanions.length === 0 ? (
+        <div className="rounded-2xl border-brutal bg-white p-8 text-center shadow-brutal-sm space-y-3">
+          <p className="font-display text-base font-black text-ink">
+            No hosts match this quick filter right now.
+          </p>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('all')}
+            className="inline-flex items-center gap-2 rounded-xl border-brutal-sm bg-lime px-4 py-2 font-display text-xs font-black text-ink shadow-brutal-xs hover:bg-sunny cursor-pointer"
+          >
+            Show All Top Rated
+          </button>
         </div>
       ) : (
         <div

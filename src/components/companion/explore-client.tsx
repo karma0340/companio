@@ -14,8 +14,17 @@ import { Search, Loader2, ChevronDown } from 'lucide-react';
 
 const PAGE_SIZE = 12;
 
+type HostGenderFilter = 'all' | 'female' | 'male';
+
 interface SearchSyncProps {
-  onSync: (city: string, activity: ActivityCategory | 'all', freeToday: boolean) => void;
+  onSync: (
+    city: string,
+    activity: ActivityCategory | 'all',
+    freeToday: boolean,
+    weekendOnly: boolean,
+    gender: HostGenderFilter,
+    q: string
+  ) => void;
 }
 
 function SearchParamsSync({ onSync }: SearchSyncProps) {
@@ -25,7 +34,17 @@ function SearchParamsSync({ onSync }: SearchSyncProps) {
     const city = searchParams.get('city') || 'all';
     const activity = (searchParams.get('activity') as ActivityCategory) || 'all';
     const freeToday = searchParams.get('freeToday') === 'true';
-    onSync(city, activity, freeToday);
+    const weekendOnly = searchParams.get('weekendOnly') === 'true';
+    const womenOnly = searchParams.get('womenOnly') === 'true';
+    const rawGender = (searchParams.get('gender') || '').toLowerCase();
+    const gender: HostGenderFilter =
+      rawGender === 'male'
+        ? 'male'
+        : rawGender === 'female' || womenOnly
+        ? 'female'
+        : 'all';
+    const q = searchParams.get('q') || '';
+    onSync(city, activity, freeToday, weekendOnly, gender, q);
   }, [searchParams, onSync]);
 
   return null;
@@ -39,7 +58,8 @@ interface ExploreClientProps {
   initialCity: string;
   initialActivity: ActivityCategory | 'all';
   initialFreeToday: boolean;
-  initialWomenOnly: boolean;
+  initialWeekendOnly?: boolean;
+  initialGender?: HostGenderFilter;
   initialQuery: string;
 }
 
@@ -51,13 +71,15 @@ export function ExploreClient({
   initialCity,
   initialActivity,
   initialFreeToday,
-  initialWomenOnly,
+  initialWeekendOnly = false,
+  initialGender = 'all',
   initialQuery,
 }: ExploreClientProps) {
   const [selectedCity, setSelectedCity] = useState<string>(initialCity);
   const [selectedActivity, setSelectedActivity] = useState<ActivityCategory | 'all'>(initialActivity);
   const [freeTodayOnly, setFreeTodayOnly] = useState<boolean>(initialFreeToday);
-  const [womenOnlyHosts, setWomenOnlyHosts] = useState<boolean>(initialWomenOnly);
+  const [weekendOnly, setWeekendOnly] = useState<boolean>(initialWeekendOnly);
+  const [selectedGender, setSelectedGender] = useState<HostGenderFilter>(initialGender);
   const [searchQuery, setSearchQuery] = useState<string>(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState<string>(initialQuery);
 
@@ -93,7 +115,8 @@ export function ExploreClient({
         if (selectedCity !== 'all') params.set('city', selectedCity);
         if (selectedActivity !== 'all') params.set('activity', selectedActivity);
         if (freeTodayOnly) params.set('freeToday', 'true');
-        if (womenOnlyHosts) params.set('womenOnly', 'true');
+        if (weekendOnly) params.set('weekendOnly', 'true');
+        if (selectedGender !== 'all') params.set('gender', selectedGender);
         if (debouncedQuery) params.set('q', debouncedQuery);
 
         const res = await fetch(`/api/companions?${params.toString()}`, {
@@ -123,7 +146,7 @@ export function ExploreClient({
         setIsLoadingMore(false);
       }
     },
-    [selectedCity, selectedActivity, freeTodayOnly, womenOnlyHosts, debouncedQuery]
+    [selectedCity, selectedActivity, freeTodayOnly, weekendOnly, selectedGender, debouncedQuery]
   );
 
   // Skip initial fetch so SSR data stays visible immediately with zero layout shift
@@ -136,10 +159,21 @@ export function ExploreClient({
   }, [fetchCompanionsPage]);
 
   const handleSyncParams = useCallback(
-    (city: string, activity: ActivityCategory | 'all', freeToday: boolean) => {
+    (
+      city: string,
+      activity: ActivityCategory | 'all',
+      freeToday: boolean,
+      weekend: boolean,
+      gender: HostGenderFilter,
+      q: string
+    ) => {
       setSelectedCity(city);
       setSelectedActivity(activity);
       setFreeTodayOnly(freeToday);
+      setWeekendOnly(weekend);
+      setSelectedGender(gender);
+      setSearchQuery(q);
+      setDebouncedQuery(q.trim());
     },
     []
   );
@@ -148,7 +182,8 @@ export function ExploreClient({
     setSelectedCity('all');
     setSelectedActivity('all');
     setFreeTodayOnly(false);
-    setWomenOnlyHosts(false);
+    setWeekendOnly(false);
+    setSelectedGender('all');
     setSearchQuery('');
     setDebouncedQuery('');
   };
@@ -186,12 +221,14 @@ export function ExploreClient({
             selectedCity={selectedCity}
             selectedActivity={selectedActivity}
             freeTodayOnly={freeTodayOnly}
-            womenOnlyHosts={womenOnlyHosts}
+            weekendOnly={weekendOnly}
+            selectedGender={selectedGender}
             searchQuery={searchQuery}
             onCityChange={setSelectedCity}
             onActivityChange={setSelectedActivity}
             onFreeTodayChange={setFreeTodayOnly}
-            onWomenOnlyHostsChange={setWomenOnlyHosts}
+            onWeekendOnlyChange={setWeekendOnly}
+            onGenderChange={setSelectedGender}
             onSearchChange={setSearchQuery}
             onReset={handleReset}
             totalCount={totalMatches}

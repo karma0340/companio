@@ -9,7 +9,13 @@ export async function GET(req: NextRequest) {
     const city = searchParams.get("city") || undefined;
     const activity = searchParams.get("activity") || undefined;
     const freeToday = searchParams.get("freeToday") === "true";
+    const weekendOnly = searchParams.get("weekendOnly") === "true";
     const womenOnly = searchParams.get("womenOnly") === "true";
+    const genderParam = (searchParams.get("gender") || "").toLowerCase();
+    const gender =
+      genderParam === "female" || genderParam === "male" || genderParam === "all"
+        ? (genderParam as "female" | "male" | "all")
+        : undefined;
     const q = searchParams.get("q") || undefined;
     const page = Number(searchParams.get("page") || "1");
     const limit = Number(searchParams.get("limit") || "12");
@@ -18,7 +24,9 @@ export async function GET(req: NextRequest) {
       city,
       activity,
       freeToday,
+      weekendOnly,
       womenOnly,
+      gender,
       q,
       page,
       limit,

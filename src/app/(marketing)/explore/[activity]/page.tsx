@@ -85,7 +85,7 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
     id: c.id,
     name: c.displayName || c.name,
     age: c.age || 24,
-    gender: (c.gender as 'male' | 'female' | 'non-binary') || 'female',
+    gender: (c.gender as 'male' | 'female' | 'non-binary') || 'non-binary',
     city: c.citySlug,
     area: c.locality || c.city,
     tagline: c.shortBio || 'Verified local companion',

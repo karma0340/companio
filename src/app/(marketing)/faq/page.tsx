@@ -86,9 +86,9 @@ export default function FAQPage() {
     {
       id: 'h-2',
       category: 'hosts',
-      question: 'Can I choose to accept meetups only from women?',
+      question: 'Do hosts have control over which meetup requests they accept?',
       answer:
-        'Yes! Female hosts can turn on the "Women-Only" filter in their profile settings. Once enabled, only verified female members are able to request meetups with you.',
+        'Yes. Every booking request must be manually reviewed and accepted by the host in their dashboard before it is confirmed. Members can also use the dedicated "Women Hosts" directory filter to browse verified female companions. Automated host-side member-gender restrictions are planned for a future update.',
     },
   ];
 

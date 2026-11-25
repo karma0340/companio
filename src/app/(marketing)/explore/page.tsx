@@ -11,7 +11,9 @@ interface ExplorePageProps {
     city?: string;
     activity?: string;
     freeToday?: string;
+    weekendOnly?: string;
     womenOnly?: string;
+    gender?: string;
     q?: string;
   };
 }
@@ -20,14 +22,23 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const city = searchParams?.city || 'all';
   const activity = (searchParams?.activity as ActivityCategory | 'all') || 'all';
   const freeToday = searchParams?.freeToday === 'true';
+  const weekendOnly = searchParams?.weekendOnly === 'true';
   const womenOnly = searchParams?.womenOnly === 'true';
+  const rawGender = (searchParams?.gender || '').toLowerCase();
+  const initialGender: 'all' | 'female' | 'male' =
+    rawGender === 'male'
+      ? 'male'
+      : rawGender === 'female' || womenOnly
+      ? 'female'
+      : 'all';
   const q = searchParams?.q || '';
 
   const result = await getCompanionsPaginated({
     city: city !== 'all' ? city : undefined,
     activity: activity !== 'all' ? activity : undefined,
     freeToday,
-    womenOnly,
+    weekendOnly,
+    gender: initialGender,
     q: q || undefined,
     page: 1,
     limit: 12,
@@ -44,7 +55,8 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
       initialCity={city}
       initialActivity={activity}
       initialFreeToday={freeToday}
-      initialWomenOnly={womenOnly}
+      initialWeekendOnly={weekendOnly}
+      initialGender={initialGender}
       initialQuery={q}
     />
   );

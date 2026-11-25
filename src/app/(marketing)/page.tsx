@@ -6,7 +6,7 @@ import { HomeClient } from '@/components/landing/home-client';
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const result = await getCompanionsPaginated({ page: 1, limit: 12 });
+  const result = await getCompanionsPaginated({ page: 1, limit: 48 });
   const initialCompanions = result.companions.map(mapApiCompanionToCard);
 
   return (

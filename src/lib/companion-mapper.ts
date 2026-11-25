@@ -55,6 +55,13 @@ export function mapToActivityCategories(activities: string[] = []): ActivityCate
   return Array.from(categories);
 }
 
+export function normalizeCompanionGender(gender?: string | null): "female" | "male" | "non-binary" {
+  const normalized = typeof gender === "string" ? gender.trim().toLowerCase() : "";
+  if (normalized === "male") return "male";
+  if (normalized === "female") return "female";
+  return "non-binary";
+}
+
 export function mapApiCompanionToCard(c: any): Companion {
   const rawActs: string[] = Array.isArray(c.acceptedActivities) ? c.acceptedActivities : [];
   const slots: string[] = Array.isArray(c.availabilitySlots) ? c.availabilitySlots : [];
@@ -63,7 +70,7 @@ export function mapApiCompanionToCard(c: any): Companion {
     id: c.id,
     name: c.displayName || c.name,
     age: Number(c.age) || 24,
-    gender: (c.gender || "female") as "female" | "male" | "non-binary",
+    gender: normalizeCompanionGender(c.gender),
     city: (c.citySlug || (c.city ? String(c.city).toLowerCase() : "chandigarh")).trim(),
     area: c.locality || c.area || c.city || "",
     tagline: c.shortBio || c.tagline || "",

@@ -94,7 +94,7 @@ export function HomeClient({ initialCompanions, initialTotal }: HomeClientProps)
       id: 'faq-6',
       question: 'Can women choose women-only companions?',
       answer:
-        'Yes. We have a dedicated "Women Hosts for Women" filter. Female hosts have the autonomy to restrict bookings exclusively to verified female members for maximum comfort and peace of mind.',
+        'Yes. Members can use the dedicated "Women Hosts" filter on both the homepage and Explore directory to browse verified female companions. Every meetup request is also reviewed manually by the host before acceptance, and all meetups take place in public venues with 4-digit Start Code protection.',
     },
   ];
 

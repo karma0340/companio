@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Search, MapPin, Sparkles, Filter, X, ShieldCheck } from 'lucide-react';
+import { Search, MapPin, Sparkles, CalendarDays, X, ShieldCheck, Users } from 'lucide-react';
 import { ACTIVITIES } from '@/lib/data/activities';
 import { CITIES } from '@/lib/data/cities';
 import { ActivityCategory } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { ActivityIcon } from '@/components/ui/activity-icon';
 import { StatusPulse } from '@/components/ui/status-pulse';
+
+type HostGenderFilter = 'all' | 'female' | 'male';
 
 interface FilterBarProps {
   selectedCity: string;
@@ -16,8 +17,10 @@ interface FilterBarProps {
   onActivityChange: (activity: ActivityCategory | 'all') => void;
   freeTodayOnly: boolean;
   onFreeTodayChange: (val: boolean) => void;
-  womenOnlyHosts: boolean;
-  onWomenOnlyHostsChange: (val: boolean) => void;
+  weekendOnly: boolean;
+  onWeekendOnlyChange: (val: boolean) => void;
+  selectedGender: HostGenderFilter;
+  onGenderChange: (val: HostGenderFilter) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   onReset: () => void;
@@ -32,8 +35,10 @@ export function FilterBar({
   onActivityChange,
   freeTodayOnly,
   onFreeTodayChange,
-  womenOnlyHosts,
-  onWomenOnlyHostsChange,
+  weekendOnly,
+  onWeekendOnlyChange,
+  selectedGender,
+  onGenderChange,
   searchQuery,
   onSearchChange,
   onReset,
@@ -44,7 +49,8 @@ export function FilterBar({
     selectedCity !== 'all' ||
     selectedActivity !== 'all' ||
     freeTodayOnly ||
-    womenOnlyHosts ||
+    weekendOnly ||
+    selectedGender !== 'all' ||
     searchQuery.trim().length > 0;
 
   return (
@@ -92,11 +98,12 @@ export function FilterBar({
         </div>
       </div>
 
-      {/* Quick Toggles: Free Today & Women-Only */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t-brutal-sm">
+      {/* Quick Toggles: Availability & Host Gender */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t-brutal-sm">
         <div className="flex flex-wrap items-center gap-2">
           {/* Free Today Toggle */}
           <button
+            type="button"
             onClick={() => onFreeTodayChange(!freeTodayOnly)}
             className={`group inline-flex items-center gap-2 rounded-full border-brutal-sm px-3.5 py-1.5 font-display text-xs font-black transition-all cursor-pointer ${
               freeTodayOnly
@@ -108,17 +115,58 @@ export function FilterBar({
             <span>Free Today</span>
           </button>
 
-          {/* Women Only Hosts Toggle */}
+          {/* Weekend Only Toggle */}
           <button
-            onClick={() => onWomenOnlyHostsChange(!womenOnlyHosts)}
+            type="button"
+            onClick={() => onWeekendOnlyChange(!weekendOnly)}
             className={`group inline-flex items-center gap-1.5 rounded-full border-brutal-sm px-3.5 py-1.5 font-display text-xs font-black transition-all cursor-pointer ${
-              womenOnlyHosts
+              weekendOnly
+                ? 'bg-sunny text-ink shadow-brutal-sm'
+                : 'bg-white text-ink-soft hover:bg-paper-deep'
+            }`}
+          >
+            <CalendarDays className="h-3.5 w-3.5 text-ink stroke-[2.25]" />
+            <span>Weekend Only</span>
+          </button>
+
+          {/* Gender Filter Pills */}
+          <button
+            type="button"
+            onClick={() => onGenderChange('all')}
+            className={`group inline-flex items-center gap-1.5 rounded-full border-brutal-sm px-3.5 py-1.5 font-display text-xs font-black transition-all cursor-pointer ${
+              selectedGender === 'all'
+                ? 'bg-ink text-paper shadow-brutal-sm'
+                : 'bg-white text-ink-soft hover:bg-paper-deep'
+            }`}
+          >
+            <Users className="h-3.5 w-3.5 stroke-[2.25]" />
+            <span>All Hosts</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onGenderChange(selectedGender === 'female' ? 'all' : 'female')}
+            className={`group inline-flex items-center gap-1.5 rounded-full border-brutal-sm px-3.5 py-1.5 font-display text-xs font-black transition-all cursor-pointer ${
+              selectedGender === 'female'
                 ? 'bg-pink text-ink shadow-brutal-sm'
                 : 'bg-white text-ink-soft hover:bg-paper-deep'
             }`}
           >
             <ShieldCheck className="h-3.5 w-3.5 text-pink-700 stroke-[2.25]" />
-            <span>Women Hosts for Women</span>
+            <span>Women Hosts</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onGenderChange(selectedGender === 'male' ? 'all' : 'male')}
+            className={`group inline-flex items-center gap-1.5 rounded-full border-brutal-sm px-3.5 py-1.5 font-display text-xs font-black transition-all cursor-pointer ${
+              selectedGender === 'male'
+                ? 'bg-sky text-ink shadow-brutal-sm'
+                : 'bg-white text-ink-soft hover:bg-paper-deep'
+            }`}
+          >
+            <Users className="h-3.5 w-3.5 text-ink stroke-[2.25]" />
+            <span>Men Hosts</span>
           </button>
         </div>
 

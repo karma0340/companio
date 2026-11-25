@@ -2,7 +2,46 @@ import { CompanionSummary, CitySummary, ActivitySummary, PassTierOption, HostPac
 import { ActivityCategory } from "./types";
 import { prisma } from "./prisma";
 import { scoreFuzzyMatch } from "./fuzzy";
-import { mapToActivityCategories } from "./companion-mapper";
+import { mapToActivityCategories, normalizeCompanionGender } from "./companion-mapper";
+
+const CITY_SEARCH_ALIASES: Record<string, string[]> = {
+  chandigarh: ["chd", "tricity", "sector 17", "sector 35", "sukhna lake"],
+  mohali: ["tricity", "sahibzada ajit singh nagar", "phase 3b2"],
+  panchkula: ["tricity", "pkl"],
+  delhi: ["new delhi", "delhi ncr", "ncr", "gurgaon", "gurugram", "noida", "south delhi", "hkv", "connaught place"],
+  mumbai: ["bombay", "bom", "bandra", "colaba", "juhu", "powai", "andheri"],
+  bengaluru: ["bangalore", "blr", "indiranagar", "koramangala", "hsr layout", "whitefield"],
+  pune: ["poona", "pnq", "koregaon park", "kalyani nagar", "baner"],
+  hyderabad: ["hyd", "cyberabad", "jubilee hills", "banjara hills", "gachibowli"],
+  jaipur: ["pink city", "jai", "c-scheme", "malviya nagar"],
+  kolkata: ["calcutta", "ccu", "park street", "salt lake"],
+  ahmedabad: ["amdavad", "amd", "sg highway", "bodakdev"],
+  lucknow: ["lko", "gomti nagar", "hazratganj"],
+  chennai: ["madras", "maa", "adyar", "besant nagar"],
+  indore: ["idr", "vijay nagar"],
+  ludhiana: ["ludh", "sarabha nagar", "model town"],
+  amritsar: ["asr", "ranjit avenue"],
+  dehradun: ["ddn", "rajpur road"],
+  kochi: ["cochin", "ernakulam", "fort kochi"],
+  goa: ["panaji", "anjuna", "baga", "candolim"],
+  surat: ["vesu", "piplod"],
+  bhopal: ["arera colony", "mp nagar"],
+  vadodara: ["baroda", "alkapuri"],
+};
+
+function resolveCityTargetSlugs(input: string): string[] {
+  const clean = input.trim().toLowerCase();
+  if (!clean || clean === "all") return [];
+  if (clean === "tricity") return ["chandigarh", "mohali", "panchkula"];
+
+  const matched = new Set<string>([clean]);
+  for (const [slug, aliases] of Object.entries(CITY_SEARCH_ALIASES)) {
+    if (slug === clean || aliases.some((a) => a === clean || clean.includes(a) || a.includes(clean))) {
+      matched.add(slug);
+    }
+  }
+  return Array.from(matched);
+}
 
 export const HOST_REGISTRATION_FEE = {
   tier: "STARTER" as HostPackTier,
@@ -98,7 +137,9 @@ export interface PaginatedCompanionsQuery {
   city?: string;
   activity?: string;
   freeToday?: boolean;
+  weekendOnly?: boolean;
   womenOnly?: boolean;
+  gender?: 'all' | 'female' | 'male';
   q?: string;
   page?: number;
   limit?: number;
@@ -124,6 +165,7 @@ export async function getCompanionsPaginated(
     const dbCompanions = await prisma.companion.findMany({
       include: {
         city: true,
+        user: { select: { gender: true } },
       },
       orderBy: [{ ratingAverage: 'desc' }, { completedMeetups: 'desc' }, { createdAt: 'desc' }],
     });
@@ -140,7 +182,7 @@ export async function getCompanionsPaginated(
       displayName: c.displayName,
       maskedName: c.maskedName,
       age: c.age || 24,
-      gender: (c.gender || 'female') as 'female' | 'male' | 'non-binary',
+      gender: normalizeCompanionGender(c.gender || c.user?.gender),
       city: c.city.name,
       citySlug: c.city.slug,
       locality: c.locality || c.city.name,
@@ -160,8 +202,14 @@ export async function getCompanionsPaginated(
     }));
 
     if (query.city && query.city !== 'all') {
-      const targetCity = query.city.toLowerCase();
-      mapped = mapped.filter((c) => c.citySlug.toLowerCase() === targetCity);
+      const targetSlugs = resolveCityTargetSlugs(query.city);
+      const targetCityLower = query.city.trim().toLowerCase();
+      mapped = mapped.filter(
+        (c) =>
+          targetSlugs.includes(c.citySlug.toLowerCase()) ||
+          c.city.toLowerCase() === targetCityLower ||
+          c.city.toLowerCase().includes(targetCityLower)
+      );
     }
 
     if (query.activity && query.activity !== 'all') {
@@ -180,26 +228,54 @@ export async function getCompanionsPaginated(
       mapped = mapped.filter((c) => c.isAvailable);
     }
 
-    if (query.womenOnly) {
-      mapped = mapped.filter((c) => (c.gender || '').toLowerCase() === 'female');
+    if (query.weekendOnly) {
+      mapped = mapped.filter((c) =>
+        (c.availabilitySlots || []).some((slot) =>
+          slot.toLowerCase().includes('weekend')
+        )
+      );
+    }
+
+    const requestedGender =
+      query.gender && query.gender !== 'all'
+        ? query.gender.toLowerCase()
+        : query.womenOnly
+        ? 'female'
+        : null;
+
+    if (requestedGender === 'female' || requestedGender === 'male') {
+      mapped = mapped.filter((c) => (c.gender || '').toLowerCase() === requestedGender);
     }
 
     if (query.q && query.q.trim().length > 0) {
       const searchStr = query.q.trim();
       mapped = mapped
-        .map((c) => ({
-          ...c,
-          _score: scoreFuzzyMatch(searchStr, [
-            c.displayName,
-            c.name,
-            c.city,
-            c.locality,
-            ...(c.acceptedActivities || []),
-            ...(c.spokenLanguages || []),
-            c.shortBio,
-            c.bio,
-          ]),
-        }))
+        .map((c) => {
+          const cityAliases = CITY_SEARCH_ALIASES[c.citySlug.toLowerCase()] || [];
+          const genderTags =
+            c.gender === 'female'
+              ? ['woman', 'women', 'female', 'women host', 'female host']
+              : c.gender === 'male'
+              ? ['man', 'men', 'male', 'men host', 'male host']
+              : [];
+          return {
+            ...c,
+            _score: scoreFuzzyMatch(searchStr, [
+              c.displayName,
+              c.name,
+              c.city,
+              c.citySlug,
+              ...cityAliases,
+              c.locality,
+              ...genderTags,
+              ...(c.acceptedActivities || []),
+              ...(c.spokenLanguages || []),
+              ...(c.availabilitySlots || []),
+              c.shortBio,
+              c.bio,
+            ]),
+          };
+        })
         .filter((c) => (c._score || 0) > 0)
         .sort((a, b) => (b._score || 0) - (a._score || 0));
     }
@@ -242,6 +318,7 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
       where,
       include: {
         city: true,
+        user: { select: { gender: true } },
         reviewsReceived: {
           include: { member: true },
           take: 5,
@@ -258,7 +335,7 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
         displayName: c.displayName,
         maskedName: c.maskedName,
         age: c.age || 24,
-        gender: (c.gender || 'female') as 'female' | 'male' | 'non-binary',
+        gender: normalizeCompanionGender(c.gender || c.user?.gender),
         city: c.city.name,
         citySlug: c.city.slug,
         locality: c.locality || c.city.name,
@@ -278,10 +355,15 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
       }));
 
       if (activitySlug && activitySlug !== 'all') {
-        const cleanAct = activitySlug.toLowerCase().replace(/-/g, ' ');
-        mapped = mapped.filter((c) =>
-          c.acceptedActivities.some((act) => act.toLowerCase().includes(cleanAct))
-        );
+        const targetAct = activitySlug.toLowerCase();
+        const cleanAct = targetAct.replace(/-/g, ' ');
+        mapped = mapped.filter((c) => {
+          const categories = mapToActivityCategories(c.acceptedActivities || []);
+          const rawMatch = c.acceptedActivities.some((act) =>
+            act.toLowerCase().includes(cleanAct)
+          );
+          return categories.includes(targetAct as ActivityCategory) || rawMatch;
+        });
       }
 
       return mapped;
@@ -306,6 +388,7 @@ export async function getCompanionById(id: string) {
       },
       include: {
         city: true,
+        user: { select: { gender: true } },
         reviewsReceived: {
           include: { member: true },
           orderBy: { createdAt: 'desc' },
@@ -321,7 +404,7 @@ export async function getCompanionById(id: string) {
         displayName: c.displayName,
         maskedName: c.maskedName,
         age: c.age || 24,
-        gender: (c.gender || 'female') as 'female' | 'male' | 'non-binary',
+        gender: normalizeCompanionGender(c.gender || c.user?.gender),
         city: c.city.slug,
         area: c.locality || `${c.city.name} Central`,
         tagline: c.shortBio,
