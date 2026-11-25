@@ -260,9 +260,7 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
                   <span className="block text-[10px] font-medium text-ink-muted">Get paid for meetups &amp; activities</span>
                 </div>
               </div>
-              <span className="text-[10px] font-black uppercase text-ink bg-[#D4F7A5] px-2 py-0.5 border border-ink rounded-lg shadow-brutal-xs">
-                Keep 95%
-              </span>
+              <ArrowRight className="h-3.5 w-3.5 text-ink/40 group-hover:text-ink group-hover:translate-x-0.5 transition-all" />
             </Link>
           )}
 
