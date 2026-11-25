@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { uploadHostAvatar } from "@/lib/cloudinary";
+import { isValidUpiId } from "@/lib/razorpay";
 
 export const dynamic = "force-dynamic";
 
@@ -96,11 +97,11 @@ export async function PATCH(req: NextRequest) {
       const rate = Math.min(1299, Math.max(399, Number(body.hourlyRate) || 499));
       updates.hourlyRate = rate;
     }
-    if (typeof body.upiId === "string") {
-      const cleanUpi = body.upiId.trim();
-      if (cleanUpi && (!cleanUpi.includes("@") || cleanUpi.length < 5)) {
+    if (body.upiId === null || typeof body.upiId === "string") {
+      const cleanUpi = typeof body.upiId === "string" ? body.upiId.trim() : "";
+      if (cleanUpi && !isValidUpiId(cleanUpi)) {
         return NextResponse.json(
-          { error: "Please enter a valid UPI ID (e.g. name@okaxis or mobile@upi)." },
+          { error: "Please enter a valid UPI ID (e.g. name@okaxis or mobile@ybl)." },
           { status: 400 }
         );
       }

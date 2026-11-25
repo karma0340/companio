@@ -136,6 +136,11 @@ export default function CompanionDashboardPage() {
   const [payoutUpi, setPayoutUpi] = useState('');
   const [isRequestingPayout, setIsRequestingPayout] = useState(false);
 
+  // Inline Linked UPI Editor State
+  const [isEditingUpi, setIsEditingUpi] = useState(false);
+  const [inlineUpiInput, setInlineUpiInput] = useState('');
+  const [isSavingInlineUpi, setIsSavingInlineUpi] = useState(false);
+
   // Profile Settings Modal State
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState('');
@@ -184,6 +189,7 @@ export default function CompanionDashboardPage() {
       setIsAvailable(p.isAvailable);
       setWalletBalance(p.walletBalance ?? 0);
       setPayoutUpi(p.upiId || '');
+      setInlineUpiInput(p.upiId || '');
 
       // Seed settings editor
       setEditDisplayName(p.displayName || '');
@@ -450,6 +456,43 @@ export default function CompanionDashboardPage() {
     } finally {
       setIsAvatarProcessing(false);
       if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleSaveInlineUpi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleaned = inlineUpiInput.trim();
+    if (!/^[a-zA-Z0-9._-]{2,256}@[a-zA-Z0-9]{2,64}$/.test(cleaned)) {
+      toast.error('Please enter a valid UPI ID (e.g. yourname@okaxis or mobile@ybl).');
+      return;
+    }
+
+    setIsSavingInlineUpi(true);
+    try {
+      const res = await fetch('/api/companion/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ upiId: cleaned }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data.error || 'Could not update UPI ID.');
+        return;
+      }
+
+      const savedUpi = data.profile?.upiId || cleaned;
+      setProfile((prev) => (prev ? { ...prev, upiId: savedUpi } : prev));
+      setPayoutUpi(savedUpi);
+      setEditUpiId(savedUpi);
+      setInlineUpiInput(savedUpi);
+      setUpiVerified(false);
+      setIsEditingUpi(false);
+      toast.success(`Payout UPI updated to ${savedUpi}`);
+      await refreshSession();
+    } catch {
+      toast.error('Network error while saving UPI ID.');
+    } finally {
+      setIsSavingInlineUpi(false);
     }
   };
 
@@ -922,34 +965,90 @@ export default function CompanionDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowPayoutModal(true)}
-                  className="inline-flex items-center gap-1 rounded-lg border-brutal-thin bg-lime px-3 py-1.5 text-xs font-black text-ink hover:bg-lime/80"
+                  className="inline-flex items-center gap-1 rounded-lg border-brutal-thin bg-lime px-3 py-1.5 text-xs font-black text-ink hover:bg-lime/80 cursor-pointer"
                 >
                   Withdraw
                 </button>
               </div>
 
-              <div className="rounded-2xl border-brutal-thin bg-cream p-3.5 text-xs font-semibold text-ink/75 flex items-center justify-between gap-2">
-                <div>
-                  <span>Linked UPI ID:</span>
-                  {upiVerified && (
-                    <span className="ml-2 inline-block rounded border border-emerald-400 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black uppercase text-emerald-700">
-                      Verified
+              {isEditingUpi ? (
+                <form
+                  onSubmit={handleSaveInlineUpi}
+                  className="rounded-2xl border-brutal-thin bg-cream p-3.5 space-y-2.5"
+                >
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-ink">
+                    Edit Withdrawal UPI ID
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={inlineUpiInput}
+                      onChange={(e) => setInlineUpiInput(e.target.value.trim())}
+                      placeholder="e.g. yourname@okaxis, 9876543210@ybl"
+                      className="flex-1 rounded-xl border-2 border-ink bg-white px-3 py-2 text-xs font-mono font-bold text-ink focus:outline-none"
+                      required
+                    />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="submit"
+                        disabled={isSavingInlineUpi}
+                        className="rounded-xl border-2 border-ink bg-lime px-3.5 py-2 text-xs font-black text-ink hover:bg-sunny disabled:opacity-50 cursor-pointer"
+                      >
+                        {isSavingInlineUpi ? 'Saving...' : 'Save UPI'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInlineUpiInput(profile.upiId || '');
+                          setIsEditingUpi(false);
+                        }}
+                        className="rounded-xl border-2 border-ink bg-white px-3 py-2 text-xs font-black text-ink hover:bg-paper cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                <div className="rounded-2xl border-brutal-thin bg-cream p-3.5 text-xs font-semibold text-ink/75 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span>Linked UPI ID:</span>
+                    {upiVerified && (
+                      <span className="ml-2 inline-block rounded border border-emerald-400 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black uppercase text-emerald-700">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-black text-ink">
+                      {profile.upiId || 'Not configured yet'}
                     </span>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInlineUpiInput(profile.upiId || '');
+                        setIsEditingUpi(true);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-ink bg-white px-2 py-1 text-[11px] font-black text-ink hover:bg-sunny transition cursor-pointer"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                      <span>{profile.upiId ? 'Edit UPI' : 'Add UPI'}</span>
+                    </button>
+                  </div>
                 </div>
-                <span className="font-mono font-black text-ink">
-                  {profile.upiId || 'Not configured yet'}
-                </span>
-              </div>
+              )}
 
-              {!profile.upiId && (
+              {!profile.upiId && !isEditingUpi && (
                 <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-3 flex items-center justify-between gap-2 text-xs">
                   <span className="font-bold text-amber-900">
                     Add your UPI ID to receive your 70% meetup payouts automatically.
                   </span>
                   <button
                     type="button"
-                    onClick={() => setShowSettingsModal(true)}
+                    onClick={() => {
+                      setInlineUpiInput('');
+                      setIsEditingUpi(true);
+                    }}
                     className="shrink-0 rounded-lg border border-ink bg-sunny px-2.5 py-1 text-[11px] font-black text-ink hover:bg-lime cursor-pointer"
                   >
                     Add UPI
