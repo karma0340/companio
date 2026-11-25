@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAppStore, User, MemberProfile, HostProfile } from '@/lib/store/useAppStore';
+import type { InitialAuthSnapshot } from '@/lib/server-auth';
 
 export type { User, MemberProfile, HostProfile };
 
@@ -21,11 +22,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+  children,
+  initialAuth,
+}: {
+  children: React.ReactNode;
+  initialAuth?: InitialAuthSnapshot;
+}) {
   const store = useAppStore();
+  const [hasMountedClient, setHasMountedClient] = useState(false);
 
   useEffect(() => {
-    store.refreshSession();
+    if (initialAuth) {
+      store.setAuth({
+        user: initialAuth.user,
+        memberProfile: initialAuth.memberProfile,
+        hostProfile: initialAuth.hostProfile,
+      });
+    } else {
+      store.refreshSession();
+    }
+    setHasMountedClient(true);
 
     // Cross-tab reactive sync for multi-tab session updates
     const handleStorageChange = (e: StorageEvent) => {
@@ -38,19 +55,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const value: AuthContextType = {
-    user: store.user,
-    memberProfile: store.memberProfile,
-    hostProfile: store.hostProfile,
-    isAuthenticated: store.isAuthenticated,
-    isLoading: store.isLoading,
-    isHydrated: store.isHydrated,
-    activeRole: store.activeRole,
-    logout: store.logout,
-    switchRole: store.switchRole,
-    refreshSession: store.refreshSession,
-    upgradeToHost: store.upgradeToHost,
-  };
+  // Before client hydration settles, serve exact SSR snapshot so initial HTML = first client render (zero LCP spinner block & zero hydration mismatch)
+  const useServerSnapshot = Boolean(initialAuth) && !hasMountedClient;
+
+  const value: AuthContextType = useServerSnapshot && initialAuth
+    ? {
+        user: initialAuth.user,
+        memberProfile: initialAuth.memberProfile,
+        hostProfile: initialAuth.hostProfile,
+        isAuthenticated: initialAuth.authenticated,
+        isLoading: false,
+        isHydrated: true,
+        activeRole: initialAuth.activeRole,
+        logout: store.logout,
+        switchRole: store.switchRole,
+        refreshSession: store.refreshSession,
+        upgradeToHost: store.upgradeToHost,
+      }
+    : {
+        user: store.user,
+        memberProfile: store.memberProfile,
+        hostProfile: store.hostProfile,
+        isAuthenticated: store.isAuthenticated,
+        isLoading: store.isLoading,
+        isHydrated: store.isHydrated,
+        activeRole: store.activeRole,
+        logout: store.logout,
+        switchRole: store.switchRole,
+        refreshSession: store.refreshSession,
+        upgradeToHost: store.upgradeToHost,
+      };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

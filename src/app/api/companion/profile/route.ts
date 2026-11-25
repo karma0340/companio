@@ -128,6 +128,19 @@ export async function PATCH(req: NextRequest) {
       data: updates as any,
     });
 
+    // Keep core User record synced with Host Studio profile changes
+    if (updates.locality !== undefined || updates.bio !== undefined) {
+      await prisma.user
+        .update({
+          where: { id: session.userId },
+          data: {
+            ...(updates.locality !== undefined ? { area: (updates.locality as string | null) } : {}),
+            ...(updates.bio !== undefined ? { bio: updates.bio as string } : {}),
+          },
+        })
+        .catch(() => {});
+    }
+
     return NextResponse.json({
       success: true,
       message: "Host profile settings saved!",

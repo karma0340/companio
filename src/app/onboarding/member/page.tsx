@@ -12,9 +12,11 @@ import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
 import { CITIES } from '@/lib/data/cities';
 import { AvatarVector, GenderType } from '@/components/ui/avatar-vector';
+import { validateIndianMobileNumber } from '@/lib/phone';
 
 interface OnboardingFormValues {
   fullName: string;
+  phone: string;
   gender: 'female' | 'male';
   city: string;
   area: string;
@@ -37,7 +39,7 @@ const POPULAR_QUICK_CITIES = [
 export default function MemberOnboardingPage() {
   const router = useRouter();
   const toast = useToast();
-  const { user, refreshSession } = useAuth();
+  const { user, memberProfile, refreshSession } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [locationDetected, setLocationDetected] = useState<{
@@ -49,6 +51,7 @@ export default function MemberOnboardingPage() {
   const { register, handleSubmit, setValue, watch } = useForm<OnboardingFormValues>({
     defaultValues: {
       fullName: '',
+      phone: '',
       gender: 'male',
       city: 'bengaluru',
       area: '',
@@ -58,12 +61,45 @@ export default function MemberOnboardingPage() {
     },
   });
 
-  // Pre-fill name from Google or existing auth profile
+  const sessionPhoneDigits = (user?.phone || memberProfile?.phone || '').replace(/\D/g, '').slice(-10);
+  const hasSessionPhone = sessionPhoneDigits.length === 10;
+
+  // Pre-fill existing DB profile fields from session snapshot
   React.useEffect(() => {
-    if (user?.name && user.name !== 'Member') {
-      setValue('fullName', user.name);
+    const dbName =
+      (memberProfile?.fullName && memberProfile.fullName !== 'Member' && memberProfile.fullName !== 'Meetzy Club Member'
+        ? memberProfile.fullName
+        : user?.name && user.name !== 'Member'
+        ? user.name
+        : '') || '';
+    if (dbName) {
+      setValue('fullName', dbName);
     }
-  }, [user, setValue]);
+    if (hasSessionPhone) {
+      setValue('phone', sessionPhoneDigits);
+    }
+    const dbGender = memberProfile?.gender || user?.gender;
+    if (dbGender === 'female' || dbGender === 'male') {
+      setSelectedGender(dbGender);
+      setValue('gender', dbGender);
+    }
+    const dbCity = memberProfile?.city || user?.city;
+    if (dbCity) {
+      setValue('city', dbCity);
+    }
+    const dbArea = memberProfile?.area || user?.area;
+    if (dbArea) {
+      setValue('area', dbArea);
+    }
+    const dbBio = memberProfile?.bio || user?.bio;
+    if (dbBio) {
+      setValue('bio', dbBio);
+    }
+    const dbEmergency = memberProfile?.emergencyContact || user?.emergencyContact;
+    if (dbEmergency) {
+      setValue('emergencyContact', dbEmergency);
+    }
+  }, [user, memberProfile, hasSessionPhone, sessionPhoneDigits, setValue]);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -76,11 +112,14 @@ export default function MemberOnboardingPage() {
 
   const currentCity = watch('city');
   const fullName = watch('fullName');
+  const phoneInput = watch('phone');
   const emergencyContact = watch('emergencyContact');
+  const phoneCheck = validateIndianMobileNumber(phoneInput || '');
   const isNameValid = Boolean(fullName && fullName.trim().length >= 2);
+  const isPhoneValid = hasSessionPhone || phoneCheck.isValid;
   const isEmergencyValid = !emergencyContact || emergencyContact.trim().length === 0 || emergencyContact.replace(/\D/g, '').length === 10;
   const isGenderValid = selectedGender !== null;
-  const canSubmit = isNameValid && isEmergencyValid && isGenderValid;
+  const canSubmit = isNameValid && isPhoneValid && isEmergencyValid && isGenderValid;
 
   const handleGenderSelect = (gender: 'female' | 'male') => {
     setSelectedGender(gender);
@@ -166,6 +205,11 @@ export default function MemberOnboardingPage() {
       return;
     }
 
+    if (!hasSessionPhone && !phoneCheck.isValid) {
+      toast.error(phoneCheck.error || 'Please enter a valid 10-digit Indian mobile number.', 'Mobile Number Required');
+      return;
+    }
+
     if (data.emergencyContact) {
       const cleanContact = data.emergencyContact.replace(/\D/g, '');
       if (cleanContact.length !== 10) {
@@ -181,6 +225,7 @@ export default function MemberOnboardingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
+          phone: hasSessionPhone ? sessionPhoneDigits : phoneCheck.nationalNumber,
           fullName: trimmedName,
           gender: selectedGender,
         }),
@@ -303,6 +348,45 @@ export default function MemberOnboardingPage() {
               <span className="text-[11px] text-ink-muted">
                 This name will be shown when you request a meetup.
               </span>
+            </div>
+
+            {/* Mobile Number (+91) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block font-display text-xs font-black uppercase text-ink">
+                  Mobile Number (+91)
+                </label>
+                {hasSessionPhone && (
+                  <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded">
+                    Saved
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-display text-xs font-black text-ink-muted">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  readOnly={hasSessionPhone}
+                  {...register('phone')}
+                  placeholder="Enter 10-digit mobile number"
+                  className={`w-full rounded-xl border-brutal pl-12 pr-4 py-3 font-mono text-sm font-bold text-ink focus:outline-none ${
+                    hasSessionPhone
+                      ? 'bg-paper-deep/50 cursor-not-allowed'
+                      : 'bg-paper-deep/30 focus:bg-white focus:shadow-brutal'
+                  }`}
+                />
+              </div>
+              {!hasSessionPhone && phoneInput && !phoneCheck.isValid ? (
+                <span className="text-[11px] font-bold text-danger block">{phoneCheck.error}</span>
+              ) : (
+                <span className="text-[11px] text-ink-muted block">
+                  Saved to your profile for meetup confirmations and host payouts.
+                </span>
+              )}
             </div>
 
             {/* Live Location / City Section */}
@@ -453,6 +537,7 @@ export default function MemberOnboardingPage() {
               <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-900 animate-in fade-in space-y-1">
                 {!isGenderValid && <div>• Please select your gender (Male or Female).</div>}
                 {!isNameValid && <div>• Please enter your full name (at least 2 characters).</div>}
+                {!isPhoneValid && <div>• Please enter a valid 10-digit Indian mobile number.</div>}
                 {!isEmergencyValid && <div>• Emergency contact number must be exactly 10 digits.</div>}
               </div>
             )}

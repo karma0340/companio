@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { calculateEscrowBreakdown } from '@/lib/escrow';
 import { verifyRazorpaySignature } from '@/lib/razorpay';
-import { getSession } from '@/lib/session';
+import { getSession, setSessionCookie } from '@/lib/session';
 
 export interface CreateBookingInput {
   companionId: string;
@@ -120,6 +120,39 @@ export async function createBookingAction(input: CreateBookingInput) {
         success: false,
         error: 'Please sign in with your verified mobile number to book a meetup.',
       };
+    }
+
+    // Persist member name / mobile number entered at checkout if missing on DB record
+    const trimmedCheckoutName = input.memberName?.trim();
+    const shouldPersistName =
+      Boolean(trimmedCheckoutName && trimmedCheckoutName.length >= 2) &&
+      (!user.name || user.name === 'Member' || user.name === 'Meetzy Club Member');
+    let shouldPersistPhone = false;
+    if (!user.phone && cleanPhone.length === 13) {
+      const existingPhoneOwner = await prisma.user.findUnique({
+        where: { phone: cleanPhone },
+        select: { id: true },
+      });
+      if (!existingPhoneOwner || existingPhoneOwner.id === user.id) {
+        shouldPersistPhone = true;
+      }
+    }
+
+    if (shouldPersistName || shouldPersistPhone) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          ...(shouldPersistName && trimmedCheckoutName ? { name: trimmedCheckoutName } : {}),
+          ...(shouldPersistPhone ? { phone: cleanPhone } : {}),
+        },
+      });
+      if (session) {
+        await setSessionCookie({
+          ...session,
+          name: user.name || session.name,
+          phone: user.phone || session.phone || '',
+        }).catch(() => {});
+      }
     }
 
     if (companion.userId === user.id) {

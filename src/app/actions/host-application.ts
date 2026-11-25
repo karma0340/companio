@@ -139,10 +139,12 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
       };
     }
 
-    const preservedMemberName =
-      existingUser.name && existingUser.name !== 'Member'
+    const resolvedLegalName =
+      input.fullName?.trim().length >= 2
+        ? input.fullName.trim()
+        : existingUser.name && existingUser.name !== 'Member'
         ? existingUser.name
-        : input.fullName.trim();
+        : 'Verified Host';
 
     let phoneToAssignToUser: string | null = null;
     if (!existingUser.phone && resolvedPhone) {
@@ -158,14 +160,16 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
     const updatedUser = await prisma.user.update({
       where: { id: existingUser.id },
       data: {
-        name: preservedMemberName,
+        name: resolvedLegalName,
         ...(phoneToAssignToUser ? { phone: phoneToAssignToUser } : {}),
         role: 'COMPANION',
         isKycVerified: true,
         onboardingCompleted: true,
-        gender: existingUser.gender || input.gender || 'female',
-        city: existingUser.city || cityRecord.slug,
-        area: existingUser.area || input.locality?.trim() || null,
+        gender: input.gender || existingUser.gender || 'female',
+        city: cityRecord.slug || existingUser.city || 'bengaluru',
+        area: input.locality?.trim() || existingUser.area || null,
+        bio: existingUser.bio || input.bio.trim() || null,
+        avatarUrl: existingUser.avatarUrl || avatarUrl,
       },
     });
 

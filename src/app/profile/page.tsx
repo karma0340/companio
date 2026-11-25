@@ -29,9 +29,11 @@ import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
 import { CITIES } from '@/lib/data/cities';
 import { AvatarVector, GenderType } from '@/components/ui/avatar-vector';
+import { validateIndianMobileNumber } from '@/lib/phone';
 
 interface ProfileFormValues {
   fullName: string;
+  phone: string;
   city: string;
   area: string;
   bio: string;
@@ -50,10 +52,11 @@ export default function ProfilePage() {
   const [loadingPass, setLoadingPass] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const cleanPhone = (user?.phone || '').replace(/^\+91/, '').trim();
-  const displayPhone = cleanPhone.length === 10
+  const cleanPhone = (user?.phone || memberProfile?.phone || '').replace(/\D/g, '').slice(-10);
+  const hasSavedPhone = cleanPhone.length === 10;
+  const displayPhone = hasSavedPhone
     ? `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`
-    : (user?.phone || '');
+    : (user?.email || 'No mobile linked');
 
   const gender: GenderType = (memberProfile?.gender as GenderType) === 'male' ? 'male' : 'female';
   const [editGender, setEditGender] = useState<GenderType>(gender);
@@ -86,6 +89,7 @@ export default function ProfilePage() {
   const { register, handleSubmit, reset, watch } = useForm<ProfileFormValues>({
     defaultValues: {
       fullName: memberProfile?.fullName || '',
+      phone: cleanPhone || '',
       city: memberProfile?.city || 'bengaluru',
       area: memberProfile?.area || '',
       bio: memberProfile?.bio || '',
@@ -96,18 +100,24 @@ export default function ProfilePage() {
   const editedFullName = watch('fullName');
   const isProfileValid = Boolean(editedFullName && editedFullName.trim().length >= 2);
 
-  // Sync form values when memberProfile loads
+  // Sync form values when memberProfile or user loads
   useEffect(() => {
-    if (memberProfile) {
+    if (memberProfile || user) {
       reset({
-        fullName: memberProfile.fullName === 'Meetzy Club Member' ? '' : memberProfile.fullName,
-        city: memberProfile.city || 'bengaluru',
-        area: memberProfile.area || '',
-        bio: memberProfile.bio || '',
-        emergencyContact: memberProfile.emergencyContact || '',
+        fullName:
+          memberProfile?.fullName === 'Meetzy Club Member' || memberProfile?.fullName === 'Member'
+            ? user?.name && user.name !== 'Member'
+              ? user.name
+              : ''
+            : memberProfile?.fullName || user?.name || '',
+        phone: (user?.phone || memberProfile?.phone || '').replace(/\D/g, '').slice(-10),
+        city: memberProfile?.city || user?.city || 'bengaluru',
+        area: memberProfile?.area || user?.area || '',
+        bio: memberProfile?.bio || user?.bio || '',
+        emergencyContact: memberProfile?.emergencyContact || user?.emergencyContact || '',
       });
     }
-  }, [memberProfile, reset]);
+  }, [memberProfile, user, reset]);
 
   // If not authenticated, redirect to login
   useEffect(() => {
@@ -134,6 +144,14 @@ export default function ProfilePage() {
       return;
     }
 
+    if (data.phone && data.phone.trim().length > 0) {
+      const phoneCheck = validateIndianMobileNumber(data.phone);
+      if (!phoneCheck.isValid) {
+        toast.error(phoneCheck.error || 'Please enter a valid 10-digit Indian mobile number.', 'Check Mobile Number');
+        return;
+      }
+    }
+
     if (data.emergencyContact) {
       const cleanContact = data.emergencyContact.replace(/\D/g, '');
       if (cleanContact.length !== 10) {
@@ -149,6 +167,7 @@ export default function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
+          phone: data.phone ? data.phone.replace(/\D/g, '').slice(-10) : '',
           fullName: trimmedName,
           gender: editGender,
         }),
@@ -401,6 +420,41 @@ export default function ProfilePage() {
                   />
                 </div>
 
+                {/* Mobile Number */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-display text-xs font-black uppercase text-ink">
+                      Mobile Number (+91)
+                    </label>
+                    {hasSavedPhone && (
+                      <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded">
+                        Saved
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-display text-xs font-black text-ink-muted">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      readOnly={hasSavedPhone}
+                      {...register('phone')}
+                      placeholder="Enter 10-digit mobile number"
+                      className={`w-full rounded-xl border-brutal pl-12 pr-4 py-2.5 font-mono text-sm font-bold text-ink focus:outline-none ${
+                        hasSavedPhone ? 'bg-paper-deep/50 cursor-not-allowed' : 'bg-white focus:shadow-brutal'
+                      }`}
+                    />
+                  </div>
+                  {!hasSavedPhone && (
+                    <span className="text-[11px] text-ink-muted block">
+                      Add your 10-digit mobile number so your account works seamlessly across bookings and Host Studio.
+                    </span>
+                  )}
+                </div>
+
                 {/* City & Area */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -552,7 +606,11 @@ export default function ProfilePage() {
             <div>
               <h4 className="font-display text-sm font-black text-ink">Account Security</h4>
               <p className="text-xs text-ink-muted">
-                Logged in on this device via verified phone number {displayPhone}.
+                {hasSavedPhone
+                  ? `Logged in on this device via verified phone number ${displayPhone}.`
+                  : user?.email
+                  ? `Logged in on this device via ${user.email}.`
+                  : 'Logged in on this device via Meetzy Club.'}
               </p>
             </div>
 

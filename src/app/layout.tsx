@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Inter, Caveat, Outfit, Fraunces, Bricolage_Grotesque, DM_Sans } from "next/font/google";
+import { Caveat, Outfit, Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import { AuthProvider } from "@/context/auth-context";
 import { ToastProvider } from "@/components/ui/toast";
 import { CelebrationOverlay } from "@/components/ui/celebration";
 import { ScrollManager } from "@/components/layout/scroll-manager";
+import { getInitialAuthSnapshot } from "@/lib/server-auth";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const caveat = Caveat({ subsets: ["latin"], variable: "--font-caveat" });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
-const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces" });
+const caveat = Caveat({ subsets: ["latin"], variable: "--font-caveat", display: "swap" });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap" });
 
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
@@ -47,15 +46,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const initialAuth = await getInitialAuthSnapshot();
+
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${caveat.variable} ${outfit.variable} ${fraunces.variable} ${bricolage.variable} ${dmSans.variable}`}
+      className={`${caveat.variable} ${outfit.variable} ${bricolage.variable} ${dmSans.variable}`}
     >
       <head>
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
@@ -63,7 +64,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-paper text-ink antialiased font-sans">
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
-        <AuthProvider>
+        <AuthProvider initialAuth={initialAuth}>
           <ToastProvider>
             <ScrollManager />
             <CelebrationOverlay />

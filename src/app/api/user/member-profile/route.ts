@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, setSessionCookie } from "@/lib/session";
 import { generateReferralCode } from "@/lib/wallet";
+import { validateIndianMobileNumber } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getSession();
     if (!session?.userId && !session?.phone) {
@@ -24,6 +25,9 @@ export async function GET(req: NextRequest) {
         ],
       },
       include: {
+        companion: {
+          include: { city: true },
+        },
         passes: {
           where: { status: "ACTIVE" },
           orderBy: { createdAt: "desc" },
@@ -40,13 +44,14 @@ export async function GET(req: NextRequest) {
       success: true,
       profile: {
         id: user.id,
-        phone: user.phone,
+        phone: user.phone || "",
         fullName: user.name || "Member",
         email: user.email || "",
+        avatarUrl: user.companion?.avatarUrl || user.avatarUrl || "",
         gender: user.gender || null,
-        city: user.city || "chandigarh",
-        area: user.area || "",
-        bio: user.bio || "",
+        city: user.city || user.companion?.city?.slug || "chandigarh",
+        area: user.area || user.companion?.locality || "",
+        bio: user.bio || user.companion?.bio || "",
         emergencyContact: user.emergencyContact || "",
         onboardingCompleted: Boolean(user.onboardingCompleted),
         isUnlocked: Boolean(user.isUnlocked) || user.passes.length > 0,
@@ -71,6 +76,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const fullName = String(body?.fullName || "").trim();
+    const rawPhone = body?.phone !== undefined ? String(body.phone || "").trim() : "";
     const gender = String(body?.gender || "").trim().toLowerCase();
     const city = String(body?.city || "chandigarh").trim();
     const area = String(body?.area || "").trim();
@@ -85,11 +91,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    let validatedPhone: string | null = null;
+    if (rawPhone) {
+      const phoneCheck = validateIndianMobileNumber(rawPhone);
+      if (!phoneCheck.isValid) {
+        return NextResponse.json(
+          { error: phoneCheck.error || "Please enter a valid 10-digit Indian mobile number." },
+          { status: 400 }
+        );
+      }
+      validatedPhone = phoneCheck.e164;
+    }
+
     const cleanPhone = session.phone ? session.phone.replace(/[\s-]/g, "") : "";
     const e164Phone = cleanPhone ? (cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`) : "";
 
     // 1. Locate existing user record by ID or Phone
-    let existingUser = await prisma.user.findFirst({
+    const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
           ...(session.userId ? [{ id: session.userId }] : []),
@@ -97,7 +115,29 @@ export async function POST(req: NextRequest) {
           ...(cleanPhone ? [{ phone: cleanPhone.replace("+91", "") }] : []),
         ],
       },
+      include: {
+        companion: true,
+        passes: {
+          where: { status: "ACTIVE" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
     });
+
+    // Guard against linking a mobile number that already belongs to another user account
+    if (validatedPhone) {
+      const phoneOwner = await prisma.user.findUnique({
+        where: { phone: validatedPhone },
+        select: { id: true },
+      });
+      if (phoneOwner && (!existingUser || phoneOwner.id !== existingUser.id)) {
+        return NextResponse.json(
+          { error: "This mobile number is already linked to another Meetzy Club account." },
+          { status: 409 }
+        );
+      }
+    }
 
     // 2. Resolve optional referral link
     let referredById: string | null = null;
@@ -121,15 +161,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Update existing user or upsert by phone
-    const safeGender = (gender === "male" || gender === "female" || gender === "non-binary") ? gender : undefined;
+    // 3. Update existing user in DB (or create if session user missing)
+    const safeGender = (gender === "male" || gender === "female" || gender === "non-binary" || gender === "other") ? gender : undefined;
 
-    let updatedUser;
+    let updatedUser: any;
     if (existingUser) {
+      const shouldSetPhone = Boolean(validatedPhone && (!existingUser.phone || existingUser.phone !== validatedPhone));
       updatedUser = await prisma.user.update({
         where: { id: existingUser.id },
         data: {
           name: fullName,
+          ...(shouldSetPhone && validatedPhone ? { phone: validatedPhone } : {}),
           ...(safeGender ? { gender: safeGender } : {}),
           city: city || "chandigarh",
           area: area || null,
@@ -138,24 +180,22 @@ export async function POST(req: NextRequest) {
           onboardingCompleted: true,
           ...(referredById && !existingUser.referredById ? { referredById } : {}),
         },
+        include: {
+          companion: true,
+          passes: {
+            where: { status: "ACTIVE" },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+        },
       });
     } else {
-      const targetPhone = e164Phone || `+91${Math.floor(6000000000 + Math.random() * 3999999999)}`;
-      updatedUser = await prisma.user.upsert({
-        where: { phone: targetPhone },
-        update: {
-          name: fullName,
-          ...(safeGender ? { gender: safeGender } : {}),
-          city: city || "chandigarh",
-          area: area || null,
-          bio: bio || null,
-          emergencyContact: emergencyContact || null,
-          onboardingCompleted: true,
-          ...(referredById ? { referredById } : {}),
-        },
-        create: {
+      const targetPhone = validatedPhone || e164Phone || null;
+      updatedUser = await prisma.user.create({
+        data: {
           id: session.userId || undefined,
           phone: targetPhone,
+          email: session.email || null,
           name: fullName,
           role: "MEMBER",
           gender: safeGender || "male",
@@ -169,20 +209,43 @@ export async function POST(req: NextRequest) {
           referralCode: generateReferralCode(),
           referredById: referredById || null,
         },
+        include: {
+          companion: true,
+          passes: {
+            where: { status: "ACTIVE" },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+        },
       });
     }
 
-    // 4. Update session cookie with the confirmed User ID and name
+    // 4. Refresh session cookie from confirmed DB record (never stale session fields)
+    const latestPass = updatedUser.passes?.[0];
+    const isPassValid = latestPass && (!latestPass.validUntil || new Date(latestPass.validUntil) > new Date());
+    const dbIsUnlocked = Boolean(updatedUser.isUnlocked) || Boolean(isPassValid);
+    const dbActivePassTier = dbIsUnlocked
+      ? updatedUser.activePassTier || (latestPass ? String(latestPass.tier) : "ONE_MONTH")
+      : null;
+    const dbPassExpiresAt = (latestPass?.validUntil || updatedUser.passExpiresAt)?.toISOString?.() || null;
+
     try {
       await setSessionCookie({
         userId: updatedUser.id,
-        phone: updatedUser.phone || session.phone || "",
+        phone: updatedUser.phone || "",
         email: updatedUser.email || session.email || null,
         name: updatedUser.name || fullName,
-        role: (session.role as any) || "MEMBER",
-        isUnlocked: Boolean(session.isUnlocked),
-        activePassTier: session.activePassTier || null,
-        passExpiresAt: session.passExpiresAt || null,
+        role: updatedUser.role || "MEMBER",
+        activeRole:
+          session.activeRole === "host" && (updatedUser.companion || updatedUser.role === "COMPANION")
+            ? "host"
+            : updatedUser.role === "COMPANION"
+            ? "host"
+            : "member",
+        avatarUrl: updatedUser.companion?.avatarUrl || updatedUser.avatarUrl || session.avatarUrl || null,
+        isUnlocked: dbIsUnlocked,
+        activePassTier: dbActivePassTier,
+        passExpiresAt: dbPassExpiresAt,
       });
     } catch (cookieErr) {
       console.warn("[SESSION COOKIE UPDATE WARN]:", cookieErr);
@@ -194,6 +257,7 @@ export async function POST(req: NextRequest) {
       profile: {
         id: updatedUser.id,
         phone: updatedUser.phone || "",
+        email: updatedUser.email || "",
         fullName: updatedUser.name,
         gender: updatedUser.gender,
         city: updatedUser.city,

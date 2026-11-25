@@ -22,11 +22,15 @@ export interface User {
   city?: string | null;
   area?: string | null;
   bio?: string | null;
+  gender?: string | null;
+  emergencyContact?: string | null;
+  onboardingCompleted?: boolean;
 }
 
 export interface MemberProfile {
   id: string;
   fullName: string;
+  phone?: string;
   gender?: 'female' | 'male' | 'other' | string;
   city: string;
   area?: string;
@@ -43,6 +47,7 @@ export interface HostProfile {
   age?: number;
   gender?: string;
   city?: string;
+  citySlug?: string;
   area?: string;
   bio?: string;
   tagline?: string;
@@ -50,8 +55,16 @@ export interface HostProfile {
   hourlyRate?: number;
   locality?: string;
   travelRadiusKm?: number;
+  spokenLanguages?: string[];
+  acceptedActivities?: string[];
+  availabilitySlots?: string[];
+  preferredVenues?: string[];
+  hostPackTier?: string | null;
+  hostPackExpiresAt?: string | null;
   hostLevel?: 'NEW' | 'RISING' | 'TOP' | string;
   completedMeetups?: number;
+  ratingAverage?: number;
+  totalReviews?: number;
   photoVerified?: boolean;
   verificationStatus: 'not_applied' | 'pending' | 'approved' | 'rejected';
   isFreeToday: boolean;
@@ -154,10 +167,14 @@ export const useAppStore = create<AppState>()(
                 city: data.memberProfile?.city || u.city || null,
                 area: data.memberProfile?.area || u.area || null,
                 bio: data.memberProfile?.bio || u.bio || null,
+                gender: data.memberProfile?.gender || u.gender || null,
+                emergencyContact: data.memberProfile?.emergencyContact || u.emergencyContact || null,
+                onboardingCompleted: data.memberProfile?.onboardingCompleted ?? u.onboardingCompleted ?? false,
               };
               const memProfile: MemberProfile = data.memberProfile || {
                 id: u.id,
                 fullName: u.name || 'Member',
+                phone: u.phone || '',
                 city: 'bengaluru',
                 onboardingCompleted: true,
               };

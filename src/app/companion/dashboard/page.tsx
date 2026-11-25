@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
-import { useAppStore } from '@/lib/store/useAppStore';
+import { useAuth } from '@/context/auth-context';
 import {
   CheckCircle2,
   Clock,
@@ -107,7 +107,7 @@ export default function CompanionDashboardPage() {
   const router = useRouter();
   const toast = useToast();
   const { isAuthenticated, isLoading: isLoadingAuth, refreshSession, activeRole, switchRole } =
-    useAppStore();
+    useAuth();
 
   const [loading, setLoading] = useState(true);
   const [hasProfile, setHasProfile] = useState(true);

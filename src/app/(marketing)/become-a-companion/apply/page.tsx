@@ -69,7 +69,7 @@ function compressImage(file: File, maxDim: number = 1280, quality: number = 0.8)
 function CompanionApplyForm() {
   const searchParams = useSearchParams();
   const toast = useToast();
-  const { user, hostProfile, isAuthenticated, isLoading: authLoading, refreshSession } = useAuth();
+  const { user, memberProfile, hostProfile, isAuthenticated, isLoading: authLoading, refreshSession } = useAuth();
 
   const urlPack = (searchParams.get("pack") || "").toUpperCase() as HostPackTier;
   const initialPack: HostPackTier =
@@ -124,30 +124,105 @@ function CompanionApplyForm() {
     return () => clearTimeout(t);
   }, [resendCooldown]);
 
-  const sessionPhoneDigits = (user?.phone || "").replace(/\D/g, "").slice(-10);
+  const sessionPhoneDigits = (user?.phone || memberProfile?.phone || "").replace(/\D/g, "").slice(-10);
   const hasSessionPhone = sessionPhoneDigits.length === 10;
+  const prefilledDbRef = useRef({ member: false, host: false });
 
-  // Pre-fill verified phone and existing profile values from authenticated session
+  // Pre-fill all known profile and host details from DB via session snapshot
   useEffect(() => {
-    if (hasSessionPhone) {
-      setFormData((prev) =>
-        prev.phone === sessionPhoneDigits ? prev : { ...prev, phone: sessionPhoneDigits }
-      );
-    }
+    if (!user && !memberProfile && !hostProfile) return;
 
-    if (user?.name && user.name.toLowerCase() !== "member") {
-      setFormData((prev) => ({
-        ...prev,
-        fullName: prev.fullName || user.name || "",
-        displayName: prev.displayName || hostProfile?.displayName || user.name?.split(" ")[0] || "",
-      }));
-    }
+    setFormData((prev) => {
+      const next = { ...prev };
 
-    if (hostProfile?.avatarUrl && !avatarBase64) {
-      setAvatarBase64(hostProfile.avatarUrl);
-      setAvatarFileName("current-avatar.jpg");
+      if (hasSessionPhone && prev.phone !== sessionPhoneDigits) {
+        next.phone = sessionPhoneDigits;
+      }
+
+      if (!prefilledDbRef.current.member && (user || memberProfile)) {
+        const dbName =
+          (memberProfile?.fullName && memberProfile.fullName !== "Member" && memberProfile.fullName !== "Meetzy Club Member"
+            ? memberProfile.fullName
+            : user?.name && user.name !== "Member"
+            ? user.name
+            : "") || "";
+        if (!prev.fullName && dbName) {
+          next.fullName = dbName;
+        }
+        if (!prev.displayName && dbName) {
+          next.displayName = dbName.split(" ")[0];
+        }
+
+        const dbGender = (hostProfile?.gender || memberProfile?.gender || user?.gender || "").toLowerCase();
+        if (dbGender === "female" || dbGender === "male" || dbGender === "other") {
+          next.gender = dbGender;
+        }
+
+        const rawCity = hostProfile?.city || hostProfile?.citySlug || memberProfile?.city || user?.city || "";
+        if (rawCity) {
+          const matchedCity = CITIES.find(
+            (c) => c.slug.toLowerCase() === rawCity.toLowerCase() || c.name.toLowerCase() === rawCity.toLowerCase()
+          );
+          if (matchedCity) {
+            next.city = matchedCity.name;
+          }
+        }
+
+        const dbArea = hostProfile?.locality || memberProfile?.area || user?.area || "";
+        if (!prev.locality && dbArea) {
+          next.locality = dbArea;
+        }
+
+        const dbBio = hostProfile?.bio || memberProfile?.bio || user?.bio || "";
+        if (!prev.bio && dbBio) {
+          next.bio = dbBio;
+        }
+
+        prefilledDbRef.current.member = true;
+      }
+
+      if (!prefilledDbRef.current.host && hostProfile) {
+        if (hostProfile.displayName) {
+          next.displayName = prev.displayName || hostProfile.displayName;
+        }
+        if (hostProfile.age && !prev.age) {
+          next.age = String(hostProfile.age);
+        }
+        if (hostProfile.hourlyRate) {
+          next.hourlyRate = String(hostProfile.hourlyRate);
+        }
+        if (hostProfile.locality && !prev.locality) {
+          next.locality = hostProfile.locality;
+        }
+        if (hostProfile.bio && !prev.bio) {
+          next.bio = hostProfile.bio;
+        }
+        if (hostProfile.spokenLanguages && hostProfile.spokenLanguages.length > 0) {
+          next.languages = hostProfile.spokenLanguages.join(", ");
+        }
+        if (hostProfile.acceptedActivities && hostProfile.acceptedActivities.length > 0) {
+          next.activities = hostProfile.acceptedActivities;
+        }
+        if (hostProfile.availabilitySlots && hostProfile.availabilitySlots.length > 0) {
+          next.availability = hostProfile.availabilitySlots;
+        }
+        if (hostProfile.preferredVenues && hostProfile.preferredVenues.length > 0) {
+          next.preferredVenues = hostProfile.preferredVenues;
+        }
+        prefilledDbRef.current.host = true;
+      }
+
+      return next;
+    });
+
+    if (!avatarBase64) {
+      const existingAvatar = hostProfile?.avatarUrl || user?.avatarUrl || "";
+      if (existingAvatar) {
+        setAvatarBase64(existingAvatar);
+        setAvatarFileName("current-avatar.jpg");
+      }
     }
-  }, [user, hostProfile, avatarBase64, hasSessionPhone, sessionPhoneDigits]);
+  }, [user, memberProfile, hostProfile, avatarBase64, hasSessionPhone, sessionPhoneDigits]);
 
   const handleSendAuthOtp = async (e: React.FormEvent) => {
     e.preventDefault();

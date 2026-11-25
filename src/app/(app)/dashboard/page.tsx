@@ -84,9 +84,11 @@ function DashboardContent() {
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
   const [editCity, setEditCity] = useState('chandigarh');
   const [editArea, setEditArea] = useState('');
   const [editBio, setEditBio] = useState('');
+  const [editEmergencyContact, setEditEmergencyContact] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Live Bookings State
@@ -119,9 +121,11 @@ function DashboardContent() {
   useEffect(() => {
     if (user || memberProfile) {
       setEditName(memberProfile?.fullName || user?.name || '');
+      setEditPhone((user?.phone || memberProfile?.phone || '').replace(/\D/g, '').slice(-10));
       setEditCity(memberProfile?.city || user?.city || 'chandigarh');
       setEditArea(memberProfile?.area || user?.area || '');
       setEditBio(memberProfile?.bio || user?.bio || '');
+      setEditEmergencyContact(memberProfile?.emergencyContact || user?.emergencyContact || '');
     }
   }, [user, memberProfile]);
 
@@ -204,9 +208,11 @@ function DashboardContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: editName.trim(),
+          phone: editPhone.replace(/\D/g, '').slice(-10),
           city: editCity,
           area: editArea.trim(),
           bio: editBio.trim(),
+          emergencyContact: editEmergencyContact.replace(/\D/g, '').slice(-10),
         }),
       });
       const data = await res.json();
@@ -789,15 +795,33 @@ function DashboardContent() {
 
               {isEditingProfile ? (
                 <form onSubmit={handleSaveProfile} className="space-y-4 pt-1">
-                  <div className="space-y-1">
-                    <label className="text-xs font-black uppercase text-ink">Your Name</label>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      placeholder="e.g. Nikhil"
-                      className="w-full rounded-xl border-2 border-ink bg-paper px-3 py-2 font-display text-sm font-bold text-ink focus:outline-none focus:bg-white"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-black uppercase text-ink">Your Name</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="e.g. Nikhil"
+                        className="w-full rounded-xl border-2 border-ink bg-paper px-3 py-2 font-display text-sm font-bold text-ink focus:outline-none focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-black uppercase text-ink">Mobile Number (+91)</label>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        readOnly={cleanPhone.length === 10}
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="10-digit mobile number"
+                        className={`w-full rounded-xl border-2 border-ink px-3 py-2 font-mono text-sm font-bold text-ink focus:outline-none ${
+                          cleanPhone.length === 10 ? 'bg-paper-deep/50 cursor-not-allowed' : 'bg-paper focus:bg-white'
+                        }`}
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -836,6 +860,19 @@ function DashboardContent() {
                       onChange={(e) => setEditBio(e.target.value)}
                       placeholder="A line or two helps companions know who they're meeting..."
                       className="w-full rounded-xl border-2 border-ink bg-paper px-3 py-2 font-display text-xs font-bold text-ink focus:outline-none focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-black uppercase text-ink">Emergency Contact (+91, Optional)</label>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={editEmergencyContact}
+                      onChange={(e) => setEditEmergencyContact(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="10-digit SOS backup number"
+                      className="w-full rounded-xl border-2 border-ink bg-paper px-3 py-2 font-mono text-xs font-bold text-ink focus:outline-none focus:bg-white"
                     />
                   </div>
 
