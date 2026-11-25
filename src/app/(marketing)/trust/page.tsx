@@ -16,9 +16,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
-  title: "Trust, ID Checks & Background Verification | Meetzy Club",
+  title: "Trust, Mobile Verification & Safety Architecture | Meetzy Club",
   description:
-    "Complete transparency on how Meetzy Club authenticates government IDs, validates live facial selfies, and enforces public meetup rules.",
+    "Complete transparency on how Meetzy Club verifies mobile numbers via live OTP, reviews profile photos, and enforces public meetup rules without collecting Aadhaar or biometrics.",
 };
 
 export default function TrustPage() {
@@ -53,19 +53,19 @@ export default function TrustPage() {
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                   <p>
-                    <strong>Government ID Authentication:</strong> We verify the authenticity of Indian Aadhaar, Passport, or Voter ID records.
+                    <strong>Live SMS OTP Verification:</strong> Every host and member verifies their Indian mobile number via Fast2SMS OTP before creating a profile or booking.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                   <p>
-                    <strong>3D Live Video Facial Match:</strong> AI and human review verify that the person creating the profile matches their government document photo.
+                    <strong>Privacy by Default (No Aadhaar Storage):</strong> We do not collect or store Aadhaar cards, PAN numbers, or government biometrics. Clear profile photos and verified public venues keep meetups transparent.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                   <p>
-                    <strong>OTP Phone Verification:</strong> Mobile numbers are verified via real-time OTP checks and checked against fraud risk registries.
+                    <strong>In-Person 4-Digit Code &amp; 1-Tap SOS:</strong> Every meetup starts only after exchanging a secret 4-digit code in a public venue, backed by GPS SOS telemetry.
                   </p>
                 </div>
               </div>

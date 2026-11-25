@@ -1,12 +1,13 @@
 import { prisma } from "./prisma";
-import { calculateEscrowBreakdown, EscrowBreakdown } from "./escrow";
-import { MOCK_COMPANIONS, MOCK_ACTIVITIES, MOCK_CITIES } from "./data";
+import { calculateEscrowBreakdown } from "./escrow";
+import { HostLevel } from "@prisma/client";
 
 export type BookingStatusType =
   | "PENDING_ACCEPTANCE"
   | "CONFIRMED"
   | "IN_PROGRESS"
   | "COMPLETED"
+  | "CANCELLED"
   | "CANCELLED_BY_MEMBER"
   | "CANCELLED_BY_COMPANION"
   | "EXPIRED_SLA";
@@ -24,65 +25,88 @@ export interface BookingRecord {
   memberName: string;
   memberPhone: string;
   companionId: string;
+  companionUserId?: string;
   companionName: string;
   companionAvatar: string;
+  companionUpiId?: string | null;
   cityId: string;
   cityName: string;
   activityId: string;
   activityTitle: string;
-  scheduledDate: string; // ISO string
+  scheduledDate: string;
   durationHours: number;
   venueName: string;
   venueAddress: string;
   totalAmount: number;
-  companionFee: number;
+  companionFee: number; // Fixed 70% Host Share
   platformFee: number;
   gstAmount: number;
   escrowStatus: EscrowStatusType;
   status: BookingStatusType;
-  verificationPin: string; // 4-digit code e.g. "8429"
+  verificationPin: string;
   pinVerifiedAt?: string | null;
   sessionStartedAt?: string | null;
   sessionEndedAt?: string | null;
-  hostAcceptanceDeadline: string; // ISO string (now + 12h)
+  hostAcceptanceDeadline: string;
   createdAt: string;
   updatedAt: string;
 }
 
-// In-memory store initialized with realistic demo bookings
 const bookingsStore = new Map<string, BookingRecord>();
 
-// Pre-seed demo bookings for testing
-const demoBookingId = "bkg_seed_01";
-const now = Date.now();
-bookingsStore.set(demoBookingId, {
-  id: demoBookingId,
-  bookingNumber: "CMP-2026-8941",
-  memberId: "user_member_demo",
-  memberName: "Rohit Verma",
-  memberPhone: "+919811223399",
-  companionId: "comp_01",
-  companionName: "Vanshika Sharma",
-  companionAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
-  cityId: "city_01",
-  cityName: "Delhi NCR",
-  activityId: "act_01",
-  activityTitle: "Café & Conversation",
-  scheduledDate: new Date(now + 24 * 3600000).toISOString(),
-  durationHours: 1,
-  venueName: "Blue Tokai Coffee Roasters",
-  venueAddress: "Plot 11, Hauz Khas Village, New Delhi",
-  totalAmount: 706.00,
-  companionFee: 499.00,
-  platformFee: 175.42,
-  gstAmount: 31.58,
-  escrowStatus: "HELD_IN_ESCROW",
-  status: "PENDING_ACCEPTANCE",
-  verificationPin: "7492",
-  hostAcceptanceDeadline: new Date(now + 11 * 3600000 + 45 * 60000).toISOString(),
-  createdAt: new Date(now - 15 * 60000).toISOString(),
-  updatedAt: new Date(now - 15 * 60000).toISOString(),
-});
+export function sanitizeBookingForViewer(
+  booking: BookingRecord,
+  viewerUserId?: string | null
+): BookingRecord {
+  if (!viewerUserId || viewerUserId !== booking.memberId) {
+    return {
+      ...booking,
+      verificationPin: "",
+      memberPhone: "",
+    };
+  }
+  return booking;
+}
+
+function mapPrismaBooking(dbRecord: any): BookingRecord {
+  return {
+    id: dbRecord.id,
+    bookingNumber: dbRecord.bookingNumber,
+    memberId: dbRecord.memberId,
+    memberName: dbRecord.member?.name || "Verified Member",
+    memberPhone: dbRecord.member?.phone || "",
+    companionId: dbRecord.companionId,
+    companionUserId: dbRecord.companion?.userId || undefined,
+    companionName: dbRecord.companion?.displayName || "Companion",
+    companionAvatar:
+      dbRecord.companion?.avatarUrl ||
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+    companionUpiId: dbRecord.companion?.upiId || null,
+    cityId: dbRecord.cityId,
+    cityName: dbRecord.city?.name || "Chandigarh",
+    activityId: dbRecord.activityId,
+    activityTitle: dbRecord.activity?.title || "Meetup",
+    scheduledDate: dbRecord.scheduledDate
+      ? dbRecord.scheduledDate.toISOString()
+      : new Date().toISOString(),
+    durationHours: dbRecord.durationHours,
+    venueName: dbRecord.venueName,
+    venueAddress: dbRecord.venueAddress,
+    totalAmount: Number(dbRecord.totalAmount),
+    companionFee: Number(dbRecord.companionFee),
+    platformFee: Number(dbRecord.platformFee),
+    gstAmount: Number(dbRecord.gstAmount),
+    escrowStatus: dbRecord.escrowStatus as EscrowStatusType,
+    status: dbRecord.status as BookingStatusType,
+    verificationPin: dbRecord.verificationPin,
+    pinVerifiedAt: dbRecord.pinVerifiedAt?.toISOString() || null,
+    sessionStartedAt: dbRecord.sessionStartedAt?.toISOString() || null,
+    sessionEndedAt: dbRecord.sessionEndedAt?.toISOString() || null,
+    hostAcceptanceDeadline: dbRecord.hostAcceptanceDeadline.toISOString(),
+    createdAt: dbRecord.createdAt.toISOString(),
+    updatedAt: dbRecord.updatedAt.toISOString(),
+  };
+}
 
 export interface CreateBookingInput {
   memberId: string;
@@ -90,7 +114,7 @@ export interface CreateBookingInput {
   memberPhone: string;
   companionId: string;
   activityId: string;
-  scheduledDate: string; // ISO string
+  scheduledDate: string;
   durationHours: number;
   venueName: string;
   venueAddress: string;
@@ -98,362 +122,233 @@ export interface CreateBookingInput {
 }
 
 export async function createBooking(input: CreateBookingInput): Promise<BookingRecord> {
-  let dbCompanion = null;
-  try {
-    dbCompanion = await prisma.companion.findFirst({
-      where: {
-        OR: [
-          { id: input.companionId },
-          { displayName: { equals: input.companionId, mode: 'insensitive' } },
-        ],
-      },
-      include: { city: true },
-    });
-  } catch {}
+  const dbCompanion = await prisma.companion.findFirst({
+    where: {
+      OR: [
+        { id: input.companionId },
+        { displayName: { equals: input.companionId, mode: "insensitive" } },
+      ],
+    },
+    include: { city: true },
+  });
 
-  const companion = dbCompanion
-    ? {
-        id: dbCompanion.id,
-        name: dbCompanion.displayName,
-        avatarUrl: dbCompanion.avatarUrl,
-        hourlyRate: Number(dbCompanion.hourlyRate),
-        cityId: dbCompanion.city.id,
-        cityName: dbCompanion.city.name,
-      }
-    : {
-        id: input.companionId,
-        name: 'Verified Host',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
-        hourlyRate: 599,
-        cityId: 'bengaluru',
-        cityName: 'Bengaluru',
-      };
-
-  let dbActivity = null;
-  try {
-    dbActivity = await prisma.activity.findFirst({
-      where: {
-        OR: [{ id: input.activityId }, { slug: input.activityId }],
-      },
-    });
-  } catch {}
-
-  const activity = dbActivity
-    ? { id: dbActivity.id, title: dbActivity.title }
-    : { id: input.activityId, title: 'Coffee & Conversations' };
-
-  const city = {
-    id: companion.cityId,
-    name: companion.cityName,
-  };
-
-  const breakdown = calculateEscrowBreakdown(companion.hourlyRate, input.durationHours || 1);
-
-  const bookingId = `bkg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-  const bookingNumber = `CMP-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-  const verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
-  const hostAcceptanceDeadline = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
-  const currentIso = new Date().toISOString();
-
-  const record: BookingRecord = {
-    id: bookingId,
-    bookingNumber,
-    memberId: input.memberId,
-    memberName: input.memberName || "Verified Member",
-    memberPhone: input.memberPhone,
-    companionId: companion.id,
-    companionName: companion.name,
-    companionAvatar: companion.avatarUrl,
-    cityId: city.id,
-    cityName: city.name,
-    activityId: activity.id,
-    activityTitle: activity.title,
-    scheduledDate: input.scheduledDate,
-    durationHours: input.durationHours || 1,
-    venueName: input.venueName,
-    venueAddress: input.venueAddress,
-    totalAmount: breakdown.totalAmount,
-    companionFee: breakdown.companionFee,
-    platformFee: breakdown.platformFee,
-    gstAmount: breakdown.gstAmount,
-    escrowStatus: "HELD_IN_ESCROW",
-    status: "PENDING_ACCEPTANCE",
-    verificationPin,
-    hostAcceptanceDeadline,
-    createdAt: currentIso,
-    updatedAt: currentIso,
-  };
-
-  // 1. In-memory store
-  bookingsStore.set(bookingId, record);
-
-  // 2. Database persistence with resilient fallback
-  try {
-    await prisma.booking.create({
-      data: {
-        id: bookingId,
-        bookingNumber,
-        memberId: input.memberId,
-        companionId: companion.id,
-        cityId: city.id,
-        activityId: activity.id,
-        scheduledDate: new Date(input.scheduledDate),
-        durationHours: input.durationHours || 1,
-        venueName: input.venueName,
-        venueAddress: input.venueAddress,
-        totalAmount: breakdown.totalAmount,
-        companionFee: breakdown.companionFee,
-        platformFee: breakdown.platformFee,
-        gstAmount: breakdown.gstAmount,
-        escrowStatus: "HELD_IN_ESCROW",
-        status: "PENDING_ACCEPTANCE",
-        verificationPin,
-        hostAcceptanceDeadline: new Date(hostAcceptanceDeadline),
-      },
-    });
-  } catch (err) {
-    console.warn("[BOOKING PRISMA FALLBACK]:", (err as Error).message);
+  if (!dbCompanion) {
+    throw new Error("Companion profile not found.");
   }
 
+  let dbActivity = await prisma.activity.findFirst({
+    where: {
+      OR: [{ id: input.activityId }, { slug: input.activityId }],
+    },
+  });
+
+  if (!dbActivity) {
+    dbActivity =
+      (await prisma.activity.findFirst()) ||
+      (await prisma.activity.create({
+        data: {
+          title: "Coffee & Conversations",
+          slug: "coffee-chat",
+          description: "Casual coffee meetup",
+          icon: "coffee",
+        },
+      }));
+  }
+
+  const durationHours = Math.max(1, Math.min(8, input.durationHours || 1));
+  const breakdown = calculateEscrowBreakdown(Number(dbCompanion.hourlyRate), durationHours);
+
+  const bookingId = `bkg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const bookingNumber = `CMP-${Date.now().toString().slice(-6)}`;
+  const verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
+  const hostAcceptanceDeadline = new Date(Date.now() + 12 * 60 * 60 * 1000);
+
+  const created = await prisma.booking.create({
+    data: {
+      id: bookingId,
+      bookingNumber,
+      memberId: input.memberId,
+      companionId: dbCompanion.id,
+      cityId: dbCompanion.city.id,
+      activityId: dbActivity.id,
+      scheduledDate: new Date(input.scheduledDate),
+      durationHours,
+      venueName: input.venueName,
+      venueAddress: input.venueAddress,
+      totalAmount: breakdown.totalAmount,
+      companionFee: breakdown.companionFee, // Fixed 70%
+      platformFee: breakdown.platformFee,
+      gstAmount: breakdown.gstAmount,
+      escrowStatus: "HELD_IN_ESCROW",
+      status: "PENDING_ACCEPTANCE",
+      verificationPin,
+      hostAcceptanceDeadline,
+    },
+    include: {
+      member: { select: { id: true, name: true, phone: true } },
+      companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true } },
+      city: { select: { id: true, name: true } },
+      activity: { select: { id: true, title: true } },
+    },
+  });
+
+  const record = mapPrismaBooking(created);
+  bookingsStore.set(record.id, record);
   return record;
 }
 
 export async function getBookingById(bookingId: string): Promise<BookingRecord | null> {
-  // Check memory store
-  const memRecord = bookingsStore.get(bookingId);
-  if (memRecord) return memRecord;
-
-  // Query database
   try {
     const dbRecord = await prisma.booking.findFirst({
       where: {
-        OR: [
-          { id: bookingId },
-          { bookingNumber: bookingId },
-        ],
+        OR: [{ id: bookingId }, { bookingNumber: bookingId }],
       },
       include: {
         member: { select: { id: true, name: true, phone: true } },
-        companion: { select: { id: true, displayName: true, avatarUrl: true } },
+        companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true } },
         city: { select: { id: true, name: true } },
         activity: { select: { id: true, title: true } },
       },
     });
 
     if (dbRecord) {
-      const record: BookingRecord = {
-        id: dbRecord.id,
-        bookingNumber: dbRecord.bookingNumber,
-        memberId: dbRecord.memberId,
-        memberName: dbRecord.member?.name || "Member",
-        memberPhone: dbRecord.member?.phone || "",
-        companionId: dbRecord.companionId,
-        companionName: dbRecord.companion?.displayName || "Companion",
-        companionAvatar: dbRecord.companion?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
-        cityId: dbRecord.cityId,
-        cityName: dbRecord.city?.name || "Bengaluru",
-        activityId: dbRecord.activityId,
-        activityTitle: dbRecord.activity?.title || "Meetup",
-        scheduledDate: dbRecord.scheduledDate ? dbRecord.scheduledDate.toISOString() : new Date().toISOString(),
-        durationHours: dbRecord.durationHours,
-        venueName: dbRecord.venueName,
-        venueAddress: dbRecord.venueAddress,
-        totalAmount: Number(dbRecord.totalAmount),
-        companionFee: Number(dbRecord.companionFee),
-        platformFee: Number(dbRecord.platformFee),
-        gstAmount: Number(dbRecord.gstAmount),
-        escrowStatus: dbRecord.escrowStatus as EscrowStatusType,
-        status: dbRecord.status as BookingStatusType,
-        verificationPin: dbRecord.verificationPin,
-        pinVerifiedAt: dbRecord.pinVerifiedAt?.toISOString() || null,
-        sessionStartedAt: dbRecord.sessionStartedAt?.toISOString() || null,
-        sessionEndedAt: dbRecord.sessionEndedAt?.toISOString() || null,
-        hostAcceptanceDeadline: dbRecord.hostAcceptanceDeadline.toISOString(),
-        createdAt: dbRecord.createdAt.toISOString(),
-        updatedAt: dbRecord.updatedAt.toISOString(),
-      };
+      const record = mapPrismaBooking(dbRecord);
       bookingsStore.set(bookingId, record);
       return record;
     }
   } catch (err) {
-    console.warn("[GET BOOKING PRISMA FALLBACK]:", (err as Error).message);
+    console.warn("[GET BOOKING PRISMA WARN]:", (err as Error).message);
   }
 
-  return null;
+  return bookingsStore.get(bookingId) || null;
 }
 
 export async function getBookingsForUser(
   userId: string,
   role: "MEMBER" | "COMPANION" | "ALL" = "ALL"
 ): Promise<BookingRecord[]> {
-  const inMem = Array.from(bookingsStore.values());
-  let filteredMem = inMem;
-  if (role === "MEMBER") {
-    filteredMem = inMem.filter((b) => b.memberId === userId);
-  } else if (role === "COMPANION") {
-    filteredMem = inMem.filter((b) => b.companionId === userId || b.companionId === "comp_01");
-  }
-
   try {
     const where: any = {};
     if (role === "MEMBER") {
       where.memberId = userId;
     } else if (role === "COMPANION") {
-      where.OR = [
-        { companionId: userId },
-        { companion: { userId } },
-      ];
+      where.OR = [{ companionId: userId }, { companion: { userId } }];
+    } else {
+      where.OR = [{ memberId: userId }, { companion: { userId } }];
     }
 
     const dbBookings = await prisma.booking.findMany({
       where,
       include: {
         member: { select: { id: true, name: true, phone: true } },
-        companion: { select: { id: true, displayName: true, avatarUrl: true } },
+        companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true } },
         city: { select: { id: true, name: true } },
         activity: { select: { id: true, title: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    if (dbBookings && dbBookings.length > 0) {
-      const dbRecords: BookingRecord[] = dbBookings.map((dbRecord) => ({
-        id: dbRecord.id,
-        bookingNumber: dbRecord.bookingNumber,
-        memberId: dbRecord.memberId,
-        memberName: dbRecord.member?.name || "Member",
-        memberPhone: dbRecord.member?.phone || "",
-        companionId: dbRecord.companionId,
-        companionName: dbRecord.companion?.displayName || "Companion",
-        companionAvatar: dbRecord.companion?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
-        cityId: dbRecord.cityId,
-        cityName: dbRecord.city?.name || "Bengaluru",
-        activityId: dbRecord.activityId,
-        activityTitle: dbRecord.activity?.title || "Meetup",
-        scheduledDate: dbRecord.scheduledDate ? dbRecord.scheduledDate.toISOString() : new Date().toISOString(),
-        durationHours: dbRecord.durationHours,
-        venueName: dbRecord.venueName,
-        venueAddress: dbRecord.venueAddress,
-        totalAmount: Number(dbRecord.totalAmount),
-        companionFee: Number(dbRecord.companionFee),
-        platformFee: Number(dbRecord.platformFee),
-        gstAmount: Number(dbRecord.gstAmount),
-        escrowStatus: dbRecord.escrowStatus as EscrowStatusType,
-        status: dbRecord.status as BookingStatusType,
-        verificationPin: dbRecord.verificationPin,
-        pinVerifiedAt: dbRecord.pinVerifiedAt?.toISOString() || null,
-        sessionStartedAt: dbRecord.sessionStartedAt?.toISOString() || null,
-        sessionEndedAt: dbRecord.sessionEndedAt?.toISOString() || null,
-        hostAcceptanceDeadline: dbRecord.hostAcceptanceDeadline.toISOString(),
-        createdAt: dbRecord.createdAt.toISOString(),
-        updatedAt: dbRecord.updatedAt.toISOString(),
-      }));
-
-      const seen = new Set<string>();
-      const combined: BookingRecord[] = [];
-      for (const b of [...dbRecords, ...filteredMem]) {
-        if (!seen.has(b.id)) {
-          seen.add(b.id);
-          combined.push(b);
-        }
-      }
-      return combined;
-    }
+    return dbBookings.map((b) => sanitizeBookingForViewer(mapPrismaBooking(b), userId));
   } catch (err) {
     console.warn("[GET BOOKINGS PRISMA WARN]:", (err as Error).message);
+    return [];
   }
-
-  return filteredMem;
 }
 
 export async function respondToBooking(
   bookingId: string,
-  action: "ACCEPT" | "DECLINE"
+  action: "ACCEPT" | "DECLINE",
+  hostUserId?: string
 ): Promise<{ success: boolean; booking?: BookingRecord; error?: string }> {
   const booking = await getBookingById(bookingId);
   if (!booking) {
     return { success: false, error: "Booking record not found." };
   }
 
+  if (hostUserId && booking.companionUserId && booking.companionUserId !== hostUserId) {
+    return { success: false, error: "Only the assigned Host can accept or decline this booking." };
+  }
+
   if (booking.status !== "PENDING_ACCEPTANCE") {
-    return { success: false, error: `Booking cannot be updated from current status: ${booking.status}` };
+    return {
+      success: false,
+      error: `Booking cannot be updated from current status: ${booking.status}`,
+    };
   }
 
   const isExpired = new Date(booking.hostAcceptanceDeadline).getTime() < Date.now();
   if (isExpired) {
-    booking.status = "EXPIRED_SLA";
-    booking.escrowStatus = "REFUNDED_TO_MEMBER";
-    booking.updatedAt = new Date().toISOString();
-    bookingsStore.set(bookingId, booking);
-    return { success: false, error: "12-hour companion response window has expired. Escrow has been refunded." };
-  }
-
-  if (action === "ACCEPT") {
-    booking.status = "CONFIRMED";
-    booking.updatedAt = new Date().toISOString();
-  } else {
-    booking.status = "CANCELLED_BY_COMPANION";
-    booking.escrowStatus = "REFUNDED_TO_MEMBER";
-    booking.updatedAt = new Date().toISOString();
-  }
-
-  bookingsStore.set(bookingId, booking);
-
-  // Sync with DB
-  try {
-    const dbStatus = action === "ACCEPT" ? "CONFIRMED" : "CANCELLED";
-
     await prisma.booking.update({
-      where: { id: bookingId },
-      data: {
-        status: dbStatus as any,
-        escrowStatus: booking.escrowStatus as any,
-      },
-    });
-  } catch (err) {
-    console.warn("[RESPOND BOOKING PRISMA FALLBACK]:", (err as Error).message);
-  }
-
-  return { success: true, booking };
-}
-
-export async function checkAndExpireSlaBookings(): Promise<{ expiredCount: number; expiredIds: string[] }> {
-  const now = Date.now();
-  const expiredIds: string[] = [];
-
-  bookingsStore.forEach((b, id) => {
-    if (b.status === "PENDING_ACCEPTANCE" && new Date(b.hostAcceptanceDeadline).getTime() < now) {
-      b.status = "EXPIRED_SLA";
-      b.escrowStatus = "REFUNDED_TO_MEMBER";
-      b.updatedAt = new Date().toISOString();
-      bookingsStore.set(id, b);
-      expiredIds.push(id);
-    }
-  });
-
-  // Database sync
-  try {
-    await prisma.booking.updateMany({
-      where: {
-        status: "PENDING_ACCEPTANCE",
-        hostAcceptanceDeadline: { lt: new Date(now) },
-      },
+      where: { id: booking.id },
       data: {
         status: "CANCELLED",
         escrowStatus: "REFUNDED_TO_MEMBER",
       },
     });
-  } catch (err) {
-    console.warn("[SLA EXPIRATION CRON PRISMA FALLBACK]:", (err as Error).message);
+    return {
+      success: false,
+      error: "12-hour response window expired. Escrow has been refunded to the member.",
+    };
   }
 
-  return { expiredCount: expiredIds.length, expiredIds };
+  const dbStatus = action === "ACCEPT" ? "CONFIRMED" : "CANCELLED";
+  const nextEscrow = action === "ACCEPT" ? "HELD_IN_ESCROW" : "REFUNDED_TO_MEMBER";
+
+  const updated = await prisma.booking.update({
+    where: { id: booking.id },
+    data: {
+      status: dbStatus as any,
+      escrowStatus: nextEscrow as any,
+    },
+    include: {
+      member: { select: { id: true, name: true, phone: true } },
+      companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true } },
+      city: { select: { id: true, name: true } },
+      activity: { select: { id: true, title: true } },
+    },
+  });
+
+  const record = sanitizeBookingForViewer(mapPrismaBooking(updated), hostUserId);
+  bookingsStore.set(booking.id, record);
+
+  return { success: true, booking: record };
+}
+
+export async function checkAndExpireSlaBookings(): Promise<{ expiredCount: number; expiredIds: string[] }> {
+  const now = new Date();
+  try {
+    const overdue = await prisma.booking.findMany({
+      where: {
+        status: "PENDING_ACCEPTANCE",
+        hostAcceptanceDeadline: { lt: now },
+      },
+      select: { id: true },
+    });
+
+    if (overdue.length > 0) {
+      await prisma.booking.updateMany({
+        where: { id: { in: overdue.map((o) => o.id) } },
+        data: {
+          status: "CANCELLED",
+          escrowStatus: "REFUNDED_TO_MEMBER",
+        },
+      });
+    }
+
+    return {
+      expiredCount: overdue.length,
+      expiredIds: overdue.map((o) => o.id),
+    };
+  } catch (err) {
+    console.warn("[SLA EXPIRATION CRON WARN]:", (err as Error).message);
+    return { expiredCount: 0, expiredIds: [] };
+  }
 }
 
 export interface PayoutRecord {
   transferId: string;
   utr: string;
-  gateway: "CASHFREE";
+  gateway: "WALLET" | "RAZORPAY" | "CASHFREE";
   amount: number;
   recipientUpiId: string;
   timestamp: string;
@@ -473,181 +368,226 @@ export interface SessionReviewRecord {
 
 export async function verifyHandshakePin(
   bookingId: string,
-  submittedPin: string
+  submittedPin: string,
+  hostUserId?: string
 ): Promise<{ success: boolean; booking?: BookingRecord; error?: string }> {
   const booking = await getBookingById(bookingId);
   if (!booking) {
     return { success: false, error: "Booking record not found." };
   }
 
+  if (hostUserId && booking.companionUserId && booking.companionUserId !== hostUserId) {
+    return {
+      success: false,
+      error: "Only the assigned Host can enter and verify the member's 4-digit PIN.",
+    };
+  }
+
+  if (booking.status === "IN_PROGRESS") {
+    return { success: true, booking: sanitizeBookingForViewer(booking, hostUserId) };
+  }
+
   if (booking.status !== "CONFIRMED" && booking.status !== "PENDING_ACCEPTANCE") {
-    if (booking.status === "IN_PROGRESS") {
-      return { success: true, booking }; // Already verified & started
-    }
     return { success: false, error: `Session cannot be started from status: ${booking.status}` };
   }
 
   if (booking.verificationPin.trim() !== submittedPin.trim()) {
     return {
       success: false,
-      error: "Incorrect 4-digit PIN. Please ask the member for the code displayed on their screen.",
+      error: "Incorrect 4-digit PIN. Please ask the member for the code shown on their screen.",
     };
   }
 
-  const nowIso = new Date().toISOString();
-  const sessionEnd = new Date(Date.now() + (booking.durationHours || 1) * 3600000).toISOString();
+  const now = new Date();
+  const sessionEnd = new Date(now.getTime() + (booking.durationHours || 1) * 3600000);
 
-  booking.status = "IN_PROGRESS";
-  booking.pinVerifiedAt = nowIso;
-  booking.sessionStartedAt = nowIso;
-  booking.sessionEndedAt = sessionEnd;
-  booking.updatedAt = nowIso;
+  const updated = await prisma.booking.update({
+    where: { id: booking.id },
+    data: {
+      status: "IN_PROGRESS",
+      pinVerifiedAt: now,
+      sessionStartedAt: now,
+      sessionEndedAt: sessionEnd,
+    },
+    include: {
+      member: { select: { id: true, name: true, phone: true } },
+      companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true } },
+      city: { select: { id: true, name: true } },
+      activity: { select: { id: true, title: true } },
+    },
+  });
 
-  bookingsStore.set(bookingId, booking);
-
-  // Sync to database
-  try {
-    await prisma.booking.update({
-      where: { id: bookingId },
-      data: {
-        status: "IN_PROGRESS",
-        pinVerifiedAt: new Date(nowIso),
-        sessionStartedAt: new Date(nowIso),
-        sessionEndedAt: new Date(sessionEnd),
-      },
-    });
-  } catch (err) {
-    console.warn("[VERIFY PIN PRISMA FALLBACK]:", (err as Error).message);
-  }
-
-  return { success: true, booking };
+  const record = sanitizeBookingForViewer(mapPrismaBooking(updated), hostUserId);
+  bookingsStore.set(booking.id, record);
+  return { success: true, booking: record };
 }
 
 export async function completeSession(
-  bookingId: string
+  bookingId: string,
+  callerUserId?: string
 ): Promise<{ success: boolean; booking?: BookingRecord; payout?: PayoutRecord; error?: string }> {
   const booking = await getBookingById(bookingId);
   if (!booking) {
     return { success: false, error: "Booking record not found." };
   }
 
-  if (booking.status === "COMPLETED") {
+  if (
+    callerUserId &&
+    booking.memberId !== callerUserId &&
+    booking.companionUserId !== callerUserId
+  ) {
+    return { success: false, error: "You are not authorized to complete this session." };
+  }
+
+  // Recompute authoritative 70% host share
+  const breakdown = calculateEscrowBreakdown(booking.totalAmount / Math.max(1, booking.durationHours), booking.durationHours);
+  const hostPayoutAmount = Number(booking.companionFee) || breakdown.companionFee;
+  const platformTotalAmount = Number(booking.totalAmount) - hostPayoutAmount;
+  const recipientUpi = booking.companionUpiId || "Add UPI ID in Host Dashboard";
+
+  if (booking.status === "COMPLETED" && booking.escrowStatus === "RELEASED_TO_HOST") {
     return {
       success: true,
-      booking,
+      booking: sanitizeBookingForViewer(booking, callerUserId),
       payout: {
-        transferId: `cf_payout_${Date.now()}`,
-        utr: "CF2026849201",
-        gateway: "CASHFREE",
-        amount: booking.companionFee,
-        recipientUpiId: "vanshika@okhdfcbank",
-        timestamp: new Date().toISOString(),
+        transferId: `escrow_rel_${booking.id.slice(-8)}`,
+        utr: `MEETZY${booking.bookingNumber.replace(/\D/g, "")}`,
+        gateway: "WALLET",
+        amount: hostPayoutAmount,
+        recipientUpiId: recipientUpi,
+        timestamp: booking.sessionEndedAt || new Date().toISOString(),
         status: "SUCCESS",
       },
     };
   }
 
-  const nowIso = new Date().toISOString();
-  booking.status = "COMPLETED";
-  booking.escrowStatus = "RELEASED_TO_HOST";
-  booking.sessionEndedAt = nowIso;
-  booking.updatedAt = nowIso;
+  if (booking.status !== "IN_PROGRESS" && booking.status !== "CONFIRMED") {
+    return { success: false, error: `Cannot complete booking from status: ${booking.status}` };
+  }
 
-  bookingsStore.set(bookingId, booking);
+  const now = new Date();
+  const transferId = `escrow_rel_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const utr = `MTZ${Date.now().toString().slice(-10)}`;
 
-  let recipientUpi = "host@okhdfcbank";
-  let hostUserId = booking.companionId;
-
-  try {
-    const companionRecord = await prisma.companion.findUnique({
-      where: { id: booking.companionId },
-      select: { userId: true, upiId: true },
-    });
-    if (companionRecord?.userId) hostUserId = companionRecord.userId;
-    if (companionRecord?.upiId) recipientUpi = companionRecord.upiId;
-  } catch {}
-
-  const payout: PayoutRecord = {
-    transferId: `cf_payout_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    utr: `CF2026${Math.floor(100000 + Math.random() * 900000)}`,
-    gateway: "CASHFREE",
-    amount: booking.companionFee,
-    recipientUpiId: recipientUpi,
-    timestamp: nowIso,
-    status: "SUCCESS",
-  };
-
-  // Sync with DB
-  try {
-    await prisma.booking.update({
-      where: { id: bookingId },
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedBooking = await tx.booking.update({
+      where: { id: booking.id },
       data: {
         status: "COMPLETED",
         escrowStatus: "RELEASED_TO_HOST",
-        sessionEndedAt: new Date(nowIso),
+        sessionEndedAt: now,
+      },
+      include: {
+        member: { select: { id: true, name: true, phone: true } },
+        companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true, completedMeetups: true, ratingAverage: true } },
+        city: { select: { id: true, name: true } },
+        activity: { select: { id: true, title: true } },
       },
     });
 
-    // Create Transaction record
-    await prisma.transaction.create({
-      data: {
-        bookingId,
-        userId: hostUserId,
-        type: "HOST_PAYOUT",
-        amount: booking.companionFee,
-        feeAmount: 0,
-        netAmount: booking.companionFee,
-        gateway: "CASHFREE",
-        gatewayTransactionId: payout.transferId,
-        status: "SUCCESS",
-      },
-    });
-
-    // Check if the member was referred by someone; award 100 coins on their first completed meetup
-    try {
-      const member = await prisma.user.findUnique({
-        where: { id: booking.memberId },
-        select: { id: true, name: true, referredById: true },
+    if (booking.escrowStatus !== "RELEASED_TO_HOST" && updatedBooking.companion?.userId) {
+      await tx.user.update({
+        where: { id: updatedBooking.companion.userId },
+        data: {
+          walletBalance: { increment: hostPayoutAmount },
+        },
       });
 
-      if (member?.referredById) {
-        const completedCount = await prisma.booking.count({
-          where: {
-            memberId: member.id,
-            status: "COMPLETED",
-          },
+      const nextMeetups = (updatedBooking.companion.completedMeetups || 0) + 1;
+      const avgRating = updatedBooking.companion.ratingAverage || 5.0;
+      let nextLevel: HostLevel = HostLevel.NEW;
+      if (nextMeetups >= 30 && avgRating >= 4.8) nextLevel = HostLevel.TOP;
+      else if (nextMeetups >= 10 && avgRating >= 4.5) nextLevel = HostLevel.RISING;
+
+      await tx.companion.update({
+        where: { id: updatedBooking.companionId },
+        data: {
+          completedMeetups: nextMeetups,
+          hostLevel: nextLevel,
+        },
+      });
+
+      await tx.transaction.create({
+        data: {
+          bookingId: booking.id,
+          userId: updatedBooking.companion.userId,
+          type: "HOST_PAYOUT",
+          amount: hostPayoutAmount,
+          feeAmount: platformTotalAmount,
+          netAmount: hostPayoutAmount,
+          gateway: "WALLET",
+          gatewayTransactionId: transferId,
+          status: "SUCCESS",
+        },
+      });
+
+      await tx.transaction.create({
+        data: {
+          bookingId: booking.id,
+          userId: booking.memberId,
+          type: "PLATFORM_FEE",
+          amount: platformTotalAmount,
+          feeAmount: Number(booking.gstAmount),
+          netAmount: Math.max(0, platformTotalAmount - Number(booking.gstAmount)),
+          gateway: "WALLET",
+          gatewayTransactionId: `pf_${transferId}`,
+          status: "SUCCESS",
+        },
+      });
+    }
+
+    return updatedBooking;
+  });
+
+  // Referral reward on member's first completed meetup
+  try {
+    const member = await prisma.user.findUnique({
+      where: { id: booking.memberId },
+      select: { id: true, name: true, referredById: true },
+    });
+
+    if (member?.referredById) {
+      const completedCount = await prisma.booking.count({
+        where: { memberId: member.id, status: "COMPLETED" },
+      });
+      if (completedCount === 1) {
+        const referrer = await prisma.user.findUnique({
+          where: { id: member.referredById },
+          select: { id: true },
         });
-
-        if (completedCount === 1) {
-          const referrer = await prisma.user.findUnique({
-            where: { id: member.referredById },
-            select: { id: true },
+        if (referrer) {
+          const { creditCoins } = await import("@/lib/wallet");
+          await creditCoins({
+            userId: referrer.id,
+            amount: 100,
+            type: "REFERRAL_BONUS" as any,
+            description: `Referral reward: ${member.name || "Your friend"} completed their first meetup!`,
+            referenceId: booking.id,
           });
-
-          if (referrer) {
-            const { creditCoins } = await import("@/lib/wallet");
-            await creditCoins({
-              userId: referrer.id,
-              amount: 100,
-              type: "REFERRAL_BONUS" as any,
-              description: `Referral reward: ${member.name || "Your friend"} completed their first meetup!`,
-              referenceId: bookingId,
-            });
-          }
         }
       }
-    } catch (refErr) {
-      console.warn("[REFERRAL REWARD ERROR]:", refErr);
     }
-  } catch (err) {
-    console.warn("[COMPLETE SESSION PRISMA FALLBACK]:", (err as Error).message);
+  } catch (refErr) {
+    console.warn("[REFERRAL REWARD WARN]:", refErr);
   }
 
-  return { success: true, booking, payout };
-}
+  const record = sanitizeBookingForViewer(mapPrismaBooking(updated), callerUserId);
+  bookingsStore.set(booking.id, record);
 
-// In-memory reviews store
-const reviewsStore = new Map<string, SessionReviewRecord>();
+  return {
+    success: true,
+    booking: record,
+    payout: {
+      transferId,
+      utr,
+      gateway: "WALLET",
+      amount: hostPayoutAmount,
+      recipientUpiId: recipientUpi,
+      timestamp: now.toISOString(),
+      status: "SUCCESS",
+    },
+  };
+}
 
 export async function submitSessionReview(input: {
   bookingId: string;
@@ -661,36 +601,58 @@ export async function submitSessionReview(input: {
     return { success: false, error: "Booking record not found." };
   }
 
-  const reviewId = `rev_${Date.now()}`;
-  const review: SessionReviewRecord = {
-    id: reviewId,
-    bookingId: input.bookingId,
-    memberId: input.memberId,
-    companionId: booking.companionId,
-    score: Math.max(1, Math.min(5, Math.round(input.score))),
-    comment: input.comment,
-    tags: input.tags,
-    createdAt: new Date().toISOString(),
-  };
-
-  reviewsStore.set(input.bookingId, review);
-
-  try {
-    await prisma.reviewRating.create({
-      data: {
-        id: reviewId,
-        bookingId: input.bookingId,
-        memberId: input.memberId,
-        companionId: booking.companionId,
-        score: review.score,
-        comment: input.comment,
-      },
-    });
-  } catch (err) {
-    console.warn("[REVIEW PRISMA FALLBACK]:", (err as Error).message);
+  if (booking.memberId !== input.memberId) {
+    return { success: false, error: "Only the member who booked can leave a verified review." };
   }
 
-  return { success: true, review };
+  const clampedScore = Math.max(1, Math.min(5, Math.round(input.score)));
+
+  const reviewRecord = await prisma.$transaction(async (tx) => {
+    const rev = await tx.reviewRating.upsert({
+      where: { bookingId: booking.id },
+      update: {
+        score: clampedScore,
+        comment: input.comment || null,
+      },
+      create: {
+        bookingId: booking.id,
+        memberId: input.memberId,
+        companionId: booking.companionId,
+        score: clampedScore,
+        comment: input.comment || null,
+      },
+    });
+
+    const stats = await tx.reviewRating.aggregate({
+      where: { companionId: booking.companionId },
+      _avg: { score: true },
+      _count: { score: true },
+    });
+
+    await tx.companion.update({
+      where: { id: booking.companionId },
+      data: {
+        ratingAverage: Number((stats._avg.score || clampedScore).toFixed(2)),
+        totalReviews: stats._count.score || 1,
+      },
+    });
+
+    return rev;
+  });
+
+  return {
+    success: true,
+    review: {
+      id: reviewRecord.id,
+      bookingId: booking.id,
+      memberId: input.memberId,
+      companionId: booking.companionId,
+      score: clampedScore,
+      comment: input.comment,
+      tags: input.tags,
+      createdAt: reviewRecord.createdAt.toISOString(),
+    },
+  };
 }
 
 export async function triggerSosAlert(input: {
@@ -700,10 +662,12 @@ export async function triggerSosAlert(input: {
   longitude?: number;
 }): Promise<{ success: boolean; alertId: string; emergencyDial: string }> {
   const alertId = `sos_${Date.now()}`;
-  console.log(`[EMERGENCY SOS TRIGGERED] Booking: ${input.bookingId}, User: ${input.userId}, Lat: ${input.latitude}, Lng: ${input.longitude}`);
+  console.log(
+    `[EMERGENCY SOS TRIGGERED] Booking: ${input.bookingId}, User: ${input.userId}, Lat: ${input.latitude}, Lng: ${input.longitude}`
+  );
 
-  try {
-    await prisma.safetyAlert.create({
+  await prisma.$transaction(async (tx) => {
+    await tx.safetyAlert.create({
       data: {
         id: alertId,
         bookingId: input.bookingId,
@@ -713,9 +677,17 @@ export async function triggerSosAlert(input: {
         status: "ACTIVE",
       },
     });
-  } catch (err) {
-    console.warn("[SOS PRISMA FALLBACK]:", (err as Error).message);
-  }
+
+    await tx.grievanceTicket.create({
+      data: {
+        userId: input.userId,
+        category: "SAFETY_INCIDENT",
+        subject: `URGENT SOS ALERT - Booking ${input.bookingId}`,
+        description: `Emergency SOS triggered during session ${input.bookingId}.\nAlert ID: ${alertId}\nCoordinates: ${input.latitude ?? "N/A"}, ${input.longitude ?? "N/A"}`,
+        status: "OPEN",
+      },
+    });
+  });
 
   return { success: true, alertId, emergencyDial: "112" };
 }

@@ -14,6 +14,7 @@ export interface User {
   accountStatus: string;
   coinBalance?: number;
   creditBalance?: number;
+  walletBalance?: number;
   referralCode?: string | null;
   isUnlocked?: boolean;
   activePassTier?: string | null;
@@ -140,11 +141,19 @@ export const useAppStore = create<AppState>()(
                 email: u.email,
                 name: u.name,
                 avatarUrl: u.avatarUrl || data.hostProfile?.avatarUrl || data.memberProfile?.avatarUrl || null,
+                role: u.role || (role === 'host' ? 'COMPANION' : 'MEMBER'),
                 activeRole: role,
                 accountStatus: 'active',
                 coinBalance: u.coinBalance ?? 100,
                 creditBalance: u.creditBalance ?? 100,
+                walletBalance: u.walletBalance ?? 0,
                 referralCode: u.referralCode || null,
+                isUnlocked: Boolean(u.isUnlocked),
+                activePassTier: u.activePassTier || null,
+                passExpiresAt: u.passExpiresAt || null,
+                city: data.memberProfile?.city || u.city || null,
+                area: data.memberProfile?.area || u.area || null,
+                bio: data.memberProfile?.bio || u.bio || null,
               };
               const memProfile: MemberProfile = data.memberProfile || {
                 id: u.id,
@@ -186,14 +195,23 @@ export const useAppStore = create<AppState>()(
 
       switchRole: async (targetRole: 'member' | 'host') => {
         try {
-          await fetch('/api/auth/switch-role', {
+          const res = await fetch('/api/auth/switch-role', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ role: targetRole === 'host' ? 'COMPANION' : 'MEMBER' }),
           });
+          if (!res.ok) {
+            return false;
+          }
           set((state) => ({
             activeRole: targetRole,
-            user: state.user ? { ...state.user, activeRole: targetRole } : null,
+            user: state.user
+              ? {
+                  ...state.user,
+                  activeRole: targetRole,
+                  role: targetRole === 'host' ? 'COMPANION' : 'MEMBER',
+                }
+              : null,
           }));
           return true;
         } catch (err) {

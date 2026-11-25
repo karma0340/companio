@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CompanionCard } from '@/components/companion/companion-card';
+import { CompareModal } from '@/components/companion/compare-modal';
 import { TiltCard } from '@/components/landing/tilt-card';
 import { Companion, ActivityCategory } from '@/lib/types';
+import { useToast } from '@/components/ui/toast';
 
 const FILTERS = [
   { id: 'all', label: 'All Top Rated' },
@@ -55,9 +57,36 @@ interface TopRatedCarouselProps {
 }
 
 export function TopRatedCarousel({ companions: initialCompanions }: TopRatedCarouselProps) {
+  const { toast } = useToast();
   const [activeFilter, setActiveFilter] = useState('all');
   const [companionsList, setCompanionsList] = useState<Companion[]>(initialCompanions || []);
+  const [compareList, setCompareList] = useState<Companion[]>([]);
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleToggleCompare = (comp: Companion) => {
+    setCompareList((prev) => {
+      const exists = prev.some((c) => c.id === comp.id);
+      if (exists) return prev.filter((c) => c.id !== comp.id);
+      if (prev.length >= 3) {
+        toast({
+          title: 'Compare Limit Reached',
+          description: 'You can compare up to 3 companions at once.',
+        });
+        return prev;
+      }
+      const next = [...prev, comp];
+      if (next.length >= 2) {
+        setIsCompareOpen(true);
+      } else {
+        toast({
+          title: 'Added to Compare',
+          description: `Select 1 more companion to compare alongside ${comp.name}.`,
+        });
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (initialCompanions && initialCompanions.length > 0) {
@@ -78,7 +107,7 @@ export function TopRatedCarousel({ companions: initialCompanions }: TopRatedCaro
             area: c.city,
             tagline: c.shortBio || 'Verified local companion',
             about: c.bio || c.shortBio || '',
-            avatarUrl: c.avatarUrl,
+            avatarUrl: c.avatarUrl || 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg',
             languages: c.spokenLanguages || ['English', 'Hindi'],
             hourlyRate: c.hourlyRate || 499,
             verifiedId: true,
@@ -180,12 +209,27 @@ export function TopRatedCarousel({ companions: initialCompanions }: TopRatedCaro
               className="w-[310px] sm:w-[350px] shrink-0 snap-start"
             >
               <TiltCard maxTilt={5}>
-                <CompanionCard companion={comp} />
+                <CompanionCard
+                  companion={comp}
+                  isCompared={compareList.some((c) => c.id === comp.id)}
+                  onCompareClick={handleToggleCompare}
+                />
               </TiltCard>
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
+
+      <CompareModal
+        isOpen={isCompareOpen}
+        onClose={() => setIsCompareOpen(false)}
+        companions={compareList}
+        onRemove={(id) => setCompareList((prev) => prev.filter((c) => c.id !== id))}
+        onClear={() => {
+          setCompareList([]);
+          setIsCompareOpen(false);
+        }}
+      />
     </div>
   );
 }

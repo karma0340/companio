@@ -76,10 +76,10 @@ const DEFAULT_HERO_COMPANION: Companion = {
   age: 23,
   gender: 'female',
   city: 'delhi',
-  area: 'Hauz Khas, Delhi NCR',
+  area: 'Hauz Khas / Connaught Place',
   tagline: 'Coffee roasteries, contemporary art & quiet city walks',
-  about: 'Literature graduate and visual storyteller in South Delhi.',
-  avatarUrl: '/companions/girl1.jpg',
+  about: 'Literature graduate and visual storyteller based in South Delhi.',
+  avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg',
   languages: ['English', 'Hindi'],
   hourlyRate: 599,
   verifiedId: true,
@@ -87,11 +87,11 @@ const DEFAULT_HERO_COMPANION: Companion = {
   rating: 4.95,
   reviewCount: 34,
   meetupsCount: 34,
-  activities: ['coffee-chat', 'city-guide'],
+  activities: ['shopping-buddy', 'coffee-chat'],
   isFreeToday: true,
   memberSince: '2026',
   availability: [
-    { days: 'Mon — Fri', hours: '16:00 – 21:00' },
+    { days: 'Mon — Fri', hours: '18:00 – 21:00' },
     { days: 'Sat — Sun', hours: '11:00 – 20:00' },
   ],
   reviews: [],
@@ -116,7 +116,7 @@ export default function HomePage() {
             area: `${c.city} Central`,
             tagline: c.shortBio || 'Verified local companion',
             about: c.bio || c.shortBio || '',
-            avatarUrl: c.avatarUrl,
+            avatarUrl: c.avatarUrl || 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg',
             languages: c.spokenLanguages || ['English', 'Hindi'],
             hourlyRate: c.hourlyRate || 499,
             verifiedId: true,
@@ -172,7 +172,7 @@ export default function HomePage() {
       id: 'faq-5',
       question: 'How are companions verified?',
       answer:
-        'Every single host submits a government ID (Aadhaar, Passport, or Voter ID) along with a real-time live selfie for facial comparison. Our human trust team reviews their background, phone number, and social profiles before approving their profile.',
+        'Every single host verifies their Indian mobile number via live SMS OTP, submits a clear public headshot photo, sets preferred public venues, and agrees to our strictly platonic Code of Conduct before going live. We never require Aadhaar cards or invasive biometric storage.',
     },
     {
       id: 'faq-6',
@@ -300,7 +300,7 @@ export default function HomePage() {
                 <div className="flex flex-wrap items-center gap-4 pt-1 text-xs font-extrabold text-ink">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span>Aadhaar ID Checked</span>
+                    <span>Mobile OTP Verified</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -364,7 +364,7 @@ export default function HomePage() {
                           <div className="flex gap-4 items-center">
                             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-brutal bg-paper-deep">
                               <Image
-                                src={featured.avatarUrl}
+                                src={featured.avatarUrl || 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg'}
                                 alt={featured.name}
                                 fill
                                 sizes="80px"

@@ -7,13 +7,23 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
+    if (!session?.userId) {
+      return NextResponse.json(
+        { success: false, bookings: [], error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const roleParam = searchParams.get("role") || "ALL";
+    const role =
+      roleParam.toUpperCase() === "COMPANION"
+        ? "COMPANION"
+        : roleParam.toUpperCase() === "MEMBER"
+        ? "MEMBER"
+        : "ALL";
 
-    const userId = session?.userId || "user_member_demo";
-    const role = (roleParam.toUpperCase() === "COMPANION" ? "COMPANION" : roleParam.toUpperCase() === "MEMBER" ? "MEMBER" : "ALL");
-
-    const bookings = await getBookingsForUser(userId, role);
+    const bookings = await getBookingsForUser(session.userId, role);
 
     return NextResponse.json({
       success: true,

@@ -5,6 +5,7 @@ import { Coins, X, ArrowRight, Loader2, ShieldCheck, Check } from 'lucide-react'
 import { useAuth } from '@/context/auth-context';
 import { openRazorpayCheckout } from '@/lib/payments/razorpay';
 import { useToast } from '@/components/ui/toast';
+import { triggerCelebration } from '@/components/ui/celebration';
 
 interface CoinTopupModalProps {
   isOpen: boolean;
@@ -91,7 +92,9 @@ export function CoinTopupModal({
 
             const verifyData = await verifyRes.json();
             if (verifyRes.ok && verifyData.success) {
-              success(`Successfully recharged ${effectiveAmount} coins!`, 'Wallet Credited');
+              const totalAdded = verifyData.bonus?.totalCoins || effectiveAmount;
+              success(`Successfully recharged ${totalAdded} coins!`, 'Wallet Credited');
+              triggerCelebration(`+${totalAdded} Coins Added!`);
               await refreshSession();
               onSuccess?.();
               onClose();

@@ -15,12 +15,13 @@ export async function POST(req: NextRequest) {
       quote: {
         companionId,
         hours,
-        baseCompanionFee: feeCalculation.companionFee,
+        baseCompanionFee: feeCalculation.grossAmount,
+        hostPayout: feeCalculation.companionFee,
         platformFee: feeCalculation.platformFee,
         gstAmount: feeCalculation.gstAmount,
         totalAmount: feeCalculation.totalAmount,
         currency: "INR",
-        breakdownText: `Base: ₹${feeCalculation.companionFee.toFixed(2)} + Platform Fee: ₹${feeCalculation.platformFee.toFixed(2)} + GST: ₹${feeCalculation.gstAmount.toFixed(2)} = ₹${feeCalculation.totalAmount.toFixed(2)}`,
+        breakdownText: `Meetup Total: ₹${feeCalculation.totalAmount.toFixed(2)} (Zero extra checkout fees; 70% ₹${feeCalculation.companionFee.toFixed(2)} goes to Host, 30% ₹${feeCalculation.platformFee.toFixed(2)} covers taxes, Razorpay & safety)`,
       },
     });
   } catch (error) {

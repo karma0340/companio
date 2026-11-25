@@ -1,50 +1,56 @@
 /**
- * Companio Escrow & Financial Fee Breakdown Engine
+ * Meetzy Club Unified 70/30 Escrow & Revenue Split Engine
  *
- * Implements the 70.7% Host / 24.8% Platform / 4.5% GST Escrow Model:
- * For a standard 1-hour session @ ₹499/hr:
- * - Companion Fee: ₹499.00 (100% of host advertised rate)
- * - Platform Convenience Fee: ₹175.42
- * - GST @ 18% on convenience fee: ₹31.58
- * - Total Escrow Paid by Member: ₹706.00
+ * Fixed across ALL Host Packages:
+ * - Member pays listed meetup amount: hourlyRate * durationHours (Taxes & gateway included)
+ * - Host Take-Home Share: 70% fixed (credited to Host Wallet upon PIN-verified completion)
+ * - Platform Allocation: 30% (covers statutory GST, Razorpay processing charges, SOS/safety ops & platform revenue)
  */
+
+export const HOST_SHARE_RATIO = 0.70;
+export const PLATFORM_SHARE_RATIO = 0.30;
 
 export interface EscrowBreakdown {
   hourlyRate: number;
   durationHours: number;
-  companionFee: number;
-  platformFee: number;
-  gstAmount: number;
-  totalAmount: number;
+  grossAmount: number;
+  companionFee: number;       // 70% credited to Host Wallet
+  platformShareTotal: number; // 30% all-inclusive platform allocation
+  platformFee: number;        // Net platform + gateway + safety share inside 30%
+  gstAmount: number;          // Statutory 18% GST component inside 30%
+  razorpayEstimate: number;   // ~2.36% Razorpay fee + GST inside 30%
+  totalAmount: number;        // Member total payable
   hostSharePercent: number;
   platformSharePercent: number;
-  gstPercent: number;
 }
 
 export function calculateEscrowBreakdown(
   hourlyRate: number,
   durationHours: number = 1
 ): EscrowBreakdown {
-  const companionFee = Math.round(hourlyRate * durationHours * 100) / 100;
+  const safeRate = Math.max(0, Number(hourlyRate) || 0);
+  const safeHours = Math.max(1, Number(durationHours) || 1);
 
-  // Platform convenience fee: benchmark ₹175.42 per companion hour
-  const platformFee = Math.round(175.42 * durationHours * 100) / 100;
+  const grossAmount = Math.round(safeRate * safeHours * 100) / 100;
+  const companionFee = Math.round(grossAmount * HOST_SHARE_RATIO * 100) / 100;
+  const platformShareTotal = Math.round((grossAmount - companionFee) * 100) / 100;
 
-  // GST @ 18% on platform fee: benchmark ₹31.58 per companion hour
-  const gstAmount = Math.round(31.58 * durationHours * 100) / 100;
-
-  // Total amount held in escrow
-  const totalAmount = Math.round((companionFee + platformFee + gstAmount) * 100) / 100;
+  // Statutory 18% GST included inside the 30% platform share
+  const gstAmount = Math.round((platformShareTotal - platformShareTotal / 1.18) * 100) / 100;
+  const razorpayEstimate = Math.round(grossAmount * 0.0236 * 100) / 100;
+  const platformFee = Math.round((platformShareTotal - gstAmount) * 100) / 100;
 
   return {
-    hourlyRate,
-    durationHours,
+    hourlyRate: safeRate,
+    durationHours: safeHours,
+    grossAmount,
     companionFee,
+    platformShareTotal,
     platformFee,
     gstAmount,
-    totalAmount,
-    hostSharePercent: Math.round((companionFee / totalAmount) * 1000) / 10,
-    platformSharePercent: Math.round((platformFee / totalAmount) * 1000) / 10,
-    gstPercent: Math.round((gstAmount / totalAmount) * 1000) / 10,
+    razorpayEstimate,
+    totalAmount: grossAmount,
+    hostSharePercent: 70,
+    platformSharePercent: 30,
   };
 }

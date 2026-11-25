@@ -6,6 +6,23 @@ export * from "@/lib/types";
 
 export type PassTier = "ONE_MONTH" | "THREE_MONTH" | "SIX_MONTH" | "ONE_YEAR" | "LIFETIME";
 
+export type HostPackTier = "STARTER" | "PRO" | "ELITE";
+
+export interface HostPackOption {
+  tier: HostPackTier;
+  name: string;
+  price: number;
+  durationDays: number;
+  durationLabel: string;
+  tagline: string;
+  hostSharePercent: 70;
+  platformSharePercent: 30;
+  promoCoins: number;
+  maxMonthlyBookings: number | null;
+  features: string[];
+  isPopular?: boolean;
+}
+
 export interface PassTierOption {
   tier: PassTier;
   name: string;
@@ -21,17 +38,23 @@ export interface CompanionSummary {
   name: string;
   displayName: string;
   maskedName: string;
+  age?: number;
+  gender?: string;
   avatarUrl: string;
   blurredAvatarUrl: string;
   city: string;
   citySlug: string;
+  locality?: string;
   bio: string;
   shortBio: string;
   hourlyRate: number;
   ratingAverage: number;
   totalReviews: number;
+  completedMeetups?: number;
   spokenLanguages: string[];
   acceptedActivities: string[];
+  availabilitySlots?: string[];
+  preferredVenues?: string[];
   isAvailable: boolean;
   gender?: 'female' | 'male';
   isPreview?: boolean;

@@ -84,10 +84,10 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
   const relevantCompanions: Companion[] = rawCompanions.map((c) => ({
     id: c.id,
     name: c.displayName || c.name,
-    age: 24,
-    gender: 'female' as const,
+    age: c.age || 24,
+    gender: (c.gender as 'male' | 'female' | 'non-binary') || 'female',
     city: c.citySlug,
-    area: c.city,
+    area: c.locality || c.city,
     tagline: c.shortBio || 'Verified local companion',
     about: c.bio || c.shortBio || '',
     avatarUrl: c.avatarUrl,
@@ -95,17 +95,18 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
     hourlyRate: c.hourlyRate || 499,
     verifiedId: true,
     verifiedPhoto: true,
-    rating: c.ratingAverage || 4.9,
-    reviewCount: c.totalReviews || 12,
-    meetupsCount: c.totalReviews || 12,
+    rating: c.ratingAverage || 5.0,
+    reviewCount: c.totalReviews || 0,
+    meetupsCount: c.completedMeetups || 0,
     activities: mapToActivityCategories(c.acceptedActivities || []),
     isFreeToday: c.isAvailable ?? true,
     acceptsWomenOnly: false,
     memberSince: '2026',
-    availability: [
-      { days: 'Mon — Fri', hours: '18:00 – 21:00' },
-      { days: 'Sat — Sun', hours: '11:00 – 20:00' },
-    ],
+    availability:
+      c.availabilitySlots && c.availabilitySlots.length > 0
+        ? c.availabilitySlots.map((slot) => ({ days: slot, hours: 'By Slot' }))
+        : [{ days: 'Weekends & Evenings', hours: 'Flexible' }],
+    preferredVenues: c.preferredVenues || [],
     reviews: [],
   }));
 
@@ -166,11 +167,11 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
 
               <div className="rounded-xl border-brutal-sm bg-paper p-3.5 space-y-1">
                 <span className="flex items-center gap-1.5 font-display text-xs font-black text-ink">
-                  <Badge variant="lime" size="sm">Aadhaar Verified</Badge>
-                  <span>100% ID Checked</span>
+                  <Badge variant="lime" size="sm">OTP Verified</Badge>
+                  <span>100% Phone Verified</span>
                 </span>
                 <p className="text-[11px] font-body text-ink-soft">
-                  Every host completes government ID validation & selfie matching.
+                  Every host completes live SMS OTP verification &amp; public meetup pledges.
                 </p>
               </div>
 

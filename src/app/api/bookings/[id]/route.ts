@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBookingById } from "@/lib/bookings";
+import { getBookingById, sanitizeBookingForViewer } from "@/lib/bookings";
+import { getSession } from "@/lib/session";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const booking = await getBookingById(params.id);
+    const session = await getSession();
+    if (!session?.userId) {
+      return NextResponse.json(
+        { success: false, error: "Please sign in to view booking details." },
+        { status: 401 }
+      );
+    }
 
+    const booking = await getBookingById(params.id);
     if (!booking) {
       return NextResponse.json(
         { success: false, error: "Booking not found." },
@@ -15,9 +23,20 @@ export async function GET(
       );
     }
 
+    if (
+      booking.memberId !== session.userId &&
+      booking.companionUserId !== session.userId
+    ) {
+      return NextResponse.json(
+        { success: false, error: "You are not authorized to view this booking." },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      booking,
+      booking: sanitizeBookingForViewer(booking, session.userId),
+      viewerRole: booking.memberId === session.userId ? "MEMBER" : "COMPANION",
     });
   } catch (error) {
     console.error("[GET BOOKING ID ERROR]:", error);

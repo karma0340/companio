@@ -2,14 +2,18 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { uploadHostAvatar, uploadKycDocument } from '@/lib/cloudinary';
-import { validateIndianMobileNumber } from '@/lib/phone';
-import { setSessionCookie } from '@/lib/session';
+import { uploadHostAvatar } from '@/lib/cloudinary';
+import { getSession, setSessionCookie } from '@/lib/session';
+import { HOST_REGISTRATION_FEE } from '@/lib/data';
+import { HostPackTier } from '@/types';
+import { verifyRazorpaySignature } from '@/lib/razorpay';
+import { creditCoins } from '@/lib/wallet';
+import { CoinTransactionType } from '@prisma/client';
 
 export interface SubmitHostApplicationInput {
   fullName: string;
   displayName?: string;
-  phone: string;
+  phone?: string;
   gender?: string;
   age?: number | string;
   city: string;
@@ -19,37 +23,72 @@ export interface SubmitHostApplicationInput {
   hourlyRate: number;
   activities: string[];
   spokenLanguages?: string[];
-  idType?: string;
-  idNumber?: string;
+  availabilitySlots?: string[];
+  preferredVenues?: string[];
+  packTier?: HostPackTier;
   avatarImage?: string;
-  idDocumentImage?: string;
-  aadhaarImage?: string;
-  aadhaarBackImage?: string;
-  liveSelfieImage?: string;
-  socialHandle?: string;
-  faceMatchScore?: number;
-  registrationFeePaid?: boolean;
-  paymentId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
 }
 
 export async function submitHostApplicationAction(input: SubmitHostApplicationInput) {
   try {
-    if (!input.fullName || !input.phone || !input.city) {
-      return { success: false, error: 'Full name, phone number, and city are required.' };
+    const session = await getSession();
+    if (!session?.userId || !session?.phone) {
+      return {
+        success: false,
+        error: 'Please sign in and verify your mobile number via SMS OTP before applying.',
+      };
     }
 
-    const phoneValidation = validateIndianMobileNumber(input.phone);
-    if (!phoneValidation.isValid) {
-      return { success: false, error: phoneValidation.error || 'Please enter a valid 10-digit Indian mobile number.' };
+    if (!input.fullName?.trim() || !input.city?.trim()) {
+      return { success: false, error: 'Full name and city are required.' };
     }
 
-    const e164Phone = phoneValidation.e164;
-    const cleanDisplayName = input.displayName?.trim() || input.fullName.trim().split(' ')[0] || 'Verified Host';
-    const masked = `${cleanDisplayName} ${input.fullName.trim().split(' ').slice(-1)[0]?.charAt(0) || 'S'}***`;
+    const numericAge = parseInt(String(input.age || '24'), 10);
+    if (isNaN(numericAge) || numericAge < 18 || numericAge > 70) {
+      return { success: false, error: 'Hosts must be between 18 and 70 years old.' };
+    }
 
-    // 1. Upload media to Cloudinary if provided as data URI
-    let avatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80';
-    let blurredAvatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&blur=15&q=30';
+    const packTier: HostPackTier = HOST_REGISTRATION_FEE.tier;
+    const packOption = {
+      tier: HOST_REGISTRATION_FEE.tier,
+      name: HOST_REGISTRATION_FEE.name,
+      basePrice: HOST_REGISTRATION_FEE.basePrice,
+      taxesAndCharges: HOST_REGISTRATION_FEE.taxesAndCharges,
+      price: HOST_REGISTRATION_FEE.totalPrice,
+      durationDays: HOST_REGISTRATION_FEE.durationDays,
+      promoCoins: HOST_REGISTRATION_FEE.promoCoins,
+    };
+
+    // Verify Razorpay signature for host package checkout
+    const orderId = String(input.razorpayOrderId || '');
+    const paymentId = String(input.razorpayPaymentId || '');
+    if (!paymentId) {
+      return {
+        success: false,
+        error: 'Host package payment is required to publish your companion profile.',
+      };
+    }
+
+    const sigCheck = verifyRazorpaySignature(orderId, paymentId, input.razorpaySignature);
+    if (!sigCheck.isValid) {
+      return {
+        success: false,
+        error: sigCheck.reason || 'Payment verification failed. Please retry payment.',
+      };
+    }
+
+    const cleanDisplayName =
+      input.displayName?.trim() || input.fullName.trim().split(' ')[0] || 'Verified Host';
+    const lastInitial = input.fullName.trim().split(' ').slice(-1)[0]?.charAt(0) || 'H';
+    const masked = `${cleanDisplayName} ${lastInitial}***`;
+
+    // Upload avatar to Cloudinary if configured, else retain data URL / uploaded URL
+    let avatarUrl =
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80';
+    let blurredAvatarUrl = avatarUrl;
 
     if (input.avatarImage && input.avatarImage.startsWith('data:')) {
       try {
@@ -57,197 +96,224 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         avatarUrl = avatarRes.avatarUrl;
         blurredAvatarUrl = avatarRes.blurredAvatarUrl;
       } catch (uploadErr) {
-        console.error('[CLOUDINARY AVATAR UPLOAD ERROR]:', uploadErr);
+        console.warn('[CLOUDINARY AVATAR FALLBACK]:', uploadErr);
         avatarUrl = input.avatarImage;
+        blurredAvatarUrl = input.avatarImage;
       }
     } else if (input.avatarImage && input.avatarImage.startsWith('http')) {
       avatarUrl = input.avatarImage;
+      blurredAvatarUrl = input.avatarImage;
     }
 
-    let aadhaarDocUrl = 'verified-id-document';
-    const documentToUpload = input.idDocumentImage || input.aadhaarImage;
-    if (documentToUpload && documentToUpload.startsWith('data:')) {
-      try {
-        const kycRes = await uploadKycDocument(documentToUpload);
-        aadhaarDocUrl = kycRes.secure_url;
-      } catch (uploadErr) {
-        console.error('[CLOUDINARY KYC UPLOAD ERROR]:', uploadErr);
-      }
-    } else if (documentToUpload && documentToUpload.startsWith('http')) {
-      aadhaarDocUrl = documentToUpload;
-    }
-
-    let panDocUrl = aadhaarDocUrl;
-    if (input.aadhaarBackImage && input.aadhaarBackImage.startsWith('data:')) {
-      try {
-        const kycBackRes = await uploadKycDocument(input.aadhaarBackImage);
-        panDocUrl = kycBackRes.secure_url;
-      } catch (uploadErr) {
-        console.error('[CLOUDINARY KYC UPLOAD BACK ERROR]:', uploadErr);
-      }
-    }
-
-    let selfieVideoUrl = avatarUrl;
-    if (input.liveSelfieImage && input.liveSelfieImage.startsWith('data:')) {
-      try {
-        const selfieRes = await uploadKycDocument(input.liveSelfieImage);
-        selfieVideoUrl = selfieRes.secure_url;
-      } catch (uploadErr) {
-        console.error('[CLOUDINARY LIVE SELFIE UPLOAD ERROR]:', uploadErr);
-      }
-    }
-
-    // 2. Resolve or create City
-    const citySlug = input.city.toLowerCase().replace(/\s+/g, '-');
+    // Resolve or create City
+    const citySlug = input.city.toLowerCase().trim().replace(/\s+/g, '-');
     let cityRecord = await prisma.city.findFirst({
       where: {
-        OR: [{ slug: citySlug }, { name: { equals: input.city, mode: 'insensitive' } }],
+        OR: [{ slug: citySlug }, { name: { equals: input.city.trim(), mode: 'insensitive' } }],
       },
     });
 
     if (!cityRecord) {
       cityRecord = await prisma.city.create({
         data: {
-          name: input.city.charAt(0).toUpperCase() + input.city.slice(1),
+          name: input.city.trim().charAt(0).toUpperCase() + input.city.trim().slice(1),
           slug: citySlug,
           state: 'India',
         },
       });
     }
 
-    // 3. Find or create User with all core profile fields
-    let user = await prisma.user.findUnique({
-      where: { phone: e164Phone },
+    // Locate the authenticated user record (never create or hijack another phone's account)
+    const existingUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+      include: { companion: true },
     });
 
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          phone: e164Phone,
-          name: input.fullName.trim(),
-          role: 'COMPANION',
-          isKycVerified: true,
-          gender: input.gender || null,
-          city: cityRecord.name,
-          area: input.locality || null,
-          bio: input.bio.trim(),
-        },
-      });
-    } else {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          name: input.fullName.trim(),
-          role: 'COMPANION',
-          isKycVerified: true,
-          gender: input.gender || user.gender || null,
-          city: cityRecord.name,
-          area: input.locality || user.area || null,
-          bio: input.bio.trim() || user.bio,
-        },
-      });
+    if (!existingUser) {
+      return {
+        success: false,
+        error: 'Your session account could not be found. Please sign in again.',
+      };
     }
 
-    // 4. Save HostApplication record in database
+    const preservedMemberName =
+      existingUser.name && existingUser.name !== 'Member'
+        ? existingUser.name
+        : input.fullName.trim();
+
+    const updatedUser = await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        name: preservedMemberName,
+        role: 'COMPANION',
+        isKycVerified: true,
+        onboardingCompleted: true,
+        gender: existingUser.gender || input.gender || 'female',
+        city: existingUser.city || cityRecord.slug,
+        area: existingUser.area || input.locality?.trim() || null,
+      },
+    });
+
+    const packExpiresAt = new Date(Date.now() + packOption.durationDays * 24 * 60 * 60 * 1000);
+    const availabilitySlots =
+      input.availabilitySlots && input.availabilitySlots.length > 0
+        ? input.availabilitySlots
+        : ['Weekdays (Mon-Fri)', 'Weekends (Sat-Sun)'];
+    const preferredVenues =
+      input.preferredVenues && input.preferredVenues.length > 0
+        ? input.preferredVenues
+        : ['Artisan Coffee Shops', 'Open Promenades & Parks'];
+
+    const safeRate = Math.min(1299, Math.max(399, Number(input.hourlyRate) || 499));
+    const spokenLanguages =
+      input.spokenLanguages && input.spokenLanguages.length > 0
+        ? input.spokenLanguages
+        : ['English', 'Hindi'];
+    const acceptedActivities =
+      input.activities && input.activities.length > 0
+        ? input.activities
+        : ['Coffee & Conversations', 'City Walk'];
+
+    // Save HostApplication record
     const application = await prisma.hostApplication.create({
       data: {
-        phone: e164Phone,
+        phone: existingUser.phone,
         fullName: input.fullName.trim(),
         city: cityRecord.name,
-        locality: input.locality || null,
+        locality: input.locality?.trim() || null,
         travelRadiusKm: input.travelRadiusKm || 10,
-        hourlyRate: input.hourlyRate || 399,
-        aadhaarNumber: input.idNumber || input.socialHandle || null,
-        aadhaarDocUrl,
-        panDocUrl,
-        selfieVideoUrl,
-        faceMatchScore: input.faceMatchScore || 100,
-        registrationFee: 0,
-        gstAmount: 0,
-        totalAmountPaid: 0,
-        applicationFeePaid: input.registrationFeePaid ?? true,
-        paymentId: input.paymentId || 'DIRECT_SUBMISSION',
+        hourlyRate: safeRate,
+        platonicAgreed: true,
+        safetyPledgeAgreed: true,
+        availabilitySlots,
+        preferredVenues,
+        packTier: packOption.tier,
+        razorpayOrderId: orderId || null,
+        razorpayPaymentId: paymentId,
+        selfieVideoUrl: avatarUrl,
+        registrationFee: packOption.basePrice,
+        gstAmount: packOption.taxesAndCharges,
+        totalAmountPaid: packOption.price,
+        applicationFeePaid: true,
+        paymentId,
         screeningStatus: 'APPROVED',
       },
     });
 
-    // 5. Create or update Companion profile in database
+    // Upsert Companion profile
     const companion = await prisma.companion.upsert({
-      where: { userId: user.id },
+      where: { userId: existingUser.id },
       update: {
         displayName: cleanDisplayName,
         maskedName: masked,
+        age: numericAge,
+        gender: input.gender || 'female',
         avatarUrl,
         blurredAvatarUrl,
         cityId: cityRecord.id,
-        locality: input.locality || null,
+        locality: input.locality?.trim() || null,
         travelRadiusKm: input.travelRadiusKm || 10,
         bio: input.bio.trim(),
         shortBio: input.bio.trim().slice(0, 115),
-        hourlyRate: input.hourlyRate || 399,
-        spokenLanguages: input.spokenLanguages && input.spokenLanguages.length > 0 ? input.spokenLanguages : ['English', 'Hindi'],
-        acceptedActivities: input.activities && input.activities.length > 0 ? input.activities : ['Coffee & Conversations', 'City Walk'],
-        photoVerified: Boolean(input.faceMatchScore && input.faceMatchScore >= 80),
+        hourlyRate: safeRate,
+        spokenLanguages,
+        acceptedActivities,
+        availabilitySlots,
+        preferredVenues,
+        hostPackTier: packOption.tier,
+        hostPackExpiresAt: packExpiresAt,
+        photoVerified: true,
         isAvailable: true,
       },
       create: {
-        userId: user.id,
+        userId: existingUser.id,
         displayName: cleanDisplayName,
         maskedName: masked,
+        age: numericAge,
+        gender: input.gender || 'female',
         avatarUrl,
         blurredAvatarUrl,
         cityId: cityRecord.id,
-        locality: input.locality || null,
+        locality: input.locality?.trim() || null,
         travelRadiusKm: input.travelRadiusKm || 10,
         bio: input.bio.trim(),
         shortBio: input.bio.trim().slice(0, 115),
-        hourlyRate: input.hourlyRate || 399,
-        spokenLanguages: input.spokenLanguages && input.spokenLanguages.length > 0 ? input.spokenLanguages : ['English', 'Hindi'],
-        acceptedActivities: input.activities && input.activities.length > 0 ? input.activities : ['Coffee & Conversations', 'City Walk'],
-        photoVerified: Boolean(input.faceMatchScore && input.faceMatchScore >= 80),
+        hourlyRate: safeRate,
+        spokenLanguages,
+        acceptedActivities,
+        availabilitySlots,
+        preferredVenues,
+        hostPackTier: packOption.tier,
+        hostPackExpiresAt: packExpiresAt,
+        photoVerified: true,
         ratingAverage: 5.0,
-        totalReviews: 1,
+        totalReviews: 0,
+        completedMeetups: 0,
         isAvailable: true,
       },
     });
 
-    try {
-      await setSessionCookie({
-        userId: user.id,
-        phone: user.phone,
-        email: user.email || null,
-        name: cleanDisplayName,
-        role: 'COMPANION',
-        activeRole: 'host',
-        avatarUrl,
-        isUnlocked: true,
-        activePassTier: user.activePassTier,
-        passExpiresAt: user.passExpiresAt ? user.passExpiresAt.toISOString() : null,
+    // Record financial transaction & promo coins for Host Registration (99.50 + 13.50 taxes = 113 INR)
+    await prisma.transaction.create({
+      data: {
+        userId: existingUser.id,
+        type: 'HOST_REGISTRATION',
+        amount: packOption.price,
+        feeAmount: packOption.taxesAndCharges,
+        netAmount: packOption.basePrice,
+        gateway: 'RAZORPAY',
+        gatewayTransactionId: paymentId,
+        status: 'SUCCESS',
+      },
+    }).catch((err) => console.warn('[HOST TX WARN]:', err));
+
+    if (packOption.promoCoins > 0) {
+      const existingPromo = await prisma.coinTransaction.findFirst({
+        where: { userId: existingUser.id, referenceId: `host_pack_${paymentId}` },
       });
-    } catch (cookieErr) {
-      console.warn('[HOST APPLICATION COOKIE UPDATE]:', cookieErr);
+      if (!existingPromo) {
+        await creditCoins({
+          userId: existingUser.id,
+          amount: packOption.promoCoins,
+          type: CoinTransactionType.TOPUP_BONUS,
+          description: `${packOption.name} welcome bonus (+${packOption.promoCoins} Coins)`,
+          referenceId: `host_pack_${paymentId}`,
+        }).catch((err) => console.warn('[HOST PROMO COINS WARN]:', err));
+      }
     }
+
+    await setSessionCookie({
+      userId: updatedUser.id,
+      phone: updatedUser.phone,
+      email: updatedUser.email || null,
+      name: updatedUser.name || cleanDisplayName,
+      role: 'COMPANION',
+      activeRole: 'host',
+      avatarUrl,
+      isUnlocked: Boolean(updatedUser.isUnlocked),
+      activePassTier: updatedUser.activePassTier,
+      passExpiresAt: updatedUser.passExpiresAt ? updatedUser.passExpiresAt.toISOString() : null,
+    });
 
     try {
       revalidatePath('/explore');
       revalidatePath('/companions');
       revalidatePath('/become-a-companion');
       revalidatePath('/companion/dashboard');
-    } catch {
-      // Ignore if called outside request context
-    }
+    } catch {}
 
     return {
       success: true,
       applicationId: application.id,
       companionId: companion.id,
       companionName: companion.displayName,
+      packName: packOption.name,
     };
   } catch (error) {
     console.error('[SUBMIT HOST APPLICATION ERROR]:', error);
     return {
       success: false,
-      error: 'Failed to submit host application. Please check your network and try again.',
+      error: 'Failed to submit host application. Please check your details and try again.',
     };
   }
 }

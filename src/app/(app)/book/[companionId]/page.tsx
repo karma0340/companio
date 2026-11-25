@@ -35,6 +35,7 @@ import { Companion, ActivityCategory } from '@/lib/types';
 import { createBookingAction } from '@/app/actions/booking';
 import { useAuth } from '@/context/auth-context';
 import { openRazorpayCheckout } from '@/lib/payments/razorpay';
+import { triggerCelebration } from '@/components/ui/celebration';
 
 interface BookPageProps {
   params: { companionId: string };
@@ -220,6 +221,11 @@ export default function BookPage({ params }: BookPageProps) {
   };
 
   const handleFinalBookingAndPayment = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please verify your mobile number via SMS OTP before booking.', 'Sign In Required');
+      router.push(`/login?intent=member&next=${encodeURIComponent(`/book/${companionId}`)}`);
+      return;
+    }
     if (!memberName.trim() || memberName.trim().length < 2) {
       toast.error('Please provide your name so your companion knows who they are meeting.', 'Name Required');
       return;
@@ -266,6 +272,7 @@ export default function BookPage({ params }: BookPageProps) {
           setStartCode(res.startCode);
           setConfirmedBookingId(res.bookingId || '');
           setBookingSuccess(true);
+          triggerCelebration('Meetup Requested! Escrow Protected');
           toast.success(
             `₹${price.totalPayable} coins deducted from wallet! Meetup reserved in Safe Escrow.`,
             'Booking Confirmed'
@@ -283,6 +290,7 @@ export default function BookPage({ params }: BookPageProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          companionId: companion.id,
           hourlyRate: companion.hourlyRate,
           durationHours: duration,
         }),
@@ -333,6 +341,7 @@ export default function BookPage({ params }: BookPageProps) {
               setStartCode(bookingRes.startCode);
               setConfirmedBookingId(bookingRes.bookingId || '');
               setBookingSuccess(true);
+              triggerCelebration('Meetup Requested! Escrow Protected');
               toast.success(
                 `Payment verified (${response.razorpay_payment_id}). Locked in Safe Escrow!`,
                 'Booking Confirmed'
@@ -909,10 +918,18 @@ export default function BookPage({ params }: BookPageProps) {
                 <input
                   type="tel"
                   maxLength={10}
+                  readOnly={Boolean(isAuthenticated && user?.phone)}
                   value={memberPhone}
-                  onChange={(e) => setMemberPhone(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => {
+                    if (isAuthenticated && user?.phone) return;
+                    setMemberPhone(e.target.value.replace(/\D/g, ''));
+                  }}
                   placeholder="10-digit Phone (+91)"
-                  className="rounded-xl border-2 border-ink bg-paper px-3 py-2 font-mono text-xs font-bold text-ink focus:outline-none focus:bg-white"
+                  className={`rounded-xl border-2 border-ink px-3 py-2 font-mono text-xs font-bold text-ink focus:outline-none ${
+                    isAuthenticated && user?.phone
+                      ? 'bg-paper-deep/60 cursor-not-allowed'
+                      : 'bg-paper focus:bg-white'
+                  }`}
                 />
               </div>
 

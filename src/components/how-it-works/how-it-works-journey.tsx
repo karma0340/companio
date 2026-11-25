@@ -20,23 +20,23 @@ interface StepItem {
 const STEPS: StepItem[] = [
   {
     n: '01',
-    title: 'Browse companions',
+    title: 'Browse companions freely',
     icon: Search,
     color: '#2E6BFF',
     ink: '#1D4ED8',
     bg: '#EBF1FF',
     lottie: '/lottie/explore-scene.json',
-    body: 'Filter by activity and city. Every profile is Aadhaar-verified and background-checked before going live. The ID-checked badge means our team has verified that person’s government ID.',
+    body: 'Filter by activity, city, and hourly rate with zero paywall blur. Compare hosts side-by-side and inspect full bios, spoken languages, and verified reviews.',
   },
   {
     n: '02',
-    title: 'Unlock full profiles',
+    title: 'OTP-verified safety',
     icon: Lock,
     color: '#7A4FE0',
     ink: '#6D28D9',
     bg: '#F0EBFF',
     lottie: '/lottie/unlock-burst.json',
-    body: 'The pass unlocks full profiles in every open city, and chat opens once a companion accepts your booking. Each meetup is paid separately at the companion’s hourly rate, shown before you pay. Nothing renews, nothing auto-debits.',
+    body: 'Every member and host verifies their Indian mobile number via live SMS OTP and pledges strictly platonic public meetups—no Aadhaar or government document uploads required.',
   },
   {
     n: '03',

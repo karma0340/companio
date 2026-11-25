@@ -172,7 +172,7 @@ export function Navbar() {
         <div className="relative bg-pink text-ink border-b-brutal px-8 py-1.5 text-center font-display text-xs sm:text-sm font-extrabold tracking-wide uppercase flex items-center justify-center gap-2 select-none">
           <span className="inline-block h-2 w-2 rounded-full bg-ink animate-pulse" />
           <span className="truncate sm:overflow-visible">
-            100% Platonic Only · Government ID Verified · Escrow Protected · 18+
+            100% Platonic Only · Mobile OTP Verified · Escrow Protected · 18+
           </span>
           <button
             type="button"
@@ -227,7 +227,7 @@ export function Navbar() {
               </Link>
             ) : (
               <Link
-                href={isAuthenticated ? "/become-a-companion" : "/login?intent=host"}
+                href="/become-a-host"
                 className="font-display text-xs font-black text-ink hover:text-lavender transition-colors py-1 px-2 rounded-lg hover:bg-paper-deep"
               >
                 Become a Host

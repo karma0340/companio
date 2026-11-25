@@ -188,10 +188,21 @@ export default function ChatRoomPage() {
     e.preventDefault();
     if (!inputContent.trim()) return;
 
-    if (unlockInfo?.isExpired) {
+    const viewerIsMember = booking ? currentUserId === booking.memberId : true;
+    if (viewerIsMember && (user?.coinBalance ?? 0) < 10) {
       toast({
-        title: "Pass Expired",
-        description: "Your 24-hour chat pass has expired. Please renew it to send messages.",
+        title: "Recharge Coins to Continue",
+        description: "Each message costs 10 coins. Top up with Razorpay to continue messaging.",
+        variant: "destructive",
+      });
+      setIsTopupModalOpen(true);
+      return;
+    }
+
+    if (booking?.status === "PENDING_ACCEPTANCE") {
+      toast({
+        title: "Waiting for Host Acceptance",
+        description: "Messaging unlocks once your Host accepts this meetup request.",
         variant: "destructive",
       });
       return;
@@ -210,15 +221,26 @@ export default function ChatRoomPage() {
       const data = await res.json();
       if (data.success && data.message) {
         setMessages((prev) => [...prev, data.message]);
-      } else if (data.isExpired) {
-        setUnlockInfo((prev) => (prev ? { ...prev, isExpired: true } : null));
+        await refreshSession();
+      } else if (data.insufficientCoins || res.status === 402) {
+        setInputContent(rawMessage);
+        await refreshSession();
         toast({
-          title: "Chat Pass Expired",
-          description: data.error || "Please renew your 24h pass (69 coins) to continue.",
+          title: "Out of Chat Coins",
+          description: data.error || "Please recharge coins via Razorpay (10 coins per message).",
+          variant: "destructive",
+        });
+        setIsTopupModalOpen(true);
+      } else {
+        setInputContent(rawMessage);
+        toast({
+          title: "Message Blocked",
+          description: data.error || "Could not send message.",
           variant: "destructive",
         });
       }
     } catch (err) {
+      setInputContent(rawMessage);
       console.error("Failed to send message:", err);
     }
   };
@@ -327,52 +349,40 @@ export default function ChatRoomPage() {
               >
                 {isConnected ? "Live Chat" : "Polling"}
               </span>
-              <span className="border-2 border-ink bg-white px-2.5 py-0.5 text-xs font-black font-mono">
-                PIN: {booking?.verificationPin || "7492"}
-              </span>
+              {booking?.verificationPin && (
+                <span className="border-2 border-ink bg-white px-2.5 py-0.5 text-xs font-black font-mono">
+                  PIN: {booking.verificationPin}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Dynamic SLA / Pass Status Banner */}
-          {unlockInfo && (
-            <>
-              {unlockInfo.isExpired ? (
-                <div className="border-b-2 border-ink bg-rose-100 px-4 py-2 text-xs font-bold text-red-900 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4 text-red-700 shrink-0" />
-                    <span>24-Hour Pass Expired: Previous messages are preserved. Renew below to resume messaging.</span>
-                  </div>
-                  <span className="text-[10px] font-black uppercase bg-red-200 px-1.5 py-0.5 rounded border border-ink shrink-0">
-                    Expired
-                  </span>
-                </div>
-              ) : unlockInfo.status === "ACTIVE" && !unlockInfo.firstHostReplyAt ? (
-                <div className="border-b-2 border-ink bg-amber-50 px-4 py-2 text-xs font-bold text-amber-900 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4 text-amber-700 shrink-0" />
-                    <span>48h Host Response SLA Active: If the companion does not reply, your coins will be automatically refunded.</span>
-                  </div>
-                  <span className="text-[10px] uppercase font-black bg-amber-200 px-1.5 py-0.5 rounded border border-ink shrink-0">
-                    Escrow Protected
-                  </span>
-                </div>
-              ) : (
-                <div className="border-b-2 border-ink bg-[#D4F7A5]/50 px-4 py-2 text-xs font-bold text-ink flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="h-4 w-4 text-emerald-700 shrink-0" />
-                    <span>
-                      {unlockInfo.tier === "FOREVER"
-                        ? "Forever Pass Active: Direct messaging is permanently unlocked."
-                        : "24-Hour Pass Active: Direct messaging is open."}
-                    </span>
-                  </div>
-                  <span className="text-[10px] uppercase font-black bg-white px-1.5 py-0.5 rounded border border-ink shrink-0">
-                    Host Connected
-                  </span>
-                </div>
-              )}
-            </>
-          )}
+          {/* Meetup Acceptance & Coin Pricing Status Banner */}
+          {booking?.status === "PENDING_ACCEPTANCE" ? (
+            <div className="border-b-2 border-ink bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <Lock className="h-4 w-4 text-amber-700 shrink-0" />
+                <span>Waiting for {booking.companionName} to accept your meetup request before chat opens.</span>
+              </div>
+              <span className="text-[10px] uppercase font-black bg-amber-200 px-1.5 py-0.5 rounded border border-ink shrink-0">
+                Pending Accept
+              </span>
+            </div>
+          ) : booking ? (
+            <div className="border-b-2 border-ink bg-[#D4F7A5]/50 px-4 py-2 text-xs font-bold text-ink flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-700 shrink-0" />
+                <span>
+                  {currentUserId === booking.memberId
+                    ? "Meetup Accepted · 10 Coins per sent message (uses your 100 bonus coins first)."
+                    : "Meetup Accepted · Replies are unlocked and contact-shielded."}
+                </span>
+              </div>
+              <span className="text-[10px] uppercase font-black bg-white px-1.5 py-0.5 rounded border border-ink shrink-0">
+                Chat Open
+              </span>
+            </div>
+          ) : null}
 
           {/* Safety Shield Banner */}
           <div className="border-b-2 border-ink bg-pink/20 px-4 py-1.5 text-xs font-bold text-ink flex items-center justify-between">
@@ -431,26 +441,38 @@ export default function ChatRoomPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Bar or Renewal Bar */}
-          {unlockInfo?.isExpired ? (
-            <div className="border-t-3 border-ink bg-[#FFF4F2] p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Input Bar, Pending Lock, or Low Coin Razorpay Prompt */}
+          {booking?.status === "PENDING_ACCEPTANCE" ? (
+            <div className="border-t-3 border-ink bg-amber-50 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs font-bold text-ink">
-                <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                <Lock className="h-4 w-4 text-amber-700 shrink-0" />
                 <span>
-                  Your 24-hour chat pass has expired. Previous messages are preserved. Available balance: {user?.coinBalance ?? 0} coins.
+                  Chat opens automatically as soon as <strong>{booking.companionName}</strong> accepts your meetup request.
                 </span>
               </div>
               <button
                 type="button"
-                onClick={handleRenewPass}
-                disabled={isRenewing}
-                className="border-2 border-ink bg-sunny px-4 py-2 text-xs font-black uppercase text-ink shadow-brutal-sm btn-press cursor-pointer shrink-0 disabled:opacity-50"
+                onClick={fetchChatData}
+                className="border-2 border-ink bg-white px-4 py-2 text-xs font-black uppercase text-ink shadow-brutal-sm btn-press cursor-pointer shrink-0 flex items-center gap-1.5"
               >
-                {isRenewing
-                  ? "Renewing..."
-                  : (user?.coinBalance ?? 0) < 69
-                  ? "Top Up Coins to Renew (Need 69)"
-                  : "Renew Pass (69 Coins)"}
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Refresh Status</span>
+              </button>
+            </div>
+          ) : booking && currentUserId === booking.memberId && (user?.coinBalance ?? 0) < 10 ? (
+            <div className="border-t-3 border-ink bg-[#FFF4F2] p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-ink">
+                <Coins className="h-4 w-4 text-rose-600 shrink-0" />
+                <span>
+                  Chat coin limit reached ({user?.coinBalance ?? 0} coins left). Each sent message requires 10 coins.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTopupModalOpen(true)}
+                className="border-2 border-ink bg-lime px-4 py-2 text-xs font-black uppercase text-ink shadow-brutal-sm btn-press cursor-pointer shrink-0"
+              >
+                Recharge Coins via Razorpay
               </button>
             </div>
           ) : (
@@ -469,16 +491,22 @@ export default function ChatRoomPage() {
                   type="text"
                   value={inputContent}
                   onChange={handleInputChange}
-                  placeholder="Type a message to your companion..."
+                  placeholder={
+                    booking && currentUserId === booking.memberId
+                      ? "Type a message (10 coins per message)..."
+                      : "Reply to your member..."
+                  }
                   className="flex-1 border-2 border-ink bg-paper px-3 py-2 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
                 />
                 <button
                   type="submit"
                   disabled={!inputContent.trim()}
-                  className="border-2 border-ink bg-ink px-5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+                  className="border-2 border-ink bg-ink px-4 sm:px-5 py-2 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press disabled:opacity-40 flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <Send className="h-3.5 w-3.5" />
-                  <span>Send</span>
+                  <span>
+                    {booking && currentUserId === booking.memberId ? "Send (-10 Coins)" : "Send"}
+                  </span>
                 </button>
               </form>
             </>

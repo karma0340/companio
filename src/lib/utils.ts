@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { PriceBreakdown } from "./types";
+import { calculateEscrowBreakdown } from "./escrow";
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
@@ -15,20 +16,15 @@ export function formatRupees(amount: number): string {
 }
 
 export function calculatePrice(hourlyRate: number, durationHours: number): PriceBreakdown {
-  const hostSubtotal = hourlyRate * durationHours;
-  // Transparent Companio safety, escrow & verification fee (~18%)
-  const connectionFee = Math.round(hostSubtotal * 0.18);
-  // Statutory 18% GST on the connection fee
-  const gst = Math.round(connectionFee * 0.18);
-  const totalPayable = hostSubtotal + connectionFee + gst;
+  const breakdown = calculateEscrowBreakdown(hourlyRate, durationHours);
 
   return {
-    hourlyRate,
-    durationHours,
-    hostSubtotal,
-    connectionFee,
-    gst,
-    totalPayable,
+    hourlyRate: breakdown.hourlyRate,
+    durationHours: breakdown.durationHours,
+    hostSubtotal: breakdown.grossAmount,
+    connectionFee: breakdown.platformFee,
+    gst: breakdown.gstAmount,
+    totalPayable: breakdown.totalAmount,
   };
 }
 

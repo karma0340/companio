@@ -56,6 +56,11 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
       ? 'New User'
       : 'Member';
 
+  const activeAvatarUrl =
+    activeRole === 'host' && hostProfile?.avatarUrl
+      ? hostProfile.avatarUrl
+      : user?.avatarUrl || hostProfile?.avatarUrl || null;
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-between bg-paper p-5 sm:p-6 overflow-y-auto pb-10 animate-in fade-in duration-200">
       <div>
@@ -78,11 +83,19 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
           <div className="mt-4 rounded-2xl border-brutal bg-white p-3.5 shadow-brutal-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <AvatarVector
-                  gender={memberProfile?.gender || 'female'}
-                  size="md"
-                  bgVariant={memberProfile?.gender === 'male' ? 'sky' : 'pink'}
-                />
+                {activeAvatarUrl ? (
+                  <img
+                    src={activeAvatarUrl}
+                    alt={displayName}
+                    className="h-11 w-11 rounded-full border-2 border-ink object-cover shrink-0 bg-sunny"
+                  />
+                ) : (
+                  <AvatarVector
+                    gender={memberProfile?.gender || 'female'}
+                    size="md"
+                    bgVariant={memberProfile?.gender === 'male' ? 'sky' : 'pink'}
+                  />
+                )}
                 <div>
                   <p className="font-display text-sm font-black text-ink leading-tight">{displayName}</p>
                   <p className="text-[11px] font-mono font-bold text-ink-muted">

@@ -50,11 +50,18 @@ enum EscrowStatus {
 
 enum TransactionType {
   PASS_PURCHASE
+  HOST_REGISTRATION
   ESCROW_DEPOSIT
   HOST_PAYOUT
   PLATFORM_FEE
   WALLET_CASHOUT
   CANCELLATION_PENALTY
+}
+
+enum HostPackTier {
+  STARTER
+  PRO
+  ELITE
 }
 
 enum PaymentGateway {
@@ -167,6 +174,7 @@ model User {
   reviewsWritten  ReviewRating[]  @relation("MemberReviews")
   safetyAlerts    SafetyAlert[]   @relation("TriggeredAlerts")
   tickets         GrievanceTicket[]
+  savedCompanions SavedCompanion[]
 
   @@index([phone])
   @@index([role])
@@ -178,6 +186,8 @@ model Companion {
   user                User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   displayName         String
   maskedName          String      // e.g. "Vanshika S***"
+  age                 Int         @default(24)
+  gender              String?
   avatarUrl           String
   blurredAvatarUrl    String
   cityId              String
@@ -187,8 +197,12 @@ model Companion {
   hourlyRate          Decimal     @default(499.00) @db.Decimal(10, 2)
   spokenLanguages     String[]
   acceptedActivities  String[]
+  availabilitySlots   String[]
+  preferredVenues     String[]
   locality            String?
   travelRadiusKm      Int         @default(10)
+  hostPackTier        HostPackTier @default(STARTER)
+  hostPackExpiresAt   DateTime?
   hostLevel           HostLevel   @default(NEW)
   completedMeetups    Int         @default(0)
   photoVerified       Boolean     @default(false)
@@ -204,6 +218,7 @@ model Companion {
   bookings            Booking[]   @relation("CompanionBookings")
   reviewsReceived     ReviewRating[] @relation("CompanionReviews")
   chatUnlocksReceived ChatUnlock[]
+  savedBy             SavedCompanion[]
 
   @@index([cityId])
   @@index([isAvailable])
@@ -344,17 +359,23 @@ model HostApplication {
   city                String
   locality            String?
   travelRadiusKm      Int             @default(10)
-  hourlyRate          Decimal         @default(399.00) @db.Decimal(10, 2)
+  hourlyRate          Decimal         @default(499.00) @db.Decimal(10, 2)
   platonicAgreed      Boolean         @default(true)
+  safetyPledgeAgreed  Boolean         @default(true)
+  availabilitySlots   String[]
+  preferredVenues     String[]
+  packTier            HostPackTier    @default(STARTER)
+  razorpayOrderId     String?
+  razorpayPaymentId   String?
   aadhaarNumber       String?
-  aadhaarDocUrl       String
+  aadhaarDocUrl       String?
   aadhaarBackDocUrl   String?
-  panDocUrl           String
+  panDocUrl           String?
   selfieVideoUrl      String?
   faceMatchScore      Float?
-  registrationFee     Decimal         @default(99.00) @db.Decimal(10, 2)
-  gstAmount           Decimal         @default(18.00) @db.Decimal(10, 2)
-  totalAmountPaid     Decimal         @default(117.00) @db.Decimal(10, 2)
+  registrationFee     Decimal         @default(199.00) @db.Decimal(10, 2)
+  gstAmount           Decimal         @default(0.00) @db.Decimal(10, 2)
+  totalAmountPaid     Decimal         @default(199.00) @db.Decimal(10, 2)
   applicationFeePaid  Boolean         @default(false)
   paymentId           String?
   screeningStatus     ScreeningStatus @default(SUBMITTED)
@@ -363,6 +384,18 @@ model HostApplication {
 
   @@index([phone])
   @@index([screeningStatus])
+}
+
+model SavedCompanion {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companionId String
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, companionId])
+  @@index([userId])
 }
 
 model ReviewRating {

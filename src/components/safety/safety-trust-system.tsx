@@ -12,11 +12,11 @@ interface SafeguardItem {
 
 const SAFEGUARDS: SafeguardItem[] = [
   {
-    title: 'Verified Hosts',
+    title: 'OTP-Verified Hosts',
     color: '#C8F53C',
     iconPath:
       'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M16 11l2 2 4-4',
-    body: 'Every host must upload government-issued photo ID (Aadhaar, Passport, or Voter ID) and complete a real-time face video selfie match. We verify their legal identity, phone number, and social profiles before approving their listing.',
+    body: 'Every host verifies their real Indian mobile number via Fast2SMS OTP, submits a clear public profile photo, sets preferred public venues, and signs our strictly platonic Code of Conduct—zero Aadhaar or biometric storage required.',
   },
   {
     title: 'Escrow Protection',
@@ -488,16 +488,16 @@ export function SafetyTrustSystem() {
 
                       <div className="flex flex-wrap gap-1.5">
                         <span className="bg-white border-2 border-[#111] rounded-full px-2.5 py-0.5 text-xs font-bold">
-                          Aadhaar
+                          SMS OTP
                         </span>
                         <span className="bg-white border-2 border-[#111] rounded-full px-2.5 py-0.5 text-xs font-bold">
-                          Passport
+                          Clear Photo
                         </span>
                         <span className="bg-white border-2 border-[#111] rounded-full px-2.5 py-0.5 text-xs font-bold">
-                          Voter ID
+                          Public Venues
                         </span>
                         <span className="bg-[#C8F53C] border-2 border-[#111] rounded-full px-2.5 py-0.5 text-xs font-bold">
-                          Face match
+                          Platonic Pledge
                         </span>
                       </div>
                     </div>

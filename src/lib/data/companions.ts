@@ -12,7 +12,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Coffee roasteries, contemporary art & quiet city walks',
     about:
       'Literature graduate and visual storyteller based in South Delhi. Love exploring quiet artisan coffee houses in Khan Market, discussing contemporary fiction, and strolling through Lodhi Art District. Strictly platonic, public places only.',
-    avatarUrl: '/companions/girl1.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg',
     languages: ['English', 'Hindi'],
     hourlyRate: 599,
     verifiedId: true,
@@ -49,7 +49,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Specialty coffee roasteries & indie comedy shows in Bengaluru',
     about:
       'UI/UX designer and specialty coffee enthusiast. I know all the quietest roasteries on 12th Main Indiranagar and love catching indie standup comedy shows on weekends. Great plus-one for events and food crawls.',
-    avatarUrl: '/companions/girl2.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/priya-blr.jpg',
     languages: ['English', 'Hindi', 'Kannada'],
     hourlyRate: 649,
     verifiedId: true,
@@ -86,7 +86,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Bandra cafe hopping & peaceful sea-face sunset walks',
     about:
       'Media planner and sunset enthusiast in Bandra. Great plus-one for cafe hopping, boutique art pop-ups, and peaceful evening sea-face walks along Marine Drive. Respectful and engaging conversationalist.',
-    avatarUrl: '/companions/girl3.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/sneha-mum.jpg',
     languages: ['English', 'Hindi', 'Marathi'],
     hourlyRate: 699,
     verifiedId: true,
@@ -123,7 +123,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Elante shopping buddy & Sector 17 coffee strolls',
     about:
       'Fashion styling student at NIFT. Your friendly shopping companion for Elante Mall and Sector 17 heritage plazas. Gives totally honest feedback, helps style outfits, and keeps things completely chill.',
-    avatarUrl: '/companions/girl4.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/tanvi-chd.jpg',
     languages: ['English', 'Hindi', 'Punjabi'],
     hourlyRate: 549,
     verifiedId: true,
@@ -160,7 +160,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Koregaon Park coffee chats & indie cinema enthusiast',
     about:
       'Psychology researcher and indie cinema lover. Up for German Bakery coffee chats in Koregaon Park, art screenings, and sincere conversations about life and books. Strictly platonic always.',
-    avatarUrl: '/companions/girl5.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/rhea-pune.jpg',
     languages: ['English', 'Hindi', 'Bengali'],
     hourlyRate: 599,
     verifiedId: true,
@@ -197,7 +197,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Heritage walks, weekend thrifting & badminton partner',
     about:
       'Architecture apprentice in Jubilee Hills. Enthusiastic about old city heritage walks, hidden local bakeries, weekend thrifting, and playing casual badminton.',
-    avatarUrl: '/companions/girl6.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/isha-hyd.jpg',
     languages: ['English', 'Hindi', 'Telugu'],
     hourlyRate: 599,
     verifiedId: true,
@@ -234,7 +234,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Dedicated workout spotter & fitness coach in Delhi NCR',
     about:
       'Certified personal fitness trainer & marathoner. Need a serious workout spotter to push your PRs, or a morning running partner around CyberHub and Saket? Positive energy and strict motivation guaranteed.',
-    avatarUrl: '/companions/girl7.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/meera-del.jpg',
     languages: ['English', 'Hindi'],
     hourlyRate: 699,
     verifiedId: true,
@@ -271,7 +271,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Kala Ghoda gallery strolls & vintage vinyl record hunting',
     about:
       'Contemporary art student in Colaba. Love exploring Kala Ghoda galleries, vintage vinyl record shops, and finding quiet rooftop cafes with sea breeze.',
-    avatarUrl: '/companions/girl8.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/dia-mum.jpg',
     languages: ['English', 'Hindi', 'Gujarati'],
     hourlyRate: 649,
     verifiedId: true,
@@ -308,7 +308,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Focused co-working partner & board game enthusiast',
     about:
       'Product marketer in Koramangala. Great company for board game cafes, focused co-working sprints at Third Wave Coffee, and fun conversations over Boba tea.',
-    avatarUrl: '/companions/girl9.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/kritika-blr.jpg',
     languages: ['English', 'Hindi'],
     hourlyRate: 599,
     verifiedId: true,
@@ -345,7 +345,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Sunrise cycling around Sukhna Lake & badminton buddy',
     about:
       'Morning sports enthusiast living near Sukhna Lake. Passionate about sunrise cycling down tree-lined boulevards, weekend badminton matches, and healthy breakfast bowls.',
-    avatarUrl: '/companions/girl10.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/simran-chd.jpg',
     languages: ['English', 'Hindi', 'Punjabi'],
     hourlyRate: 549,
     verifiedId: true,
@@ -384,7 +384,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Dedicated gym spotter, turf badminton & post-workout shakes',
     about:
       'Fitness consultant and tennis player in Bandra West. Reliable spotter for gym workouts, weekend turf badminton rallies, or grabbing protein smoothies after training.',
-    avatarUrl: '/companions/man1.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/aarav-mum.jpg',
     languages: ['English', 'Hindi', 'Gujarati'],
     hourlyRate: 599,
     verifiedId: true,
@@ -421,7 +421,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Comedy club shows, IMAX screenings & CyberHub food walks',
     about:
       'Podcast producer and cinephile based in Gurgaon. Love discovering standup comedy clubs, watching IMAX releases, and hitting late-night street food joints at CyberHub.',
-    avatarUrl: '/companions/man2.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/kabir-del.jpg',
     languages: ['English', 'Hindi', 'Punjabi'],
     hourlyRate: 649,
     verifiedId: true,
@@ -457,7 +457,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Productive cafe co-working sprints & weekend cycling trails',
     about:
       'Software developer and cycling enthusiast in Kalyani Nagar. Ideal buddy for productive cafe co-working sessions or quiet weekend morning cycling along Pashan trails.',
-    avatarUrl: '/companions/man3.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/rohan-pune.jpg',
     languages: ['English', 'Hindi', 'Marathi'],
     hourlyRate: 499,
     verifiedId: true,
@@ -494,7 +494,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Candid photo walks, retro street exploration & board games',
     about:
       'Freelance street photographer and board gamer on Church Street. Great plus-one for candid photo walks, exploring retro alleys, and gaming marathons over filter coffee.',
-    avatarUrl: '/companions/man4.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/aditya-blr.jpg',
     languages: ['English', 'Hindi', 'Kannada'],
     hourlyRate: 549,
     verifiedId: true,
@@ -531,7 +531,7 @@ export const COMPANIONS: Companion[] = [
     tagline: 'Architectural city exploration, tennis matches & lake walks',
     about:
       'Civil architect and badminton lover in Sector 26. Friendly guide for Sukhna Lake walks, architectural heritage tours, and friendly weekend tennis sessions.',
-    avatarUrl: '/companions/man5.jpg',
+    avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/vikram-chd.jpg',
     languages: ['English', 'Hindi', 'Punjabi'],
     hourlyRate: 599,
     verifiedId: true,

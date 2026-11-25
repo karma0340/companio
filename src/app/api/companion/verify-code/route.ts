@@ -12,75 +12,57 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const code = String(body?.code || "").trim();
 
-    if (code.length < 4 || code.length > 6 || !/^\d+$/.test(code)) {
+    if (code.length !== 4 || !/^\d{4}$/.test(code)) {
       return NextResponse.json(
-        { error: "Please enter a valid numeric verification PIN." },
+        { error: "Please enter the valid 4-digit numeric PIN given by your member." },
         { status: 400 }
       );
     }
 
-    // Look for matching booking by verificationPin
+    const host = await prisma.companion.findFirst({
+      where: { userId: session.userId },
+      select: { id: true },
+    });
+
+    if (!host) {
+      return NextResponse.json(
+        { error: "Host profile not found for this account." },
+        { status: 403 }
+      );
+    }
+
+    // Strictly match PIN only among bookings assigned to THIS host
     const matchedBooking = await prisma.booking.findFirst({
       where: {
+        companionId: host.id,
         verificationPin: code,
         status: { in: ["PENDING_ACCEPTANCE", "CONFIRMED"] },
       },
-      include: { companion: true },
     });
 
     if (!matchedBooking) {
       return NextResponse.json(
-        { error: "Invalid verification code. Please check with your member at the venue." },
+        { error: "No active booking matches this 4-digit PIN. Please re-check with your member." },
         { status: 400 }
       );
     }
 
-    const hostPayout = Number(matchedBooking.companionFee);
+    const now = new Date();
+    const sessionEnd = new Date(now.getTime() + (matchedBooking.durationHours || 1) * 3600000);
 
     await prisma.booking.update({
       where: { id: matchedBooking.id },
       data: {
         status: "IN_PROGRESS",
-        pinVerifiedAt: new Date(),
-        sessionStartedAt: new Date(),
-        escrowStatus: "RELEASED_TO_HOST",
+        pinVerifiedAt: now,
+        sessionStartedAt: now,
+        sessionEndedAt: sessionEnd,
       },
     });
 
-    let newWalletBalance = hostPayout;
-    if (matchedBooking.companion?.userId) {
-      try {
-        const updatedHostUser = await prisma.user.update({
-          where: { id: matchedBooking.companion.userId },
-          data: {
-            walletBalance: { increment: hostPayout },
-          },
-        });
-        newWalletBalance = Number(updatedHostUser.walletBalance);
-
-        await prisma.transaction.create({
-          data: {
-            userId: matchedBooking.companion.userId,
-            bookingId: matchedBooking.id,
-            type: "HOST_PAYOUT",
-            amount: hostPayout,
-            feeAmount: 0,
-            netAmount: hostPayout,
-            gateway: "WALLET",
-            gatewayTransactionId: `escrow_release_${Date.now()}`,
-            status: "SUCCESS",
-          },
-        });
-      } catch (walletErr) {
-        console.warn("[HOST WALLET UPDATE WARN]:", walletErr);
-      }
-    }
-
     return NextResponse.json({
       success: true,
-      message: "Start code verified! Meetup is officially in progress and payment credited to wallet.",
-      payoutAdded: hostPayout,
-      newWalletBalance,
+      message: "4-digit PIN verified! Session timer started. Complete the session when done to credit 70% to your wallet.",
       bookingId: matchedBooking.id,
     });
   } catch (error) {
