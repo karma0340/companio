@@ -177,6 +177,7 @@ model User {
   safetyAlerts    SafetyAlert[]   @relation("TriggeredAlerts")
   tickets         GrievanceTicket[]
   savedCompanions SavedCompanion[]
+  comparedCompanions ComparedCompanion[]
 
   @@index([phone])
   @@index([email])
@@ -226,6 +227,7 @@ model Companion {
   reviewsReceived     ReviewRating[] @relation("CompanionReviews")
   chatUnlocksReceived ChatUnlock[]
   savedBy             SavedCompanion[]
+  comparedBy          ComparedCompanion[]
 
   @@index([cityId])
   @@index([isAvailable])
@@ -404,6 +406,18 @@ model HostApplication {
 }
 
 model SavedCompanion {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companionId String
+  companion   Companion @relation(fields: [companionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, companionId])
+  @@index([userId])
+}
+
+model ComparedCompanion {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)

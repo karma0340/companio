@@ -40,6 +40,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
+import { useCollectionsStore } from '@/lib/store/useCollectionsStore';
 import { CITIES } from '@/lib/data/cities';
 import { AvatarVector, GenderType } from '@/components/ui/avatar-vector';
 import { CoinTopupModal } from '@/components/chat/coin-topup-modal';
@@ -105,18 +106,7 @@ function DashboardContent() {
   const [notifications, setNotifications] = useState<
     Array<{ id: string; title: string; message: string; time: string; isUnread?: boolean }>
   >([]);
-  const [savedCompanions, setSavedCompanions] = useState<
-    Array<{
-      id: string;
-      displayName: string;
-      city: string;
-      locality: string;
-      hourlyRate: number;
-      ratingAverage: number;
-      avatarUrl: string | null;
-      isAvailable: boolean;
-    }>
-  >([]);
+  const { savedCompanions, toggleBookmark } = useCollectionsStore();
 
   useEffect(() => {
     if (user || memberProfile) {
@@ -132,10 +122,9 @@ function DashboardContent() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [passRes, notifRes, bookmarkRes] = await Promise.all([
+        const [passRes, notifRes] = await Promise.all([
           fetch('/api/passes/active', { cache: 'no-store' }),
           fetch('/api/notifications', { cache: 'no-store' }),
-          fetch('/api/companions/bookmarks', { cache: 'no-store' }),
         ]);
 
         const passJson = await passRes.json();
@@ -147,13 +136,6 @@ function DashboardContent() {
           const notifJson = await notifRes.json();
           if (Array.isArray(notifJson.notifications)) {
             setNotifications(notifJson.notifications);
-          }
-        }
-
-        if (bookmarkRes.ok) {
-          const bookmarkJson = await bookmarkRes.json();
-          if (Array.isArray(bookmarkJson.companions)) {
-            setSavedCompanions(bookmarkJson.companions);
           }
         }
       } catch (err) {
@@ -687,7 +669,7 @@ function DashboardContent() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Link
-                      href={`/companion/${comp.id}`}
+                      href={`/companions/${comp.id}`}
                       className="rounded-xl border-2 border-ink bg-lime px-3 py-1.5 font-display text-xs font-black text-ink hover:bg-lime/80"
                     >
                       View
@@ -695,14 +677,11 @@ function DashboardContent() {
                     <button
                       type="button"
                       onClick={async () => {
-                        const res = await fetch('/api/companions/bookmarks', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ companionId: comp.id }),
-                        });
-                        if (res.ok) {
-                          setSavedCompanions((prev) => prev.filter((item) => item.id !== comp.id));
-                          toast.success('Removed from Saved companions.');
+                        const result = await toggleBookmark(comp.id);
+                        if (result.ok) {
+                          toast.success('Removed from Saved favorites.');
+                        } else if (result.error) {
+                          toast.error(result.error);
                         }
                       }}
                       className="rounded-xl border-2 border-ink bg-cream px-2.5 py-1.5 text-xs font-black text-ink hover:bg-rose-50 cursor-pointer"

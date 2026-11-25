@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -25,7 +25,6 @@ import { ACTIVITIES } from '@/lib/data/activities';
 import { CITIES } from '@/lib/data/cities';
 import { Companion } from '@/lib/types';
 import { CompanionCardSkeleton } from '@/components/companion/companion-card-skeleton';
-import { useAuth } from '@/context/auth-context';
 import { HowItWorksJourney } from '@/components/how-it-works/how-it-works-journey';
 import { KineticText } from '@/components/landing/kinetic-text';
 import { TiltCard } from '@/components/landing/tilt-card';
@@ -40,29 +39,9 @@ interface HomeClientProps {
 }
 
 export function HomeClient({ initialCompanions, initialTotal }: HomeClientProps) {
-  const { isAuthenticated } = useAuth();
   const [heroCity, setHeroCity] = useState('chandigarh');
   const [heroActivity, setHeroActivity] = useState('all');
-  const [savedIds, setSavedIds] = useState<string[]>([]);
   const freeTodayScrollRef = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetch('/api/companions/bookmarks', { cache: 'no-store' })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.success && Array.isArray(data.companionIds)) {
-            setSavedIds(data.companionIds);
-          }
-        })
-        .catch(() => {});
-    } else if (typeof window !== 'undefined') {
-      try {
-        const stored = JSON.parse(localStorage.getItem('meetzy_saved_companions') || '[]');
-        if (Array.isArray(stored)) setSavedIds(stored);
-      } catch {}
-    }
-  }, [isAuthenticated]);
 
   const liveCompanions = initialCompanions;
   const totalAvailableHosts = initialTotal || liveCompanions.length;
@@ -425,7 +404,6 @@ export function HomeClient({ initialCompanions, initialTotal }: HomeClientProps)
                         <CompanionCard
                           companion={comp}
                           priority={idx < 4}
-                          initialBookmarked={savedIds.includes(comp.id)}
                         />
                       </TiltCard>
                     </div>
@@ -496,7 +474,6 @@ export function HomeClient({ initialCompanions, initialTotal }: HomeClientProps)
             <TopRatedCarousel
               companions={liveCompanions}
               isLoading={false}
-              savedIds={savedIds}
             />
           </div>
         </section>

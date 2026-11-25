@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAppStore, User, MemberProfile, HostProfile } from '@/lib/store/useAppStore';
+import { useCollectionsStore } from '@/lib/store/useCollectionsStore';
 import type { InitialAuthSnapshot } from '@/lib/server-auth';
 
 export type { User, MemberProfile, HostProfile };
@@ -54,6 +55,20 @@ export function AuthProvider({
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Keep Favorites & Compare synchronized with PostgreSQL for authenticated users only
+  const { loadCollections, resetCollections } = useCollectionsStore();
+  const effectiveAuthenticated = hasMountedClient
+    ? store.isAuthenticated
+    : Boolean(initialAuth?.authenticated);
+
+  useEffect(() => {
+    if (effectiveAuthenticated) {
+      loadCollections();
+    } else {
+      resetCollections();
+    }
+  }, [effectiveAuthenticated, store.user?.id, loadCollections, resetCollections]);
 
   // Before client hydration settles, serve exact SSR snapshot so initial HTML = first client render (zero LCP spinner block & zero hydration mismatch)
   const useServerSnapshot = Boolean(initialAuth) && !hasMountedClient;

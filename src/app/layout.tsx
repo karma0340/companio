@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/auth-context";
 import { ToastProvider } from "@/components/ui/toast";
 import { CelebrationOverlay } from "@/components/ui/celebration";
 import { ScrollManager } from "@/components/layout/scroll-manager";
+import { CompareTray } from "@/components/companion/compare-tray";
 import { getInitialAuthSnapshot } from "@/lib/server-auth";
 import "./globals.css";
 
@@ -69,6 +70,7 @@ export default async function RootLayout({
             <ScrollManager />
             <CelebrationOverlay />
             {children}
+            <CompareTray />
           </ToastProvider>
         </AuthProvider>
       </body>

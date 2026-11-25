@@ -1,92 +1,121 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ShieldCheck,
   RotateCcw,
-  MapPin,
   ArrowRight,
   MessageSquare,
   Bookmark,
   Check,
-  Coins,
   Radio,
+  Plus,
 } from 'lucide-react';
 import { Companion } from '@/lib/types';
 import { calculatePrice, formatRupees } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { MessageHostModal } from '@/components/companion/message-host-modal';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
+import { useCollectionsStore } from '@/lib/store/useCollectionsStore';
 
 interface PriceSummaryProps {
   companion: Companion;
 }
 
 export function PriceSummary({ companion }: PriceSummaryProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+  const { savedIds, compareIds, toggleBookmark, toggleCompare } = useCollectionsStore();
+
   const [hours, setHours] = useState(1);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [pendingSave, setPendingSave] = useState(false);
+  const [pendingCompare, setPendingCompare] = useState(false);
+
+  const isSaved = isAuthenticated && savedIds.includes(companion.id);
+  const isCompared = isAuthenticated && compareIds.includes(companion.id);
 
   const price = calculatePrice(companion.hourlyRate, hours);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetch('/api/companions/bookmarks', { cache: 'no-store' })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data?.success && Array.isArray(data.companionIds)) {
-            setIsSaved(data.companionIds.includes(companion.id));
-          }
-        })
-        .catch(() => {});
-    } else if (typeof window !== 'undefined') {
-      try {
-        const stored = JSON.parse(localStorage.getItem('meetzy_saved_companions') || '[]') as string[];
-        setIsSaved(stored.includes(companion.id));
-      } catch {}
-    }
-  }, [isAuthenticated, companion.id]);
+  const redirectToLogin = (actionLabel: string) => {
+    toast({
+      title: 'Sign In Required',
+      description: `Please log in to ${actionLabel}.`,
+    });
+    const nextPath =
+      typeof window !== 'undefined'
+        ? window.location.pathname + window.location.search
+        : `/companions/${companion.id}`;
+    router.push(`/login?intent=member&next=${encodeURIComponent(nextPath)}`);
+  };
 
   const handleToggleSave = async () => {
-    const nextState = !isSaved;
-    setIsSaved(nextState);
+    if (!isAuthenticated) {
+      redirectToLogin('save hosts to Favorites');
+      return;
+    }
 
-    if (isAuthenticated) {
-      try {
-        const res = await fetch('/api/companions/bookmarks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companionId: companion.id }),
+    if (pendingSave) return;
+    setPendingSave(true);
+    try {
+      const result = await toggleBookmark(companion.id);
+      if (result.requiresLogin) {
+        redirectToLogin('save hosts to Favorites');
+        return;
+      }
+      if (!result.ok) {
+        toast({
+          title: 'Could Not Update Favorites',
+          description: result.error || 'Please try again.',
         });
-        if (res.ok) {
-          const data = await res.json();
-          setIsSaved(Boolean(data.saved));
-        }
-      } catch {}
-    } else if (typeof window !== 'undefined') {
-      try {
-        const stored = JSON.parse(localStorage.getItem('meetzy_saved_companions') || '[]') as string[];
-        const updated = nextState
-          ? Array.from(new Set([...stored, companion.id]))
-          : stored.filter((id) => id !== companion.id);
-        localStorage.setItem('meetzy_saved_companions', JSON.stringify(updated));
-      } catch {}
+        return;
+      }
+
+      toast({
+        title: result.saved ? 'Saved to Favorites' : 'Removed from Favorites',
+        description: result.saved
+          ? `${companion.name} was added to your Saved favorites.`
+          : `${companion.name} was removed from your Saved favorites.`,
+      });
+    } finally {
+      setPendingSave(false);
+    }
+  };
+
+  const handleToggleCompare = async () => {
+    if (!isAuthenticated) {
+      redirectToLogin('compare companions side-by-side');
+      return;
     }
 
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('companio:bookmarks-updated'));
-    }
+    if (pendingCompare) return;
+    setPendingCompare(true);
+    try {
+      const result = await toggleCompare(companion);
+      if (result.requiresLogin) {
+        redirectToLogin('compare companions side-by-side');
+        return;
+      }
+      if (!result.ok) {
+        toast({
+          title: 'Compare Notice',
+          description: result.error || 'Could not update comparison list.',
+        });
+        return;
+      }
 
-    toast({
-      title: nextState ? 'Saved to Favorites' : 'Removed from Favorites',
-      description: nextState
-        ? `${companion.name} was added to your Saved favorites.`
-        : `${companion.name} was removed from your Saved favorites.`,
-    });
+      toast({
+        title: result.compared ? 'Added to Compare' : 'Removed from Compare',
+        description: result.compared
+          ? `${companion.name} added to your comparison list.`
+          : `${companion.name} removed from your comparison list.`,
+      });
+    } finally {
+      setPendingCompare(false);
+    }
   };
 
   return (
@@ -188,28 +217,36 @@ export function PriceSummary({ companion }: PriceSummaryProps) {
             </div>
           </button>
 
-          {/* Tertiary Action: Save for later */}
-          <button
-            type="button"
-            onClick={handleToggleSave}
-            className={`w-full py-2.5 px-4 rounded-xl border-brutal-sm text-xs font-bold transition-all btn-press flex items-center justify-center gap-2 cursor-pointer ${
-              isSaved
-                ? 'bg-[#D4F7A5] text-ink shadow-brutal-xs'
-                : 'bg-white text-ink-muted hover:text-ink hover:bg-paper-deep'
-            }`}
-          >
-            {isSaved ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-emerald-700" />
-                <span>Saved to your list</span>
-              </>
-            ) : (
-              <>
-                <Bookmark className="h-3.5 w-3.5" />
-                <span>Save {companion.name} for later</span>
-              </>
-            )}
-          </button>
+          {/* Save to Favorites & Compare Row */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handleToggleSave}
+              disabled={pendingSave}
+              className={`py-2.5 px-3 rounded-xl border-brutal-sm text-xs font-bold transition-all btn-press flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 ${
+                isSaved
+                  ? 'bg-sunny text-ink shadow-brutal-xs'
+                  : 'bg-white text-ink-muted hover:text-ink hover:bg-paper-deep'
+              }`}
+            >
+              <Bookmark className={`h-3.5 w-3.5 ${isSaved ? 'fill-ink text-ink' : ''}`} />
+              <span>{isSaved ? 'Saved' : 'Favorite'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleCompare}
+              disabled={pendingCompare}
+              className={`py-2.5 px-3 rounded-xl border-brutal-sm text-xs font-bold transition-all btn-press flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 ${
+                isCompared
+                  ? 'bg-[#D4F7A5] text-ink shadow-brutal-xs'
+                  : 'bg-white text-ink-muted hover:text-ink hover:bg-paper-deep'
+              }`}
+            >
+              {isCompared ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              <span>{isCompared ? 'Compared' : 'Compare'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Safety & Escrow Trust Assurances */}
@@ -224,7 +261,7 @@ export function PriceSummary({ companion }: PriceSummaryProps) {
           <div className="flex items-start gap-2">
             <RotateCcw className="h-4 w-4 text-lavender shrink-0 mt-0.5" />
             <p>
-              <strong className="text-ink">Full refund</strong> if host declines or doesn&apos;t show.
+              <strong className="text-ink">75% escrow refund</strong> (25% cancellation fee) before start PIN verification.
             </p>
           </div>
 

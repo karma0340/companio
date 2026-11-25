@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { MapPin, Bookmark, Languages, Plus, Check } from 'lucide-react';
 import { Companion } from '@/lib/types';
 import { ACTIVITIES } from '@/lib/data/activities';
@@ -10,6 +11,7 @@ import { formatRupees } from '@/lib/utils';
 import { ActivityIcon } from '@/components/ui/activity-icon';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
+import { useCollectionsStore } from '@/lib/store/useCollectionsStore';
 
 interface CompanionCardProps {
   companion: Companion;
@@ -25,13 +27,28 @@ interface CompanionCardProps {
 export function CompanionCard({
   companion,
   priority = false,
-  isCompared = false,
-  initialBookmarked = false,
+  isCompared: externalCompared,
+  initialBookmarked,
   onCompareClick,
 }: CompanionCardProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
-  const [isBookmarked, setIsBookmarked] = useState(initialBookmarked);
+  const {
+    savedIds,
+    compareIds,
+    toggleBookmark,
+    toggleCompare,
+  } = useCollectionsStore();
+
+  const [pendingBookmark, setPendingBookmark] = useState(false);
+  const [pendingCompare, setPendingCompare] = useState(false);
+
+  const isBookmarked =
+    isAuthenticated && (savedIds.includes(companion.id) || Boolean(initialBookmarked && savedIds.length === 0));
+  const isCompared =
+    isAuthenticated && (externalCompared !== undefined ? externalCompared : compareIds.includes(companion.id));
+
   const defaultFallback =
     companion.gender === 'male'
       ? 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/aarav-mum.jpg'
@@ -39,12 +56,20 @@ export function CompanionCard({
   const [imgSrc, setImgSrc] = useState(companion.avatarUrl || defaultFallback);
 
   useEffect(() => {
-    setIsBookmarked(initialBookmarked);
-  }, [initialBookmarked]);
-
-  useEffect(() => {
     setImgSrc(companion.avatarUrl || defaultFallback);
   }, [companion.avatarUrl, defaultFallback]);
+
+  const redirectToLogin = (actionLabel: string) => {
+    toast({
+      title: 'Sign In Required',
+      description: `Please log in to ${actionLabel}.`,
+    });
+    const nextPath =
+      typeof window !== 'undefined'
+        ? window.location.pathname + window.location.search
+        : '/explore';
+    router.push(`/login?intent=member&next=${encodeURIComponent(nextPath)}`);
+  };
 
   const displayActivities =
     companion.rawActivities && companion.rawActivities.length > 0
@@ -70,55 +95,76 @@ export function CompanionCard({
     e.stopPropagation();
     e.preventDefault();
 
-    const nextState = !isBookmarked;
-    setIsBookmarked(nextState);
+    if (!isAuthenticated) {
+      redirectToLogin('save hosts to Favorites');
+      return;
+    }
 
-    if (isAuthenticated) {
-      try {
-        const res = await fetch('/api/companions/bookmarks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companionId: companion.id }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setIsBookmarked(Boolean(data.saved));
-        }
-      } catch {
-        // Ignore transient network error
+    if (pendingBookmark) return;
+    setPendingBookmark(true);
+    try {
+      const result = await toggleBookmark(companion.id);
+      if (result.requiresLogin) {
+        redirectToLogin('save hosts to Favorites');
+        return;
       }
-    } else if (typeof window !== 'undefined') {
-      try {
-        const stored = JSON.parse(localStorage.getItem('meetzy_saved_companions') || '[]') as string[];
-        const updated = nextState
-          ? Array.from(new Set([...stored, companion.id]))
-          : stored.filter((id) => id !== companion.id);
-        localStorage.setItem('meetzy_saved_companions', JSON.stringify(updated));
-      } catch {}
-    }
+      if (!result.ok) {
+        toast({
+          title: 'Could Not Update Favorites',
+          description: result.error || 'Please try again.',
+        });
+        return;
+      }
 
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('companio:bookmarks-updated'));
+      toast({
+        title: result.saved ? 'Saved to Favorites' : 'Removed from Favorites',
+        description: result.saved
+          ? `${companion.name} was added to your Saved favorites.`
+          : `${companion.name} was removed from your Saved favorites.`,
+      });
+    } finally {
+      setPendingBookmark(false);
     }
-
-    toast({
-      title: nextState ? 'Saved to Favorites' : 'Removed from Favorites',
-      description: nextState
-        ? `${companion.name} was added to your Saved favorites.`
-        : `${companion.name} was removed from your Saved favorites.`,
-    });
   };
 
-  const handleCompare = (e: React.MouseEvent) => {
+  const handleCompare = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    if (!isAuthenticated) {
+      redirectToLogin('compare companions side-by-side');
+      return;
+    }
+
     if (onCompareClick) {
       onCompareClick(companion);
-    } else {
+      return;
+    }
+
+    if (pendingCompare) return;
+    setPendingCompare(true);
+    try {
+      const result = await toggleCompare(companion);
+      if (result.requiresLogin) {
+        redirectToLogin('compare companions side-by-side');
+        return;
+      }
+      if (!result.ok) {
+        toast({
+          title: 'Compare Notice',
+          description: result.error || 'Could not update comparison list.',
+        });
+        return;
+      }
+
       toast({
-        title: 'Compare Companions',
-        description: `Visit Explore to compare ${companion.name} side-by-side.`,
+        title: result.compared ? 'Added to Compare' : 'Removed from Compare',
+        description: result.compared
+          ? `${companion.name} added. Click Compare Now at the bottom to view side-by-side.`
+          : `${companion.name} removed from your comparison list.`,
       });
+    } finally {
+      setPendingCompare(false);
     }
   };
 
@@ -172,7 +218,8 @@ export function CompanionCard({
         <button
           type="button"
           onClick={handleBookmarkToggle}
-          className={`absolute top-5 right-5 z-20 flex h-8 w-8 items-center justify-center rounded-full border-2 border-ink shadow-brutal-xs hover:scale-105 transition-transform cursor-pointer ${
+          disabled={pendingBookmark}
+          className={`absolute top-5 right-5 z-20 flex h-8 w-8 items-center justify-center rounded-full border-2 border-ink shadow-brutal-xs hover:scale-105 transition-transform cursor-pointer disabled:opacity-60 ${
             isBookmarked ? 'bg-sunny' : 'bg-white'
           }`}
           aria-label="Bookmark companion"
@@ -226,7 +273,8 @@ export function CompanionCard({
         <button
           type="button"
           onClick={handleCompare}
-          className={`inline-flex items-center justify-center gap-1 rounded-xl border-2 border-ink px-3 py-2 font-display text-xs font-black shadow-brutal-xs transition-all cursor-pointer ${
+          disabled={pendingCompare}
+          className={`inline-flex items-center justify-center gap-1 rounded-xl border-2 border-ink px-3 py-2 font-display text-xs font-black shadow-brutal-xs transition-all cursor-pointer disabled:opacity-60 ${
             isCompared ? 'bg-[#D4F7A5] text-ink' : 'bg-white text-ink hover:bg-paper'
           }`}
         >

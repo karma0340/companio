@@ -6,11 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { CompanionCard } from '@/components/companion/companion-card';
 import { CompanionCardSkeleton } from '@/components/companion/companion-card-skeleton';
-import { CompareModal } from '@/components/companion/compare-modal';
 import { TiltCard } from '@/components/landing/tilt-card';
 import { Companion } from '@/lib/types';
 import { mapApiCompanionToCard } from '@/lib/companion-mapper';
-import { useToast } from '@/components/ui/toast';
 
 const FILTERS = [
   { id: 'all', label: 'All Top Rated' },
@@ -32,39 +30,12 @@ export function TopRatedCarousel({
   savedIds = [],
   showExploreButton = true,
 }: TopRatedCarouselProps) {
-  const { toast } = useToast();
   const [activeFilter, setActiveFilter] = useState('all');
   const [companionsList, setCompanionsList] = useState<Companion[]>(initialCompanions || []);
   const [internalLoading, setInternalLoading] = useState<boolean>(
     !initialCompanions || initialCompanions.length === 0
   );
-  const [compareList, setCompareList] = useState<Companion[]>([]);
-  const [isCompareOpen, setIsCompareOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const handleToggleCompare = (comp: Companion) => {
-    setCompareList((prev) => {
-      const exists = prev.some((c) => c.id === comp.id);
-      if (exists) return prev.filter((c) => c.id !== comp.id);
-      if (prev.length >= 3) {
-        toast({
-          title: 'Compare Limit Reached',
-          description: 'You can compare up to 3 companions at once.',
-        });
-        return prev;
-      }
-      const next = [...prev, comp];
-      if (next.length >= 2) {
-        setIsCompareOpen(true);
-      } else {
-        toast({
-          title: 'Added to Compare',
-          description: `Select 1 more companion to compare alongside ${comp.name}.`,
-        });
-      }
-      return next;
-    });
-  };
 
   useEffect(() => {
     if (initialCompanions && initialCompanions.length > 0) {
@@ -178,9 +149,7 @@ export function TopRatedCarousel({
                   <CompanionCard
                     companion={comp}
                     priority={idx < 4}
-                    isCompared={compareList.some((c) => c.id === comp.id)}
                     initialBookmarked={savedIds.includes(comp.id)}
-                    onCompareClick={handleToggleCompare}
                   />
                 </TiltCard>
               </motion.div>
@@ -200,17 +169,6 @@ export function TopRatedCarousel({
           </Link>
         </div>
       )}
-
-      <CompareModal
-        isOpen={isCompareOpen}
-        onClose={() => setIsCompareOpen(false)}
-        companions={compareList}
-        onRemove={(id) => setCompareList((prev) => prev.filter((c) => c.id !== id))}
-        onClear={() => {
-          setCompareList([]);
-          setIsCompareOpen(false);
-        }}
-      />
     </div>
   );
 }

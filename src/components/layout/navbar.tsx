@@ -27,6 +27,7 @@ import { Logo } from '@/components/ui/logo';
 import { MobileDrawer } from './mobile-drawer';
 import { CITIES } from '@/lib/data/cities';
 import { useAuth } from '@/context/auth-context';
+import { useCollectionsStore } from '@/lib/store/useCollectionsStore';
 import { AvatarVector } from '@/components/ui/avatar-vector';
 
 export function Navbar() {
@@ -36,9 +37,7 @@ export function Navbar() {
   const [selectedCity, setSelectedCity] = useState('bengaluru');
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [savedFavorites, setSavedFavorites] = useState<
-    Array<{ id: string; displayName: string; city: string; avatarUrl: string | null }>
-  >([]);
+  const { savedCompanions: savedFavorites } = useCollectionsStore();
   const [isBannerVisible, setIsBannerVisible] = useState(true);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifTab, setNotifTab] = useState<'alerts' | 'offers'>('alerts');
@@ -101,29 +100,13 @@ export function Navbar() {
       .catch((err) => console.warn('[NOTIF_FETCH_ERROR]:', err));
   };
 
-  const fetchSavedFavorites = () => {
-    fetch('/api/companions/bookmarks', { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.success && Array.isArray(data.companions)) {
-          setSavedFavorites(data.companions);
-        }
-      })
-      .catch(() => {});
-  };
-
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications();
-      fetchSavedFavorites();
       const interval = setInterval(fetchNotifications, 30000);
-      window.addEventListener('companio:bookmarks-updated', fetchSavedFavorites);
       return () => {
         clearInterval(interval);
-        window.removeEventListener('companio:bookmarks-updated', fetchSavedFavorites);
       };
-    } else {
-      setSavedFavorites([]);
     }
   }, [isAuthenticated, pathname]);
 
