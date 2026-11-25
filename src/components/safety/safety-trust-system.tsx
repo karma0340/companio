@@ -16,7 +16,7 @@ const SAFEGUARDS: SafeguardItem[] = [
     color: '#C8F53C',
     iconPath:
       'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M16 11l2 2 4-4',
-    body: 'Every host verifies their real Indian mobile number via Fast2SMS OTP, submits a clear public profile photo, sets preferred public venues, and signs our strictly platonic Code of Conduct—zero Aadhaar or biometric storage required.',
+    body: 'Every host verifies their real Indian mobile number via live SMS OTP, submits a clear public profile photo, sets preferred public venues, and signs our strictly platonic Code of Conduct—zero Aadhaar or biometric storage required.',
   },
   {
     title: 'Escrow Protection',

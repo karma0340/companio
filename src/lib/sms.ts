@@ -99,30 +99,30 @@ export async function sendSmsOtp(
       if (!response.ok || !data?.return) {
         const errorDetail = Array.isArray(data?.message)
           ? data.message.join(", ")
-          : data?.message || `Fast2SMS API rejected request (HTTP ${response.status})`;
-        console.error("[FAST2SMS API ERROR]:", errorDetail);
+          : data?.message || `SMS gateway rejected request (HTTP ${response.status})`;
+        console.error("[SMS GATEWAY ERROR]:", errorDetail);
         return {
           success: false,
-          provider: "FAST2SMS",
-          error: errorDetail,
+          provider: "SMS",
+          error: "Unable to send SMS verification code right now. Please retry shortly.",
           isMock: false,
         };
       }
 
-      console.log(`[FAST2SMS SUCCESS] Sent SMS OTP to ${tenDigit}. Request ID: ${data.request_id}`);
+      console.log(`[SMS DISPATCH SUCCESS] Sent OTP to ${tenDigit}. Request ID: ${data.request_id}`);
       return {
         success: true,
-        provider: useDltRoute ? "FAST2SMS_DLT" : "FAST2SMS",
+        provider: "SMS",
         messageId: data.request_id,
         isMock: false,
       };
     } catch (err) {
-      const errMsg = (err as Error).message || "Network error contacting Fast2SMS.";
-      console.error("[FAST2SMS NETWORK ERROR]:", errMsg);
+      const errMsg = (err as Error).message || "Network error contacting SMS service.";
+      console.error("[SMS NETWORK ERROR]:", errMsg);
       return {
         success: false,
-        provider: "FAST2SMS",
-        error: errMsg,
+        provider: "SMS",
+        error: "SMS verification service temporarily unreachable. Please retry.",
         isMock: false,
       };
     }

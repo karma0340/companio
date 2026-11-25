@@ -38,7 +38,7 @@ export function SafetyBento() {
               OTP + Photo Verified
             </h3>
             <p className="font-body text-xs text-ink-soft mt-1 leading-relaxed">
-              Every host verifies their real Indian mobile number via Fast2SMS OTP and uploads a clear headshot—no anonymous profiles, no Aadhaar storage needed.
+              Every host verifies their real Indian mobile number via live SMS OTP and uploads a clear headshot—no anonymous profiles, no Aadhaar storage needed.
             </p>
           </div>
 

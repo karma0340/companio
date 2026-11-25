@@ -14,33 +14,8 @@ export interface ChatMessageRecord {
   sentAt: string;
 }
 
-// In-memory message store: bookingId -> ChatMessageRecord[]
+// In-memory cache synchronized with database messages
 const chatHistoryMap = new Map<string, ChatMessageRecord[]>();
-
-// Pre-seed demo messages for bkg_seed_01
-const now = Date.now();
-chatHistoryMap.set("bkg_seed_01", [
-  {
-    id: "msg_sys_01",
-    bookingId: "bkg_seed_01",
-    senderId: "system",
-    senderName: "Companio Safety System",
-    senderRole: "SYSTEM",
-    content: "Booking confirmed. Coordination chat unlocked. Meeting venue: Blue Tokai Coffee Roasters, Hauz Khas Village. Reminder: Direct contact exchange is disabled for safety. Never disclose your 4-digit PIN in chat.",
-    isRedacted: false,
-    sentAt: new Date(now - 30 * 60000).toISOString(),
-  },
-  {
-    id: "msg_seed_01",
-    bookingId: "bkg_seed_01",
-    senderId: "comp_01",
-    senderName: "Vanshika Sharma",
-    senderRole: "COMPANION",
-    content: "Hi Rohit! Looking forward to meeting tomorrow at Blue Tokai. I will be there by 3:55 PM. Let me know if you prefer an indoor corner table or the outdoor patio!",
-    isRedacted: false,
-    sentAt: new Date(now - 25 * 60000).toISOString(),
-  },
-]);
 
 export interface AddMessageInput {
   bookingId: string;

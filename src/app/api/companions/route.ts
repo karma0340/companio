@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCompanions } from "@/lib/data";
+import { getCompanionsPaginated } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -8,17 +8,36 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const city = searchParams.get("city") || undefined;
     const activity = searchParams.get("activity") || undefined;
+    const freeToday = searchParams.get("freeToday") === "true";
+    const womenOnly = searchParams.get("womenOnly") === "true";
+    const q = searchParams.get("q") || undefined;
+    const page = Number(searchParams.get("page") || "1");
+    const limit = Number(searchParams.get("limit") || "12");
 
-    const list = await getCompanions(city, activity);
+    const result = await getCompanionsPaginated({
+      city,
+      activity,
+      freeToday,
+      womenOnly,
+      q,
+      page,
+      limit,
+    });
 
     return NextResponse.json({
       success: true,
-      companions: list,
-      total: list.length,
+      companions: result.companions,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
+      hasMore: result.hasMore,
+      cityCounts: result.cityCounts,
     });
   } catch (error) {
+    console.error("[GET /api/companions ERROR]:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch companions" },
+      { success: false, error: "Failed to load companions" },
       { status: 500 }
     );
   }

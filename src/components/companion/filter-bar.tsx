@@ -58,7 +58,7 @@ export function FilterBar({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search by companion name, interest, or area..."
+            placeholder="Fuzzy search by name, city, area, hobby (e.g. coffe, gym, chandigarh)..."
             className="w-full rounded-xl border-brutal bg-paper-deep/40 pl-10 pr-4 py-2.5 font-body text-sm font-medium text-ink placeholder:text-ink-muted/70 focus:bg-white focus:outline-none focus:shadow-brutal transition-all"
           />
           {searchQuery && (

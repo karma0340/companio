@@ -19,6 +19,7 @@ import {
   Coins,
   Wallet,
   Bell,
+  Bookmark,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,9 @@ export function Navbar() {
   const [selectedCity, setSelectedCity] = useState('bengaluru');
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [savedFavorites, setSavedFavorites] = useState<
+    Array<{ id: string; displayName: string; city: string; avatarUrl: string | null }>
+  >([]);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifTab, setNotifTab] = useState<'alerts' | 'offers'>('alerts');
@@ -97,11 +101,29 @@ export function Navbar() {
       .catch((err) => console.warn('[NOTIF_FETCH_ERROR]:', err));
   };
 
+  const fetchSavedFavorites = () => {
+    fetch('/api/companions/bookmarks', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.success && Array.isArray(data.companions)) {
+          setSavedFavorites(data.companions);
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications();
+      fetchSavedFavorites();
       const interval = setInterval(fetchNotifications, 30000);
-      return () => clearInterval(interval);
+      window.addEventListener('companio:bookmarks-updated', fetchSavedFavorites);
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('companio:bookmarks-updated', fetchSavedFavorites);
+      };
+    } else {
+      setSavedFavorites([]);
     }
   }, [isAuthenticated, pathname]);
 
@@ -485,6 +507,42 @@ export function Navbar() {
                       <span>My Meetups</span>
                     </Link>
 
+                    {/* Saved Favorites Link + Quick Preview */}
+                    <div className="rounded-xl p-1">
+                      <Link
+                        href="/dashboard?tab=saved"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center justify-between rounded-xl p-1 font-display text-xs font-bold text-ink hover:bg-sunny/25 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-ink bg-sunny text-ink shadow-brutal-xs">
+                            <Bookmark className="h-3.5 w-3.5" />
+                          </div>
+                          <span>Saved Favorites</span>
+                        </div>
+                        <span className="text-[10px] font-mono font-black bg-sunny px-1.5 py-0.5 rounded border border-ink">
+                          {savedFavorites.length}
+                        </span>
+                      </Link>
+                      {savedFavorites.length > 0 && (
+                        <div className="mt-1.5 pl-9 pr-1 space-y-1">
+                          {savedFavorites.slice(0, 3).map((fav) => (
+                            <Link
+                              key={fav.id}
+                              href={`/companions/${fav.id}`}
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="flex items-center justify-between text-[11px] font-bold text-ink-soft hover:text-ink truncate"
+                            >
+                              <span className="truncate">{fav.displayName}</span>
+                              <span className="text-[10px] text-ink-muted shrink-0 ml-1">
+                                {fav.city}
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Member Profile Link */}
                     <Link
                       href="/profile"
@@ -526,7 +584,7 @@ export function Navbar() {
                       </>
                     ) : (
                       <Link
-                        href="/become-a-companion"
+                        href="/become-a-host"
                         onClick={() => setIsUserMenuOpen(false)}
                         className="flex items-center gap-2.5 rounded-xl p-2 font-display text-xs font-bold text-ink hover:bg-sunny/20 transition-colors group"
                       >

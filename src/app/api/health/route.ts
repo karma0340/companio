@@ -7,7 +7,7 @@ export async function GET() {
     await prisma.$queryRaw`SELECT 1`;
     dbStatus = "connected";
   } catch (error) {
-    dbStatus = "fallback_mock_mode";
+    dbStatus = "unavailable";
   }
 
   return NextResponse.json({

@@ -87,30 +87,8 @@ export default function BookPage({ params }: BookPageProps) {
   const { user, memberProfile, isAuthenticated, refreshSession } = useAuth();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
-  const [companion, setCompanion] = useState<Companion>({
-    id: companionId,
-    name: 'Verified Companion',
-    age: 24,
-    gender: 'female' as const,
-    city: 'chandigarh',
-    area: 'Central Plaza',
-    tagline: 'Verified Meetzy Club Host',
-    about: 'Warm, articulate, and engaging companion for pleasant public meetups.',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
-    languages: ['English', 'Hindi'],
-    hourlyRate: 499,
-    verifiedId: true,
-    verifiedPhoto: true,
-    rating: 5.0,
-    reviewCount: 15,
-    meetupsCount: 12,
-    activities: ['coffee-chat' as ActivityCategory, 'city-guide' as ActivityCategory, 'walk-and-talk' as ActivityCategory],
-    isFreeToday: true,
-    acceptsWomenOnly: false,
-    memberSince: '2026',
-    availability: [],
-    reviews: [],
-  });
+  const [companion, setCompanion] = useState<Companion | null>(null);
+  const [loadingCompanion, setLoadingCompanion] = useState<boolean>(true);
 
   // Step 1: Activity
   const [selectedActivity, setSelectedActivity] = useState<ActivityCategory>('coffee-chat');
@@ -156,7 +134,8 @@ export default function BookPage({ params }: BookPageProps) {
   const [startCode, setStartCode] = useState<string>('');
 
   useEffect(() => {
-    fetch(`/api/companions/${companionId}`)
+    setLoadingCompanion(true);
+    fetch(`/api/companions/${companionId}`, { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.companion) {
@@ -166,7 +145,8 @@ export default function BookPage({ params }: BookPageProps) {
           }
         }
       })
-      .catch((err) => console.error('Failed to load companion details:', err));
+      .catch((err) => console.error('Failed to load companion details:', err))
+      .finally(() => setLoadingCompanion(false));
   }, [companionId]);
 
   useEffect(() => {
@@ -182,7 +162,7 @@ export default function BookPage({ params }: BookPageProps) {
     }
   }, [user, memberProfile]);
 
-  const activeCityKey = companion.city?.toLowerCase() || 'default';
+  const activeCityKey = companion?.city?.toLowerCase() || 'default';
   const quickVenues = CITY_QUICK_VENUES[activeCityKey] || CITY_QUICK_VENUES.default;
 
   // Selected date object
@@ -196,7 +176,7 @@ export default function BookPage({ params }: BookPageProps) {
   };
 
   const selectedTimeLabel = `${timeSlotMap[selectedTimeSlot].label} (${timeSlotMap[selectedTimeSlot].hours})`;
-  const price = calculatePrice(companion.hourlyRate, duration);
+  const price = calculatePrice(companion?.hourlyRate ?? 0, duration);
 
   const handleNextStep = () => {
     if (step === 1) {
@@ -221,6 +201,7 @@ export default function BookPage({ params }: BookPageProps) {
   };
 
   const handleFinalBookingAndPayment = async () => {
+    if (!companion) return;
     if (!isAuthenticated) {
       toast.error('Please verify your mobile number via SMS OTP before booking.', 'Sign In Required');
       router.push(`/login?intent=member&next=${encodeURIComponent(`/book/${companionId}`)}`);
@@ -367,6 +348,44 @@ export default function BookPage({ params }: BookPageProps) {
       setIsSubmitting(false);
     }
   };
+
+  if (loadingCompanion) {
+    return (
+      <div className="min-h-screen bg-paper flex flex-col justify-between text-ink">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="rounded-3xl border-3 border-ink bg-white p-8 shadow-brutal text-center space-y-3 max-w-sm w-full">
+            <Loader2 className="h-8 w-8 animate-spin text-ink mx-auto" />
+            <p className="font-display font-black text-ink">Loading host booking details...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!companion) {
+    return (
+      <div className="min-h-screen bg-paper flex flex-col justify-between text-ink">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="rounded-3xl border-3 border-ink bg-white p-8 shadow-brutal text-center space-y-4 max-w-md w-full">
+            <h1 className="font-display text-2xl font-black text-ink">Host Profile Unavailable</h1>
+            <p className="text-xs font-bold text-ink-soft">
+              We could not find this host profile. Browse open verified hosts to continue.
+            </p>
+            <Link
+              href="/explore"
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-lime px-5 py-2.5 font-display text-xs font-black text-ink shadow-brutal-xs"
+            >
+              <span>Back to Explore</span>
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   // SUCCESS SCREEN
   if (bookingSuccess) {

@@ -197,7 +197,7 @@ export default function BookingSuccessPage() {
           {/* Action CTAs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
-              href={`/chat/${bookingId || "bkg_seed_01"}`}
+              href={bookingId ? `/chat/${bookingId}` : "/bookings"}
               className="border-2 border-ink bg-ink p-3.5 text-center text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press flex items-center justify-center gap-2"
             >
               <MessageSquare className="h-4 w-4" />

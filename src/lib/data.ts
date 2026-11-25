@@ -1,13 +1,8 @@
-import {
-  CompanionSummary,
-  CitySummary,
-  ActivitySummary,
-  PassTierOption,
-  HostPackOption,
-  HostPackTier,
-} from "@/types";
+import { CompanionSummary, CitySummary, ActivitySummary, PassTierOption, HostPackOption, HostPackTier } from "@/types";
 import { ActivityCategory } from "./types";
 import { prisma } from "./prisma";
+import { scoreFuzzyMatch } from "./fuzzy";
+import { mapToActivityCategories } from "./companion-mapper";
 
 export const HOST_REGISTRATION_FEE = {
   tier: "STARTER" as HostPackTier,
@@ -99,187 +94,143 @@ export const PASS_TIER_OPTIONS: PassTierOption[] = [
   },
 ];
 
-export const MOCK_CITIES: CitySummary[] = [
-  { id: "city_01", name: "Delhi", slug: "delhi", state: "Delhi NCR", isActive: true, companionCount: 42 },
-  { id: "city_02", name: "Bengaluru", slug: "bengaluru", state: "Karnataka", isActive: true, companionCount: 68 },
-  { id: "city_03", name: "Mumbai", slug: "mumbai", state: "Maharashtra", isActive: true, companionCount: 54 },
-  { id: "city_04", name: "Pune", slug: "pune", state: "Maharashtra", isActive: true, companionCount: 29 },
-  { id: "city_05", name: "Hyderabad", slug: "hyderabad", state: "Telangana", isActive: true, companionCount: 33 },
-];
+export interface PaginatedCompanionsQuery {
+  city?: string;
+  activity?: string;
+  freeToday?: boolean;
+  womenOnly?: boolean;
+  q?: string;
+  page?: number;
+  limit?: number;
+}
 
-export const MOCK_ACTIVITIES: ActivitySummary[] = [
-  { id: "act_01", title: "Café & Conversation", slug: "coffee", description: "Grab artisan coffee, unwind, and enjoy good conversation in a cozy cafe.", suggestedDuration: 1, icon: "coffee" },
-  { id: "act_02", title: "City Walk & Exploration", slug: "city-walk", description: "Stroll through scenic streets, parks, historical markets, and hidden alleys.", suggestedDuration: 2, icon: "map-pin" },
-  { id: "act_03", title: "Gym & Fitness Spotting", slug: "gym", description: "Get a workout partner, spotter, or running companion to keep you motivated.", suggestedDuration: 1, icon: "dumbbell" },
-  { id: "act_04", title: "Gigs, Standup & Events", slug: "events", description: "Never go to comedy shows, live concerts, or food festivals alone.", suggestedDuration: 3, icon: "ticket" },
-  { id: "act_05", title: "Museum & Art Galleries", slug: "museum", description: "Explore contemporary art, heritage exhibits, and cultural spaces together.", suggestedDuration: 2, icon: "palette" },
-];
+export interface PaginatedCompanionsResult {
+  companions: CompanionSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+  cityCounts: Record<string, number>;
+}
 
-export const MOCK_COMPANIONS: CompanionSummary[] = [
-  {
-    id: "c-qkk6qfv6",
-    name: "Kinjal Patel",
-    displayName: "Kinjal",
-    maskedName: "Kinjal P***",
-    city: "Mumbai",
-    citySlug: "mumbai",
-    hourlyRate: 499,
-    ratingAverage: 4.9,
-    totalReviews: 24,
-    spokenLanguages: ["English", "Hindi"],
-    acceptedActivities: ["Café Chat", "City Walk", "Live Events"],
-    avatarUrl: "/assets/hosts/app-cmtnws9m701cxgm0bp1we6wry-photo-YTB1xlijCZeUJ6Gw9XK6rLhesOw2VE.jpg",
-    blurredAvatarUrl: "/assets/hosts/app-cmtka4tk7000ai3098m7ugzlv-photo-locked.jpg",
-    bio: "Lover of quiet coastal coffee corners, live music gigs, and deep conversations over evening walks.",
-    shortBio: "Bandra West coastal coffee & evening walks.",
-    isAvailable: true,
-    isPreview: true,
-  },
-  {
-    id: "comp_01",
-    name: "Vanshika Sharma",
-    displayName: "Vanshika",
-    maskedName: "Vanshika S***",
-    city: "Delhi NCR",
-    citySlug: "delhi",
-    hourlyRate: 499,
-    ratingAverage: 4.9,
-    totalReviews: 28,
-    spokenLanguages: ["English", "Hindi"],
-    acceptedActivities: ["Café & Conversation", "Museum & Art Galleries", "City Walk & Exploration"],
-    avatarUrl: "/assets/hosts/vanshika.webp",
-    blurredAvatarUrl: "/assets/hosts/app-cmt2uql1v003wjs04txo35j7k-locked.jpg",
-    bio: "Masters in Psychology student at DU. Passionate about indie music, specialty roasteries in Hauz Khas, and thoughtful conversations about books and urban life.",
-    shortBio: "DU Psychology student. Love coffee & indie books.",
-    isAvailable: true,
-  },
-  {
-    id: "comp_02",
-    name: "Kritika Sen",
-    displayName: "Kritika",
-    maskedName: "Kritika S***",
-    city: "Bengaluru",
-    citySlug: "bengaluru",
-    hourlyRate: 549,
-    ratingAverage: 5.0,
-    totalReviews: 42,
-    spokenLanguages: ["English", "Hindi", "Bengali"],
-    acceptedActivities: ["Café & Conversation", "City Walk & Exploration", "Gym & Fitness Spotting"],
-    avatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80",
-    blurredAvatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=50&blur=15&q=30",
-    bio: "UI/UX Designer working in Indiranagar. Big foodie, sourdough enthusiast, and weekend runner around Cubbon Park. Fluent in tech and design banter.",
-    shortBio: "Designer in Indiranagar. Foodie & Cubbon runner.",
-    isAvailable: true,
-  },
-  {
-    id: "comp_03",
-    name: "Rohan Malhotra",
-    displayName: "Rohan",
-    maskedName: "Rohan M***",
-    city: "Mumbai",
-    citySlug: "mumbai",
-    hourlyRate: 499,
-    ratingAverage: 4.8,
-    totalReviews: 19,
-    spokenLanguages: ["English", "Hindi", "Marathi"],
-    acceptedActivities: ["Café & Conversation", "Gigs, Standup & Events", "City Walk & Exploration"],
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
-    blurredAvatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=50&blur=15&q=30",
-    bio: "Screenwriter and podcast host based in Bandra. Great listener with endless stories about Mumbai film culture and retro architecture.",
-    shortBio: "Bandra writer. Film culture & retro architecture.",
-    isAvailable: true,
-  },
-  {
-    id: "comp_04",
-    name: "Ananya Roy",
-    displayName: "Ananya",
-    maskedName: "Ananya R***",
-    city: "Bengaluru",
-    citySlug: "bengaluru",
-    hourlyRate: 599,
-    ratingAverage: 5.0,
-    totalReviews: 31,
-    spokenLanguages: ["English", "Hindi"],
-    acceptedActivities: ["Museum & Art Galleries", "Café & Conversation"],
-    avatarUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80",
-    blurredAvatarUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=50&blur=15&q=30",
-    bio: "Fintech analyst by day, contemporary art enthusiast on weekends. Love exploring quiet corners of Bengaluru, artisan matcha, and gallery exhibitions.",
-    shortBio: "Fintech analyst. Love art galleries & quiet cafes.",
-    isAvailable: true,
-  },
-  {
-    id: "comp_05",
-    name: "Kashish Agarwal",
-    displayName: "Kashish",
-    maskedName: "Kashish A***",
-    city: "Bengaluru",
-    citySlug: "bengaluru",
-    hourlyRate: 499,
-    ratingAverage: 4.9,
-    totalReviews: 28,
-    spokenLanguages: ["English", "Hindi", "Kannada"],
-    acceptedActivities: ["Shopping Buddy", "Café & Conversation", "City Walk & Exploration"],
-    avatarUrl: "/assets/hosts/kashish.webp",
-    blurredAvatarUrl: "/assets/hosts/locked_kritika.webp",
-    bio: "Show me around? No — let me show you around Bengaluru. Best cafes, hidden rooftop spots, and honest shopping advice.",
-    shortBio: "Bengaluru local guide. Shopping & hidden cafes.",
-    isAvailable: true,
-  },
-  {
-    id: "comp_06",
-    name: "Shameera Khan",
-    displayName: "Shameera",
-    maskedName: "Shameera K***",
-    city: "Mumbai",
-    citySlug: "mumbai",
-    hourlyRate: 599,
-    ratingAverage: 5.0,
-    totalReviews: 42,
-    spokenLanguages: ["English", "Hindi"],
-    acceptedActivities: ["City Walk & Exploration", "Gigs, Standup & Events", "Café & Conversation"],
-    avatarUrl: "/assets/hosts/shameera.webp",
-    blurredAvatarUrl: "/assets/hosts/locked_kritika.webp",
-    bio: "Your friendly companion for coffee, Marine Drive strolls, and live indie concerts. Great energy and zero awkward pauses.",
-    shortBio: "Marine Drive walks & live gigs enthusiast.",
-    isAvailable: true,
-  },
-  {
-    id: "comp_07",
-    name: "Akash Verma",
-    displayName: "Akash",
-    maskedName: "Akash V***",
-    city: "Bengaluru",
-    citySlug: "bengaluru",
-    hourlyRate: 499,
-    ratingAverage: 4.8,
-    totalReviews: 19,
-    spokenLanguages: ["English", "Hindi"],
-    acceptedActivities: ["Gym & Fitness Spotting", "Café & Conversation"],
-    avatarUrl: "/assets/hosts/akash.webp",
-    blurredAvatarUrl: "/assets/hosts/locked_kritika.webp",
-    bio: "Tech professional and fitness spotter in Indiranagar. Reliable workout partner, form check buddy, and tech banter over coffee.",
-    shortBio: "Indiranagar fitness spotter & tech buddy.",
-    isAvailable: true,
-  },
-  {
-    id: "comp_08",
-    name: "Samridhi Sharma",
-    displayName: "Samridhi",
-    maskedName: "Samridhi S***",
-    city: "Delhi NCR",
-    citySlug: "delhi",
-    hourlyRate: 499,
-    ratingAverage: 4.9,
-    totalReviews: 34,
-    spokenLanguages: ["English", "Hindi"],
-    acceptedActivities: ["Café & Conversation", "Museum & Art Galleries"],
-    avatarUrl: "/assets/hosts/samridhi.webp",
-    blurredAvatarUrl: "/assets/hosts/locked_kritika.webp",
-    bio: "Cafeholic who loves visiting contemporary art exhibitions, vintage bookshops, and quiet coffee roasters in Khan Market.",
-    shortBio: "Khan Market coffee roasteries & art lover.",
-    isAvailable: true,
-  },
-];
+export async function getCompanionsPaginated(
+  query: PaginatedCompanionsQuery = {}
+): Promise<PaginatedCompanionsResult> {
+  const safePage = Math.max(1, Number(query.page) || 1);
+  const safeLimit = Math.min(48, Math.max(1, Number(query.limit) || 12));
+
+  try {
+    const dbCompanions = await prisma.companion.findMany({
+      include: {
+        city: true,
+      },
+      orderBy: [{ ratingAverage: 'desc' }, { completedMeetups: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    const cityCounts: Record<string, number> = {};
+    for (const c of dbCompanions) {
+      const slug = c.city?.slug?.toLowerCase();
+      if (slug) cityCounts[slug] = (cityCounts[slug] || 0) + 1;
+    }
+
+    let mapped: Array<CompanionSummary & { _score?: number }> = dbCompanions.map((c) => ({
+      id: c.id,
+      name: c.displayName,
+      displayName: c.displayName,
+      maskedName: c.maskedName,
+      age: c.age || 24,
+      gender: (c.gender || 'female') as 'female' | 'male' | 'non-binary',
+      city: c.city.name,
+      citySlug: c.city.slug,
+      locality: c.locality || c.city.name,
+      hourlyRate: Number(c.hourlyRate),
+      ratingAverage: c.ratingAverage,
+      totalReviews: c.totalReviews,
+      completedMeetups: c.completedMeetups || 0,
+      spokenLanguages: c.spokenLanguages,
+      acceptedActivities: c.acceptedActivities,
+      availabilitySlots: c.availabilitySlots || [],
+      preferredVenues: c.preferredVenues || [],
+      avatarUrl: c.avatarUrl,
+      blurredAvatarUrl: c.blurredAvatarUrl,
+      bio: c.bio,
+      shortBio: c.shortBio,
+      isAvailable: c.isAvailable,
+    }));
+
+    if (query.city && query.city !== 'all') {
+      const targetCity = query.city.toLowerCase();
+      mapped = mapped.filter((c) => c.citySlug.toLowerCase() === targetCity);
+    }
+
+    if (query.activity && query.activity !== 'all') {
+      const targetAct = query.activity.toLowerCase();
+      const actWords = targetAct.replace(/-/g, ' ');
+      mapped = mapped.filter((c) => {
+        const categories = mapToActivityCategories(c.acceptedActivities || []);
+        const rawMatch = (c.acceptedActivities || []).some((a) =>
+          a.toLowerCase().includes(actWords)
+        );
+        return categories.includes(targetAct as ActivityCategory) || rawMatch;
+      });
+    }
+
+    if (query.freeToday) {
+      mapped = mapped.filter((c) => c.isAvailable);
+    }
+
+    if (query.womenOnly) {
+      mapped = mapped.filter((c) => (c.gender || '').toLowerCase() === 'female');
+    }
+
+    if (query.q && query.q.trim().length > 0) {
+      const searchStr = query.q.trim();
+      mapped = mapped
+        .map((c) => ({
+          ...c,
+          _score: scoreFuzzyMatch(searchStr, [
+            c.displayName,
+            c.name,
+            c.city,
+            c.locality,
+            ...(c.acceptedActivities || []),
+            ...(c.spokenLanguages || []),
+            c.shortBio,
+            c.bio,
+          ]),
+        }))
+        .filter((c) => (c._score || 0) > 0)
+        .sort((a, b) => (b._score || 0) - (a._score || 0));
+    }
+
+    const total = mapped.length;
+    const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+    const offset = (safePage - 1) * safeLimit;
+    const paged = mapped.slice(offset, offset + safeLimit).map(({ _score, ...rest }) => rest);
+
+    return {
+      companions: paged,
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages,
+      hasMore: offset + paged.length < total,
+      cityCounts,
+    };
+  } catch (err) {
+    console.error('[GET COMPANIONS PAGINATED ERROR]:', err);
+    return {
+      companions: [],
+      total: 0,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: 1,
+      hasMore: false,
+      cityCounts: {},
+    };
+  }
+}
 
 export async function getCompanions(citySlug?: string, activitySlug?: string): Promise<CompanionSummary[]> {
   try {
@@ -342,66 +293,6 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
   return [];
 }
 
-function mapToActivityCategories(activities: string[] = []): ActivityCategory[] {
-  const mapping: Record<string, ActivityCategory> = {
-    'coffee': 'coffee-chat',
-    'cafe': 'coffee-chat',
-    'shopping': 'shopping-buddy',
-    'styling': 'shopping-buddy',
-    'photo': 'photo-walk',
-    'candid': 'photo-walk',
-    'comedy': 'comedy-and-shows',
-    'shows': 'comedy-and-shows',
-    'city': 'city-guide',
-    'walk': 'walk-and-talk',
-    'gym': 'gym-partner',
-    'fitness': 'gym-partner',
-    'museum': 'city-guide',
-    'art': 'city-guide',
-    'book': 'study-buddy',
-    'reading': 'study-buddy',
-    'food': 'food-walk',
-    'crawl': 'food-walk',
-    'eats': 'food-walk',
-    'co-working': 'career-chat',
-    'career': 'career-chat',
-    'badminton': 'sports-partner',
-    'tennis': 'sports-partner',
-    'cycling': 'sports-partner',
-    'sports': 'sports-partner',
-    'sunset': 'walk-and-talk',
-    'board': 'gaming-partner',
-    'arcade': 'gaming-partner',
-    'games': 'gaming-partner',
-    'flea': 'shopping-buddy',
-    'thrifting': 'shopping-buddy',
-    'movie': 'movie-buddy',
-    'event': 'event-plus-one',
-  };
-
-  const categories = new Set<ActivityCategory>();
-
-  for (const act of activities) {
-    const lower = act.toLowerCase();
-    let matched = false;
-    for (const [key, cat] of Object.entries(mapping)) {
-      if (lower.includes(key)) {
-        categories.add(cat);
-        matched = true;
-      }
-    }
-    if (!matched) {
-      categories.add('coffee-chat');
-    }
-  }
-
-  if (categories.size === 0) {
-    categories.add('coffee-chat');
-  }
-
-  return Array.from(categories);
-}
-
 export async function getCompanionById(id: string) {
   try {
     const slugName = id.replace(/-[a-z]{3}$/i, '');
@@ -448,6 +339,7 @@ export async function getCompanionById(id: string) {
         totalReviews: c.totalReviews,
         meetupsCount: c.completedMeetups || c.totalReviews,
         activities: mapToActivityCategories(c.acceptedActivities),
+        rawActivities: c.acceptedActivities,
         acceptedActivities: c.acceptedActivities,
         preferredVenues: c.preferredVenues || [],
         isFreeToday: c.isAvailable,
@@ -491,10 +383,11 @@ export async function getCities(): Promise<CitySummary[]> {
         isActive: c.isActive,
       }));
     }
+    return [];
   } catch (err) {
-    // Fallback
+    console.error('[GET CITIES ERROR]:', err);
+    return [];
   }
-  return MOCK_CITIES;
 }
 
 export async function getActivities(): Promise<ActivitySummary[]> {
@@ -510,8 +403,9 @@ export async function getActivities(): Promise<ActivitySummary[]> {
         icon: a.icon,
       }));
     }
+    return [];
   } catch (err) {
-    // Fallback
+    console.error('[GET ACTIVITIES ERROR]:', err);
+    return [];
   }
-  return MOCK_ACTIVITIES;
 }

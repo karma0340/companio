@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
           error:
             result?.error ||
             "Unable to deliver SMS verification code right now. Please try again in a moment.",
-          provider: result?.provider || "FAST2SMS",
+          provider: isEmail ? "EMAIL" : "SMS",
         },
         { status: 502 }
       );
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
         : `6-digit verification code sent via SMS to ${identifier}.`,
       identifier,
       isEmail,
-      provider: result.provider,
+      provider: isEmail ? "EMAIL" : "SMS",
     });
   } catch (error) {
     console.error("[AUTH OTP SEND ERROR]:", error);

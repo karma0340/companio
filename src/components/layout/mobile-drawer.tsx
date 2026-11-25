@@ -14,6 +14,7 @@ import {
   User,
   Coins,
   HelpCircle,
+  Bookmark,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -191,6 +192,23 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
               </Link>
 
               <Link
+                href="/dashboard?tab=saved"
+                onClick={onClose}
+                className="flex items-center justify-between p-3 hover:bg-sunny/15 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-ink bg-sunny text-ink shadow-brutal-xs group-hover:scale-105 transition-transform">
+                    <Bookmark className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <span className="block font-black text-ink leading-tight">Saved Favorites</span>
+                    <span className="block text-[10px] font-medium text-ink-muted">Your bookmarked companions</span>
+                  </div>
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 text-ink/40 group-hover:text-ink group-hover:translate-x-0.5 transition-all" />
+              </Link>
+
+              <Link
                 href="/profile"
                 onClick={onClose}
                 className="flex items-center justify-between p-3 hover:bg-sky-50 transition-colors group"
@@ -229,7 +247,7 @@ export function MobileDrawer({ isOpen, onClose, selectedCity }: MobileDrawerProp
             </Link>
           ) : (
             <Link
-              href={isAuthenticated ? "/become-a-companion" : "/login?intent=host"}
+              href="/become-a-host"
               onClick={onClose}
               className="flex items-center justify-between p-3 hover:bg-sunny/15 transition-colors group"
             >

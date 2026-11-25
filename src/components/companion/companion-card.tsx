@@ -35,9 +35,25 @@ export function CompanionCard({
     setIsBookmarked(initialBookmarked);
   }, [initialBookmarked]);
 
-  const companionActivities = companion.activities
-    .map((slug) => ACTIVITIES.find((a) => a.slug === slug))
-    .filter(Boolean);
+  const displayActivities =
+    companion.rawActivities && companion.rawActivities.length > 0
+      ? companion.rawActivities.map((label, idx) => {
+          const fallbackSlug =
+            companion.activities[idx] || companion.activities[0] || 'coffee-chat';
+          return {
+            key: `${label}-${idx}`,
+            name: label,
+            slug: fallbackSlug,
+          };
+        })
+      : companion.activities
+          .map((slug) => ACTIVITIES.find((a) => a.slug === slug))
+          .filter(Boolean)
+          .map((act) => ({
+            key: act!.slug,
+            name: act!.name,
+            slug: act!.slug,
+          }));
 
   const handleBookmarkToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -58,7 +74,7 @@ export function CompanionCard({
           setIsBookmarked(Boolean(data.saved));
         }
       } catch {
-        // Ignore network transient error
+        // Ignore transient network error
       }
     } else if (typeof window !== 'undefined') {
       try {
@@ -70,11 +86,15 @@ export function CompanionCard({
       } catch {}
     }
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('companio:bookmarks-updated'));
+    }
+
     toast({
-      title: nextState ? 'Companion Saved' : 'Companion Removed',
+      title: nextState ? 'Saved to Favorites' : 'Removed from Favorites',
       description: nextState
-        ? `${companion.name} was saved to your list.`
-        : `${companion.name} was removed from your list.`,
+        ? `${companion.name} was added to your Saved favorites.`
+        : `${companion.name} was removed from your Saved favorites.`,
     });
   };
 
@@ -156,21 +176,21 @@ export function CompanionCard({
           </div>
         )}
 
-        {/* Activities & Hourly Rate Row */}
+        {/* Registered Hobbies & Hourly Rate Row */}
         <div className="mt-3 flex items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1 min-w-0">
-            {companionActivities.slice(0, 2).map((act) => (
+            {displayActivities.slice(0, 2).map((act) => (
               <span
-                key={act!.slug}
+                key={act.key}
                 className="inline-flex items-center gap-1 rounded-lg border border-ink/20 bg-paper-deep px-2 py-0.5 text-[11px] font-bold text-ink"
               >
-                <ActivityIcon slug={act!.slug} size="xs" />
-                <span className="truncate max-w-[90px]">{act!.name}</span>
+                <ActivityIcon slug={act.slug} size="xs" />
+                <span className="truncate max-w-[90px]">{act.name}</span>
               </span>
             ))}
-            {companionActivities.length > 2 && (
+            {displayActivities.length > 2 && (
               <span className="rounded-lg border border-ink/20 bg-paper px-1.5 py-0.5 text-[10px] font-bold text-ink-muted">
-                +{companionActivities.length - 2}
+                +{displayActivities.length - 2}
               </span>
             )}
           </div>

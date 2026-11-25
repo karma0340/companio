@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck,
@@ -18,6 +18,7 @@ import { calculatePrice, formatRupees } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MessageHostModal } from '@/components/companion/message-host-modal';
 import { useToast } from '@/components/ui/toast';
+import { useAuth } from '@/context/auth-context';
 
 interface PriceSummaryProps {
   companion: Companion;
@@ -25,19 +26,66 @@ interface PriceSummaryProps {
 
 export function PriceSummary({ companion }: PriceSummaryProps) {
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
   const [hours, setHours] = useState(1);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   const price = calculatePrice(companion.hourlyRate, hours);
 
-  const handleToggleSave = () => {
-    setIsSaved(!isSaved);
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetch('/api/companions/bookmarks', { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.success && Array.isArray(data.companionIds)) {
+            setIsSaved(data.companionIds.includes(companion.id));
+          }
+        })
+        .catch(() => {});
+    } else if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('meetzy_saved_companions') || '[]') as string[];
+        setIsSaved(stored.includes(companion.id));
+      } catch {}
+    }
+  }, [isAuthenticated, companion.id]);
+
+  const handleToggleSave = async () => {
+    const nextState = !isSaved;
+    setIsSaved(nextState);
+
+    if (isAuthenticated) {
+      try {
+        const res = await fetch('/api/companions/bookmarks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companionId: companion.id }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIsSaved(Boolean(data.saved));
+        }
+      } catch {}
+    } else if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('meetzy_saved_companions') || '[]') as string[];
+        const updated = nextState
+          ? Array.from(new Set([...stored, companion.id]))
+          : stored.filter((id) => id !== companion.id);
+        localStorage.setItem('meetzy_saved_companions', JSON.stringify(updated));
+      } catch {}
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('companio:bookmarks-updated'));
+    }
+
     toast({
-      title: !isSaved ? 'Companion Saved' : 'Companion Removed',
-      description: !isSaved
-        ? `${companion.name} was added to your saved companions.`
-        : `${companion.name} was removed from your saved list.`,
+      title: nextState ? 'Saved to Favorites' : 'Removed from Favorites',
+      description: nextState
+        ? `${companion.name} was added to your Saved favorites.`
+        : `${companion.name} was removed from your Saved favorites.`,
     });
   };
 

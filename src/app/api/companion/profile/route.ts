@@ -114,6 +114,11 @@ export async function PATCH(req: NextRequest) {
     if (Array.isArray(body.preferredVenues) && body.preferredVenues.length > 0) {
       updates.preferredVenues = body.preferredVenues.map((s: unknown) => String(s).trim()).filter(Boolean);
     }
+    if (Array.isArray(body.acceptedActivities) && body.acceptedActivities.length > 0) {
+      updates.acceptedActivities = body.acceptedActivities
+        .map((s: unknown) => String(s).trim())
+        .filter(Boolean);
+    }
     if (typeof body.isAvailable === "boolean") {
       updates.isAvailable = body.isAvailable;
     }
@@ -132,6 +137,7 @@ export async function PATCH(req: NextRequest) {
         locality: updated.locality || "",
         bio: updated.bio,
         upiId: updated.upiId || "",
+        acceptedActivities: updated.acceptedActivities,
         availabilitySlots: updated.availabilitySlots,
         preferredVenues: updated.preferredVenues,
         isAvailable: updated.isAvailable,

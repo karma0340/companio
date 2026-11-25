@@ -69,6 +69,8 @@ export interface Companion {
   reviewCount: number;
   meetupsCount: number;
   activities: ActivityCategory[];
+  rawActivities?: string[];
+  preferredVenues?: string[];
   isFreeToday: boolean;
   isWeekendOnly?: boolean;
   acceptsWomenOnly?: boolean;

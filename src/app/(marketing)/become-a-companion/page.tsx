@@ -108,7 +108,7 @@ export default function BecomeACompanionPage() {
                 </div>
                 <h3 className="font-display text-lg font-black text-ink">Verify mobile via OTP</h3>
                 <p className="font-body text-xs text-ink-soft leading-relaxed">
-                  Verify your 10-digit Indian mobile number once via Fast2SMS OTP. One verified account powers both Member and Host modes cleanly.
+                  Verify your 10-digit Indian mobile number once via live SMS OTP. One verified account powers both Member and Host modes cleanly.
                 </p>
               </div>
 

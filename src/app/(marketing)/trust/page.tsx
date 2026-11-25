@@ -53,7 +53,7 @@ export default function TrustPage() {
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                   <p>
-                    <strong>Live SMS OTP Verification:</strong> Every host and member verifies their Indian mobile number via Fast2SMS OTP before creating a profile or booking.
+                    <strong>Live SMS OTP Verification:</strong> Every host and member verifies their Indian mobile number via live SMS OTP before creating a profile or booking.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">

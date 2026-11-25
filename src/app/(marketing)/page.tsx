@@ -26,7 +26,10 @@ import { ActivityIcon } from '@/components/ui/activity-icon';
 import { StatusPulse } from '@/components/ui/status-pulse';
 import { ACTIVITIES } from '@/lib/data/activities';
 import { CITIES } from '@/lib/data/cities';
-import { Companion, ActivityCategory } from '@/lib/types';
+import { Companion } from '@/lib/types';
+import { mapApiCompanionToCard } from '@/lib/companion-mapper';
+import { CompanionCardSkeleton } from '@/components/companion/companion-card-skeleton';
+import { useAuth } from '@/context/auth-context';
 import { HowItWorksJourney } from '@/components/how-it-works/how-it-works-journey';
 import { KineticText } from '@/components/landing/kinetic-text';
 import { TiltCard } from '@/components/landing/tilt-card';
@@ -34,114 +37,63 @@ import { SafetyBento } from '@/components/landing/safety-bento';
 import { HostEarningsCalculator } from '@/components/landing/host-earnings-calculator';
 import { ActivityCarousel } from '@/components/landing/activity-carousel';
 import { TopRatedCarousel } from '@/components/landing/top-rated-carousel';
-
-function mapToActivityCategories(activities: string[] = []): ActivityCategory[] {
-  const mapping: Record<string, ActivityCategory> = {
-    'coffee': 'coffee-chat',
-    'cafe': 'coffee-chat',
-    'shopping': 'shopping-buddy',
-    'styling': 'shopping-buddy',
-    'photo': 'photo-walk',
-    'comedy': 'comedy-and-shows',
-    'city': 'city-guide',
-    'walk': 'walk-and-talk',
-    'gym': 'gym-partner',
-    'fitness': 'gym-partner',
-    'museum': 'city-guide',
-    'book': 'study-buddy',
-    'food': 'food-walk',
-    'co-working': 'career-chat',
-    'sports': 'sports-partner',
-    'movie': 'movie-buddy',
-  };
-
-  const categories = new Set<ActivityCategory>();
-  for (const act of activities) {
-    const lower = act.toLowerCase();
-    let matched = false;
-    for (const [key, cat] of Object.entries(mapping)) {
-      if (lower.includes(key)) {
-        categories.add(cat);
-        matched = true;
-      }
-    }
-    if (!matched) categories.add('coffee-chat');
-  }
-  return Array.from(categories);
-}
-
-const DEFAULT_HERO_COMPANION: Companion = {
-  id: 'kashish-chd',
-  name: 'Kashish',
-  age: 22,
-  gender: 'female',
-  city: 'chandigarh',
-  area: 'Sector 35, CHD',
-  tagline: 'Show me around? No - let me show you around Chandigarh & Tricity',
-  about: 'Architecture Student & Coffee Enthusiast in Chandigarh.',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
-  languages: ['English', 'Hindi', 'Punjabi'],
-  hourlyRate: 599,
-  verifiedId: true,
-  verifiedPhoto: true,
-  rating: 4.9,
-  reviewCount: 28,
-  meetupsCount: 28,
-  activities: ['shopping-buddy', 'coffee-chat'],
-  isFreeToday: true,
-  memberSince: '2026',
-  availability: [
-    { days: 'Mon — Fri', hours: '18:00 – 21:00' },
-    { days: 'Sat — Sun', hours: '11:00 – 20:00' },
-  ],
-  reviews: [],
-};
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function HomePage() {
+  const { isAuthenticated } = useAuth();
   const [heroCity, setHeroCity] = useState('chandigarh');
   const [heroActivity, setHeroActivity] = useState('all');
   const [liveCompanions, setLiveCompanions] = useState<Companion[]>([]);
+  const [totalAvailableHosts, setTotalAvailableHosts] = useState<number>(0);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [isLoadingCompanions, setIsLoadingCompanions] = useState<boolean>(true);
+  const freeTodayScrollRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/companions')
+    setIsLoadingCompanions(true);
+    fetch('/api/companions?limit=12', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.companions)) {
-          const mapped: Companion[] = data.companions.map((c: any) => ({
-            id: c.id,
-            name: c.displayName || c.name,
-            age: 24,
-            gender: 'female' as const,
-            city: c.citySlug,
-            area: `${c.city} Central`,
-            tagline: c.shortBio || 'Verified local companion',
-            about: c.bio || c.shortBio || '',
-            avatarUrl: c.avatarUrl,
-            languages: c.spokenLanguages || ['English', 'Hindi'],
-            hourlyRate: c.hourlyRate || 499,
-            verifiedId: true,
-            verifiedPhoto: true,
-            rating: c.ratingAverage || 4.9,
-            reviewCount: c.totalReviews || 12,
-            meetupsCount: c.totalReviews || 12,
-            activities: mapToActivityCategories(c.acceptedActivities || []),
-            isFreeToday: c.isAvailable ?? true,
-            acceptsWomenOnly: false,
-            memberSince: '2026',
-            availability: [
-              { days: 'Mon — Fri', hours: '18:00 – 21:00' },
-              { days: 'Sat — Sun', hours: '11:00 – 20:00' },
-            ],
-            reviews: [],
-          }));
-          setLiveCompanions(mapped);
+          setLiveCompanions(data.companions.map(mapApiCompanionToCard));
+          setTotalAvailableHosts(Number(data.total ?? data.companions.length));
         }
       })
-      .catch((err) => console.error('Failed to load homepage companions:', err));
+      .catch((err) => console.error('Failed to load homepage companions:', err))
+      .finally(() => setIsLoadingCompanions(false));
   }, []);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetch('/api/companions/bookmarks', { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.success && Array.isArray(data.companionIds)) {
+            setSavedIds(data.companionIds);
+          }
+        })
+        .catch(() => {});
+    } else if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('meetzy_saved_companions') || '[]');
+        if (Array.isArray(stored)) setSavedIds(stored);
+      } catch {}
+    }
+  }, [isAuthenticated]);
+
   const freeTodayCompanions = liveCompanions.filter((c) => c.isFreeToday);
-  const featured = liveCompanions[0] || DEFAULT_HERO_COMPANION;
+  const freeTodaySliderItems =
+    freeTodayCompanions.length > 0 ? freeTodayCompanions : liveCompanions;
+  const featured = liveCompanions[0] || null;
+
+  const scrollFreeToday = (direction: 'left' | 'right') => {
+    if (freeTodayScrollRef.current) {
+      freeTodayScrollRef.current.scrollBy({
+        left: direction === 'left' ? -340 : 340,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   const faqItems = [
     {
@@ -342,74 +294,108 @@ export default function HomePage() {
                     }}
                   >
                     <TiltCard maxTilt={6}>
-                      <Link
-                        href={`/companions/${featured.id}`}
-                        className="block group cursor-pointer"
-                        aria-label={`View profile of ${featured.name}`}
-                      >
-                        <div className="relative rounded-2xl border-brutal bg-white p-5 shadow-brutal-lg rotate-1 space-y-4 transition-transform group-hover:scale-[1.02]">
-                          {/* Top Badges */}
+                      {isLoadingCompanions || !featured ? (
+                        <div className="relative rounded-2xl border-brutal bg-white p-5 shadow-brutal-lg rotate-1 space-y-4 animate-pulse">
                           <div className="flex items-center justify-between">
-                            <Badge variant="lime" size="sm" className="inline-flex items-center gap-1.5">
-                              <StatusPulse size="xs" status="active" />
-                              <span>Free in 2 hours</span>
-                            </Badge>
-                            <span className="inline-flex items-center gap-1 font-display text-xs font-black text-ink-muted">
-                              <MapPin className="h-3 w-3 text-ink-muted" />
-                              <span>{featured.area}</span>
-                            </span>
+                            <div className="h-5 w-28 rounded-full bg-paper-deep" />
+                            <div className="h-4 w-24 rounded bg-paper-deep" />
                           </div>
-
-                          {/* Companion Avatar & Info */}
                           <div className="flex gap-4 items-center">
-                            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-brutal bg-paper-deep">
-                              <Image
-                                src={featured.avatarUrl}
-                                alt={featured.name}
-                                fill
-                                sizes="80px"
-                                className="object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            </div>
-                            <div>
-                              <h3 className="font-display text-2xl font-black text-ink group-hover:text-lavender transition-colors">
-                                {featured.name} · {featured.age}
-                              </h3>
-                              <p className="text-xs font-bold text-ink-soft">
-                                Verified Meetzy Club Companion
-                              </p>
-                              <div className="mt-1.5 flex gap-1">
-                                <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-sunny px-1.5 py-0.5 text-[10px] font-bold text-ink">
-                                  <ActivityIcon slug="shopping-buddy" size="xs" />
-                                  <span>Shopping</span>
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-paper-deep px-1.5 py-0.5 text-[10px] font-bold text-ink">
-                                  <ActivityIcon slug="coffee-chat" size="xs" />
-                                  <span>Coffee</span>
-                                </span>
+                            <div className="h-20 w-20 rounded-xl border-2 border-ink/20 bg-paper-deep shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-6 w-32 rounded bg-paper-deep" />
+                              <div className="h-3 w-40 rounded bg-paper-deep" />
+                              <div className="flex gap-1.5">
+                                <div className="h-4 w-16 rounded bg-paper-deep" />
+                                <div className="h-4 w-14 rounded bg-paper-deep" />
                               </div>
                             </div>
                           </div>
-
-                          {/* Tagline Quote */}
-                          <div className="rounded-xl border-brutal-sm bg-paper/70 p-3 text-xs font-medium text-ink-soft leading-relaxed italic">
-                            "{featured.tagline}"
-                          </div>
-
-                          {/* Footer Rate & CTA */}
+                          <div className="h-14 rounded-xl bg-paper-deep" />
                           <div className="flex items-center justify-between pt-2 border-t-brutal-sm">
-                            <div>
-                              <span className="text-[10px] uppercase font-black text-ink-muted block">
-                                Hourly Rate
-                              </span>
-                              <span className="font-display text-lg font-black text-ink">₹{featured.hourlyRate} /hr</span>
-                            </div>
-                            <div className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-lime px-4 py-2 font-display text-xs font-black text-ink shadow-brutal-sm group-hover:bg-sunny btn-press transition-colors">
-                              <span>View {featured.name} →</span>
-                            </div>
+                            <div className="h-6 w-20 rounded bg-paper-deep" />
+                            <div className="h-9 w-28 rounded-xl bg-paper-deep" />
                           </div>
                         </div>
-                      </Link>
+                      ) : (
+                        <Link
+                          href={`/companions/${featured.id}`}
+                          className="block group cursor-pointer"
+                          aria-label={`View profile of ${featured.name}`}
+                        >
+                          <div className="relative rounded-2xl border-brutal bg-white p-5 shadow-brutal-lg rotate-1 space-y-4 transition-transform group-hover:scale-[1.02]">
+                            {/* Top Badges */}
+                            <div className="flex items-center justify-between">
+                              <Badge variant="lime" size="sm" className="inline-flex items-center gap-1.5">
+                                <StatusPulse size="xs" status="active" />
+                                <span>Available Today</span>
+                              </Badge>
+                              <span className="inline-flex items-center gap-1 font-display text-xs font-black text-ink-muted">
+                                <MapPin className="h-3 w-3 text-ink-muted" />
+                                <span>{featured.area || featured.city}</span>
+                              </span>
+                            </div>
+
+                            {/* Companion Avatar & Info */}
+                            <div className="flex gap-4 items-center">
+                              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-brutal bg-paper-deep">
+                                <Image
+                                  src={featured.avatarUrl}
+                                  alt={featured.name}
+                                  fill
+                                  sizes="80px"
+                                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                              </div>
+                              <div>
+                                <h3 className="font-display text-2xl font-black text-ink group-hover:text-lavender transition-colors">
+                                  {featured.name} · {featured.age}
+                                </h3>
+                                <p className="text-xs font-bold text-ink-soft">
+                                  Verified Meetzy Club Host
+                                </p>
+                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                  {(featured.rawActivities && featured.rawActivities.length > 0
+                                    ? featured.rawActivities.slice(0, 2)
+                                    : ['Coffee & Chats']
+                                  ).map((hobby, hIdx) => (
+                                    <span
+                                      key={hobby}
+                                      className="inline-flex items-center gap-1 rounded-md border-brutal-sm bg-sunny px-1.5 py-0.5 text-[10px] font-bold text-ink"
+                                    >
+                                      <ActivityIcon
+                                        slug={featured.activities[hIdx] || 'coffee-chat'}
+                                        size="xs"
+                                      />
+                                      <span>{hobby}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Tagline Quote */}
+                            <div className="rounded-xl border-brutal-sm bg-paper/70 p-3 text-xs font-medium text-ink-soft leading-relaxed italic line-clamp-2">
+                              &ldquo;{featured.tagline}&rdquo;
+                            </div>
+
+                            {/* Footer Rate & CTA */}
+                            <div className="flex items-center justify-between pt-2 border-t-brutal-sm">
+                              <div>
+                                <span className="text-[10px] uppercase font-black text-ink-muted block">
+                                  Hourly Rate
+                                </span>
+                                <span className="font-display text-lg font-black text-ink">
+                                  ₹{featured.hourlyRate} /hr
+                                </span>
+                              </div>
+                              <div className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-lime px-4 py-2 font-display text-xs font-black text-ink shadow-brutal-sm group-hover:bg-sunny btn-press transition-colors">
+                                <span>View {featured.name} →</span>
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      )}
                     </TiltCard>
                   </motion.div>
                 </div>
@@ -438,21 +424,73 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <Link href="/explore?freeToday=true">
-                <Button variant="outline" size="sm" className="font-display font-black">
-                  <span>See all {freeTodayCompanions.length} hosts →</span>
-                </Button>
-              </Link>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => scrollFreeToday('left')}
+                  aria-label="Swipe left"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border-brutal-sm bg-white text-ink shadow-brutal-xs hover:bg-sunny transition cursor-pointer"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollFreeToday('right')}
+                  aria-label="Swipe right"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border-brutal-sm bg-white text-ink shadow-brutal-xs hover:bg-sunny transition cursor-pointer"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                <Link href="/explore?freeToday=true">
+                  <Button variant="outline" size="sm" className="font-display font-black">
+                    <span>
+                      Explore More ({totalAvailableHosts || freeTodaySliderItems.length}) →
+                    </span>
+                  </Button>
+                </Link>
+              </div>
             </div>
 
-            {/* Grid of Free Today Hosts with Tilt Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(freeTodayCompanions.length > 0 ? freeTodayCompanions : liveCompanions).slice(0, 3).map((comp) => (
-                <TiltCard key={comp.id} maxTilt={5}>
-                  <CompanionCard companion={comp} />
-                </TiltCard>
-              ))}
-            </div>
+            {/* 4-Column Desktop Swipe Slider (12 live hosts with touch swipe & arrows) */}
+            {isLoadingCompanions ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <CompanionCardSkeleton key={idx} />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div
+                  ref={freeTodayScrollRef}
+                  className="flex gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 scrollbar-none snap-x snap-mandatory scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {freeTodaySliderItems.map((comp) => (
+                    <div
+                      key={comp.id}
+                      className="w-[270px] sm:w-[calc(50%-10px)] lg:w-[calc(25%-15px)] shrink-0 snap-start"
+                    >
+                      <TiltCard maxTilt={4}>
+                        <CompanionCard
+                          companion={comp}
+                          initialBookmarked={savedIds.includes(comp.id)}
+                        />
+                      </TiltCard>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-center">
+                  <Link
+                    href="/explore"
+                    className="inline-flex items-center gap-2 rounded-2xl border-2 border-ink bg-white px-7 py-3 font-display text-sm font-black text-ink shadow-brutal hover:bg-lime transition-all btn-press"
+                  >
+                    <span>Show All Companions in Explore</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -510,8 +548,12 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Animated Horizontal Carousel with Category Filters */}
-            <TopRatedCarousel companions={liveCompanions} />
+            {/* Animated Horizontal 4-Card Carousel with Category Filters */}
+            <TopRatedCarousel
+              companions={liveCompanions}
+              isLoading={isLoadingCompanions}
+              savedIds={savedIds}
+            />
           </div>
         </section>
 

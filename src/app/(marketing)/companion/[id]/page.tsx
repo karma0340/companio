@@ -183,22 +183,46 @@ export default async function CompanionProfilePage({ params }: CompanionProfileP
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {companionActivities.map((act) => act && (
-                    <div
-                      key={act.slug}
-                      className="flex items-center gap-3.5 rounded-2xl border-brutal-sm bg-paper p-3.5 shadow-brutal-xs"
-                    >
-                      <ActivityIcon slug={act.slug} size="md" variant="tile" animated />
-                      <div>
-                        <h4 className="font-display text-sm font-extrabold text-ink">
-                          {act.name}
-                        </h4>
-                        <p className="font-body text-xs text-ink-soft mt-0.5">
-                          {act.tagline}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                  {companion.rawActivities && companion.rawActivities.length > 0
+                    ? companion.rawActivities.map((hobby, idx) => {
+                        const slug = companion.activities[idx] || companion.activities[0] || 'coffee-chat';
+                        const matchedMeta = ACTIVITIES.find((a) => a.slug === slug);
+                        return (
+                          <div
+                            key={`${hobby}-${idx}`}
+                            className="flex items-center gap-3.5 rounded-2xl border-brutal-sm bg-paper p-3.5 shadow-brutal-xs"
+                          >
+                            <ActivityIcon slug={slug} size="md" variant="tile" animated />
+                            <div>
+                              <h4 className="font-display text-sm font-extrabold text-ink">
+                                {hobby}
+                              </h4>
+                              <p className="font-body text-xs text-ink-soft mt-0.5">
+                                {matchedMeta?.tagline || 'Public venue social activity'}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    : companionActivities.map(
+                        (act) =>
+                          act && (
+                            <div
+                              key={act.slug}
+                              className="flex items-center gap-3.5 rounded-2xl border-brutal-sm bg-paper p-3.5 shadow-brutal-xs"
+                            >
+                              <ActivityIcon slug={act.slug} size="md" variant="tile" animated />
+                              <div>
+                                <h4 className="font-display text-sm font-extrabold text-ink">
+                                  {act.name}
+                                </h4>
+                                <p className="font-body text-xs text-ink-soft mt-0.5">
+                                  {act.tagline}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                      )}
                 </div>
               </div>
 

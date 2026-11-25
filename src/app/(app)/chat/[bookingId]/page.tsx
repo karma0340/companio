@@ -42,7 +42,7 @@ export default function ChatRoomPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, refreshSession } = useAuth();
-  const bookingId = String(params.bookingId || "bkg_seed_01");
+  const bookingId = String(params.bookingId || "");
 
   const [booking, setBooking] = useState<BookingRecord | null>(null);
   const [messages, setMessages] = useState<ChatMessageRecord[]>([]);
@@ -114,7 +114,7 @@ export default function ChatRoomPage() {
     const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
     const protocol = isHttps ? "wss:" : "ws:";
     const port = isHttps ? "" : ":3001";
-    const wsUrl = `${protocol}//${window.location.hostname}${port}?bookingId=${bookingId}&token=demo_token_bypass_${currentUserId}`;
+    const wsUrl = `${protocol}//${window.location.hostname}${port}?bookingId=${bookingId}&userId=${encodeURIComponent(currentUserId)}`;
 
     let ws: WebSocket | null = null;
     try {
