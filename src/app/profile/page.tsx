@@ -246,7 +246,7 @@ export default function ProfilePage() {
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <Badge variant="lime" size="sm">
-                    Verified Member
+                    {user?.phoneVerified ? 'OTP Verified' : 'Verified Member'}
                   </Badge>
                   <span className="text-xs font-mono font-bold text-ink-muted">
                     {displayPhone}
@@ -427,9 +427,15 @@ export default function ProfilePage() {
                       Mobile Number (+91)
                     </label>
                     {hasSavedPhone && (
-                      <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded">
-                        Saved
-                      </span>
+                      user?.phoneVerified ? (
+                        <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded">
+                          OTP Verified
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black uppercase text-ink bg-[#D4F7A5] border border-ink px-1.5 py-0.5 rounded">
+                          Registered
+                        </span>
+                      )
                     )}
                   </div>
                   <div className="relative">

@@ -205,6 +205,7 @@ export async function GET(request: NextRequest) {
     const sessionPayload: UserTokenPayload = {
       userId: dbUser.id,
       phone: dbUser.phone || "",
+      phoneVerified: Boolean(dbUser.phone && !dbUser.googleId && !dbUser.emailVerified),
       email: dbUser.email || email,
       name: dbUser.name || googleName || "Member",
       role: resolvedRole as "MEMBER" | "COMPANION" | "ADMIN",
@@ -217,11 +218,11 @@ export async function GET(request: NextRequest) {
 
     const token = signUserToken(sessionPayload, "7d");
 
-    // Enforce member onboarding if profile or gender hasn't been completed yet
+    // Enforce member onboarding if profile, gender, or phone hasn't been completed yet
     const needsOnboarding =
       intent !== "host" &&
       dbUser.role === "MEMBER" &&
-      (!dbUser.onboardingCompleted || !dbUser.gender);
+      (!dbUser.onboardingCompleted || !dbUser.gender || !dbUser.phone);
 
     let destination = "/explore";
     if (intent === "host") {

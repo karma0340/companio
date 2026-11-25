@@ -126,6 +126,7 @@ function CompanionApplyForm() {
 
   const sessionPhoneDigits = (user?.phone || memberProfile?.phone || "").replace(/\D/g, "").slice(-10);
   const hasSessionPhone = sessionPhoneDigits.length === 10;
+  const isPhoneOtpVerified = Boolean(user?.phoneVerified && hasSessionPhone);
   const prefilledDbRef = useRef({ member: false, host: false });
 
   // Pre-fill all known profile and host details from DB via session snapshot
@@ -420,6 +421,39 @@ function CompanionApplyForm() {
         setErrorMessage("Please enter your full legal name, valid 10-digit Indian mobile number, and age (18+).");
         return;
       }
+
+      // If this Google/Email account had no saved mobile number yet, persist Step 1 details (including mobile) to DB now
+      if (!hasSessionPhone && phoneValidation.isValid && isAuthenticated) {
+        setIsSubmitting(true);
+        try {
+          const cityObj = CITIES.find((c) => c.name === formData.city);
+          const saveRes = await fetch("/api/user/member-profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fullName: formData.fullName.trim(),
+              phone: phoneValidation.nationalNumber,
+              gender: formData.gender,
+              city: cityObj?.slug || formData.city.toLowerCase(),
+              area: formData.locality.trim(),
+            }),
+          });
+          const saveJson = await saveRes.json().catch(() => ({}));
+          if (!saveRes.ok) {
+            setErrorMessage(saveJson.error || "Could not save your mobile number to your profile.");
+            setIsSubmitting(false);
+            return;
+          }
+          await refreshSession();
+        } catch {
+          setErrorMessage("Network error saving your mobile number. Please retry.");
+          setIsSubmitting(false);
+          return;
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
+
       setStep(2);
       window.scrollTo(0, 0);
       return;
@@ -786,11 +820,15 @@ function CompanionApplyForm() {
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <label className="block text-xs font-black uppercase text-ink">
-                            {hasSessionPhone ? "Verified Mobile Number" : "Mobile Number (+91)"}
+                            {isPhoneOtpVerified ? "Verified Mobile Number" : hasSessionPhone ? "Registered Mobile Number" : "Mobile Number (+91)"}
                           </label>
-                          {hasSessionPhone ? (
+                          {isPhoneOtpVerified ? (
                             <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded">
                               OTP Verified
+                            </span>
+                          ) : hasSessionPhone ? (
+                            <span className="text-[10px] font-black uppercase text-ink bg-[#D4F7A5] border border-ink px-1.5 py-0.5 rounded">
+                              Registered
                             </span>
                           ) : (
                             <span className="text-[10px] font-black uppercase text-ink bg-sunny/60 border border-ink px-1.5 py-0.5 rounded">

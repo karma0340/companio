@@ -389,7 +389,7 @@ function LoginContent() {
                       Signed in as {user.name || memberProfile?.fullName || 'Member'}
                     </span>
                     <span className="font-mono text-[11px] font-bold text-ink-muted block truncate">
-                      +91 {user.phone.replace('+91', '')} · {user.coinBalance ?? 100} Coins
+                      {user.phone ? `+91 ${user.phone.replace('+91', '')}` : user.email || 'Account'} · {user.coinBalance ?? 100} Coins
                     </span>
                   </div>
                 </div>

@@ -94,6 +94,10 @@ export async function getInitialAuthSnapshot(): Promise<InitialAuthSnapshot> {
 
       const resolvedName = dbUser.name || session.name || "Member";
       const resolvedPhone = dbUser.phone || "";
+      const isPhoneVerified = Boolean(
+        resolvedPhone &&
+          (session.phoneVerified || (!dbUser.emailVerified && !dbUser.googleId))
+      );
       const resolvedCity = dbUser.city || dbUser.companion?.city?.slug || "bengaluru";
       const resolvedArea = dbUser.area || dbUser.companion?.locality || "";
       const resolvedBio = dbUser.bio || dbUser.companion?.bio || "";
@@ -103,6 +107,7 @@ export async function getInitialAuthSnapshot(): Promise<InitialAuthSnapshot> {
       userDetails = {
         id: dbUser.id,
         phone: resolvedPhone,
+        phoneVerified: isPhoneVerified,
         email: dbUser.email,
         name: resolvedName,
         avatarUrl: dbUser.companion?.avatarUrl || dbUser.avatarUrl || null,
@@ -175,6 +180,7 @@ export async function getInitialAuthSnapshot(): Promise<InitialAuthSnapshot> {
       userDetails = {
         id: session.userId,
         phone: session.phone || "",
+        phoneVerified: Boolean(session.phone && session.phoneVerified),
         email: session.email || null,
         name: session.name || "Member",
         avatarUrl: session.avatarUrl || null,

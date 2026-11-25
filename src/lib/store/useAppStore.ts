@@ -6,6 +6,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 export interface User {
   id: string;
   phone: string;
+  phoneVerified?: boolean;
   email?: string | null;
   name?: string;
   avatarUrl?: string | null;
@@ -151,6 +152,7 @@ export const useAppStore = create<AppState>()(
               const userObj: User = {
                 id: u.id,
                 phone: u.phone,
+                phoneVerified: Boolean(u.phoneVerified),
                 email: u.email,
                 name: u.name,
                 avatarUrl: u.avatarUrl || data.hostProfile?.avatarUrl || data.memberProfile?.avatarUrl || null,

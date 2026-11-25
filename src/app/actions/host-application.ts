@@ -304,6 +304,10 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
     await setSessionCookie({
       userId: updatedUser.id,
       phone: updatedUser.phone || session.phone || "",
+      phoneVerified: Boolean(
+        (updatedUser.phone || session.phone) &&
+          (session.phoneVerified || (!updatedUser.emailVerified && !updatedUser.googleId))
+      ),
       email: updatedUser.email || null,
       name: updatedUser.name || cleanDisplayName,
       role: 'COMPANION',

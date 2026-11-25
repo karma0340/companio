@@ -357,9 +357,15 @@ export default function MemberOnboardingPage() {
                   Mobile Number (+91)
                 </label>
                 {hasSessionPhone && (
-                  <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded">
-                    Saved
-                  </span>
+                  user?.phoneVerified ? (
+                    <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded">
+                      OTP Verified
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black uppercase text-ink bg-[#D4F7A5] border border-ink px-1.5 py-0.5 rounded">
+                      Registered
+                    </span>
+                  )
                 )}
               </div>
               <div className="relative">

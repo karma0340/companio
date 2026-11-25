@@ -166,7 +166,8 @@ export async function POST(req: NextRequest) {
 
     let updatedUser: any;
     if (existingUser) {
-      const shouldSetPhone = Boolean(validatedPhone && (!existingUser.phone || existingUser.phone !== validatedPhone));
+      // Never overwrite an already-registered phone number on the profile
+      const shouldSetPhone = Boolean(validatedPhone && !existingUser.phone);
       updatedUser = await prisma.user.update({
         where: { id: existingUser.id },
         data: {
@@ -233,6 +234,10 @@ export async function POST(req: NextRequest) {
       await setSessionCookie({
         userId: updatedUser.id,
         phone: updatedUser.phone || "",
+        phoneVerified: Boolean(
+          updatedUser.phone &&
+            (session.phoneVerified || (!updatedUser.emailVerified && !updatedUser.googleId))
+        ),
         email: updatedUser.email || session.email || null,
         name: updatedUser.name || fullName,
         role: updatedUser.role || "MEMBER",

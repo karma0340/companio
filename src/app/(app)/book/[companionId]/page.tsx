@@ -154,8 +154,9 @@ export default function BookPage({ params }: BookPageProps) {
       } else if (user?.name && user.name !== 'Member') {
         setMemberName(user.name);
       }
-      if (user?.phone) {
-        setMemberPhone(user.phone.replace(/\D/g, '').slice(-10));
+      const knownPhone = user?.phone || memberProfile?.phone || '';
+      if (knownPhone) {
+        setMemberPhone(knownPhone.replace(/\D/g, '').slice(-10));
       }
     }
   }, [user, memberProfile]);
@@ -909,15 +910,15 @@ export default function BookPage({ params }: BookPageProps) {
                 <input
                   type="tel"
                   maxLength={10}
-                  readOnly={Boolean(isAuthenticated && user?.phone)}
+                  readOnly={Boolean(isAuthenticated && (user?.phone || memberProfile?.phone))}
                   value={memberPhone}
                   onChange={(e) => {
-                    if (isAuthenticated && user?.phone) return;
+                    if (isAuthenticated && (user?.phone || memberProfile?.phone)) return;
                     setMemberPhone(e.target.value.replace(/\D/g, ''));
                   }}
                   placeholder="10-digit Phone (+91)"
                   className={`rounded-xl border-2 border-ink px-3 py-2 font-mono text-xs font-bold text-ink focus:outline-none ${
-                    isAuthenticated && user?.phone
+                    isAuthenticated && (user?.phone || memberProfile?.phone)
                       ? 'bg-paper-deep/60 cursor-not-allowed'
                       : 'bg-paper focus:bg-white'
                   }`}

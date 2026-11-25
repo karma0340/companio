@@ -15,6 +15,7 @@ export function getJwtSecret(): string {
 export interface UserTokenPayload {
   userId: string;
   phone?: string | null;
+  phoneVerified?: boolean;
   email?: string | null;
   name?: string | null;
   role: "MEMBER" | "COMPANION" | "ADMIN";

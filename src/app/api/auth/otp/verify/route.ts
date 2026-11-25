@@ -62,7 +62,6 @@ export async function POST(req: NextRequest) {
       }
 
       if (isEmail) {
-        const dummyPhone = `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`;
         dbUser = await prisma.user.upsert({
           where: { email: identifier },
           update: {
@@ -71,7 +70,7 @@ export async function POST(req: NextRequest) {
           },
           create: {
             email: identifier,
-            phone: dummyPhone,
+            phone: null,
             name: name || "Member",
             role: "MEMBER",
             walletBalance: 0,
@@ -196,15 +195,19 @@ export async function POST(req: NextRequest) {
     const requestedIntent = String(body.intent || '').toLowerCase();
     const effectiveRole = requestedIntent === 'host' && (hasCompanion || hostProfile) ? 'COMPANION' : 'MEMBER';
 
+    const resolvedPhone = isEmail ? dbUser?.phone || "" : identifier;
+    const isPhoneVerified = !isEmail;
+
     // Set secure HTTP-only session cookie
     const token = await setSessionCookie({
       userId,
-      phone: identifier,
-      email: isEmail ? identifier : null,
+      phone: resolvedPhone,
+      phoneVerified: isPhoneVerified,
+      email: isEmail ? identifier : dbUser?.email || null,
       name: dbUser?.name || name || "Member",
       role: effectiveRole as any,
       activeRole: effectiveRole === "COMPANION" ? "host" : "member",
-      avatarUrl: dbUser?.companion?.avatarUrl || null,
+      avatarUrl: dbUser?.companion?.avatarUrl || dbUser?.avatarUrl || null,
       isUnlocked,
       activePassTier,
       passExpiresAt: passExpiresAt ? passExpiresAt.toISOString() : null,
@@ -215,8 +218,9 @@ export async function POST(req: NextRequest) {
       user: {
         id: userId,
         identifier,
-        phone: identifier,
-        email: isEmail ? identifier : undefined,
+        phone: resolvedPhone,
+        phoneVerified: isPhoneVerified,
+        email: isEmail ? identifier : dbUser?.email || undefined,
         name: dbUser?.name || name || "Member",
         avatarUrl: dbUser?.companion?.avatarUrl || null,
         role: effectiveRole,
