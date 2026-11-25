@@ -108,17 +108,17 @@ export default function TermsPage() {
 
             <section className="space-y-3">
               <h2 className="font-display text-lg sm:text-xl font-black text-ink">
-                4. Access Passes &amp; Meetup Pricing
+                4. Open Discovery &amp; Meetup Pricing
               </h2>
               <p>
                 The platform utilizes a transparent, zero-subscription-trap billing model:
               </p>
               <ul className="list-disc pl-5 space-y-1.5 text-ink-soft">
                 <li>
-                  <strong className="text-ink">Access Passes:</strong> Members purchase a Pass (1 Month: ₹199, 3 Months: ₹499 Recommended, 12 Months: ₹999, or Lifetime: ₹1,999) to unlock unblurred profiles and send meetup requests. Passes are paid directly via Razorpay and <strong>never auto-renew or auto-debit</strong>.
+                  <strong className="text-ink">Free Profile Discovery:</strong> Browsing companion profiles on Explore, filtering by city or activity, and viewing host bios and reviews is free without paywall blur.
                 </li>
                 <li>
-                  <strong className="text-ink">Meetup Hourly Rate:</strong> Each meetup is paid separately at the companion&apos;s published hourly rate (inclusive of statutory GST). Meetup payments are deposited directly into safe escrow before session confirmation.
+                  <strong className="text-ink">Meetup Hourly Rate:</strong> Each meetup is paid per session at the companion&apos;s published hourly rate via Razorpay or Wallet Coins (GST &amp; gateway charges included). Meetup payments are held safely in escrow before session confirmation.
                 </li>
               </ul>
             </section>
@@ -134,16 +134,13 @@ export default function TermsPage() {
                 </div>
                 <ul className="list-disc pl-5 space-y-1 text-ink-soft">
                   <li>
-                    <strong className="text-ink">Declined or Withdrawn Requests:</strong> If a companion declines your meetup request, or if you withdraw your booking before the companion accepts, 100% of the funds are credited back to your Companio wallet immediately.
+                    <strong className="text-ink">Declined or Withdrawn Requests:</strong> If a companion declines your meetup request, or if you cancel your booking before completion, 100% of your meetup payment is refunded (credited instantly back to your Wallet Coins for wallet bookings, or initiated for card/UPI payments).
                   </li>
                   <li>
-                    <strong className="text-ink">12-Hour Companion Acceptance SLA:</strong> If a companion does not accept the request within 12 hours (excluding overnight hours 11:00 PM to 8:00 AM), the reservation auto-expires and the full amount is returned to your wallet within approximately one hour of the deadline.
+                    <strong className="text-ink">12-Hour Companion Acceptance SLA:</strong> If a companion does not accept the request within 12 hours, the reservation auto-expires and 100% of the escrow amount is marked for automatic refund.
                   </li>
                   <li>
-                    <strong className="text-ink">Wallet Re-use or Bank Withdrawal:</strong> Wallet funds can be applied immediately to book any other companion. Alternatively, members can request a refund back to their original card/UPI minus a 12% banking processing fee.
-                  </li>
-                  <li>
-                    <strong className="text-ink">No-Show Protection:</strong> If a companion confirms a meetup but fails to arrive at the agreed public venue, the member can tap &ldquo;No, it didn&apos;t happen&rdquo; on their dashboard. Our safety team reviews the location timestamps and issues an immediate full refund.
+                    <strong className="text-ink">No-Show Protection:</strong> If a companion confirms a meetup but fails to arrive at the agreed public venue without PIN verification, no escrow is released and our safety team issues a full refund.
                   </li>
                 </ul>
               </div>
@@ -165,10 +162,10 @@ export default function TermsPage() {
 
             <section className="space-y-3">
               <h2 className="font-display text-lg sm:text-xl font-black text-ink">
-                7. Virtual Coins Economy
+                7. Virtual Coins Economy &amp; Accept-First Chat
               </h2>
               <p>
-                Coins power direct in-app messaging with hosts (1 Coin = INR 1). Every new member receives 100 promotional coins upon verified registration. Coins hold no cash redemption value outside the platform and cannot be exchanged for cash, nor can they be used to purchase Access Passes. If a companion fails to reply to an initiated chat message within 48 hours, the spent coins are automatically refunded to the member&apos;s balance.
+                Coins power direct in-app messaging and meetup wallet bookings (1 Coin = INR 1). Every new member receives 100 promotional bonus coins upon verified registration. To prevent unsolicited spam, chat with a companion opens only after they accept your meetup request, after which member messages cost 10 Coins per sent message (starting with your bonus coins; host replies are free). Coins hold no cash redemption value outside the platform.
               </p>
             </section>
 

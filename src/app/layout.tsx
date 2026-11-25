@@ -56,6 +56,10 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${caveat.variable} ${outfit.variable} ${fraunces.variable} ${bricolage.variable} ${dmSans.variable}`}
     >
+      <head>
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+      </head>
       <body className="min-h-screen bg-paper text-ink antialiased font-sans">
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
         <AuthProvider>

@@ -14,9 +14,6 @@ export interface ChatMessageRecord {
   sentAt: string;
 }
 
-// In-memory cache synchronized with database messages
-const chatHistoryMap = new Map<string, ChatMessageRecord[]>();
-
 export interface AddMessageInput {
   bookingId: string;
   senderId: string;
@@ -30,7 +27,18 @@ export async function addChatMessage(input: AddMessageInput): Promise<ChatMessag
   const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const sentAt = new Date().toISOString();
 
-  const record: ChatMessageRecord = {
+  await prisma.chatMessage.create({
+    data: {
+      id: msgId,
+      bookingId: input.bookingId,
+      senderId: input.senderId,
+      content: filterResult.filteredContent,
+      isRedacted: !filterResult.isClean,
+      redactionReason: filterResult.redactionReason,
+    },
+  });
+
+  return {
     id: msgId,
     bookingId: input.bookingId,
     senderId: input.senderId,
@@ -42,65 +50,45 @@ export async function addChatMessage(input: AddMessageInput): Promise<ChatMessag
     violationsDetected: filterResult.violationsDetected,
     sentAt,
   };
-
-  // 1. In-memory storage
-  const existing = chatHistoryMap.get(input.bookingId) || [];
-  existing.push(record);
-  chatHistoryMap.set(input.bookingId, existing);
-
-  // 2. Database persistence with resilient fallback
-  try {
-    await prisma.chatMessage.create({
-      data: {
-        id: msgId,
-        bookingId: input.bookingId,
-        senderId: input.senderId,
-        content: filterResult.filteredContent,
-        isRedacted: !filterResult.isClean,
-        redactionReason: filterResult.redactionReason,
-      },
-    });
-  } catch (err) {
-    console.warn("[CHAT PRISMA FALLBACK]:", (err as Error).message);
-  }
-
-  return record;
 }
 
 export async function getChatMessagesForBooking(bookingId: string): Promise<ChatMessageRecord[]> {
-  const inMem = chatHistoryMap.get(bookingId);
-  if (inMem && inMem.length > 0) {
-    return inMem;
-  }
-
-  // Fallback to database
   try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        companion: { select: { userId: true, displayName: true } },
+      },
+    });
+
+    const hostUserId = booking?.companion?.userId;
+
     const dbMsgs = await prisma.chatMessage.findMany({
       where: { bookingId },
       include: {
-        sender: { select: { id: true, name: true, role: true } },
+        sender: { select: { id: true, name: true } },
       },
       orderBy: { sentAt: "asc" },
     });
 
-    if (dbMsgs && dbMsgs.length > 0) {
-      const records: ChatMessageRecord[] = dbMsgs.map((m) => ({
+    return dbMsgs.map((m) => {
+      const isHostSender = Boolean(hostUserId && m.senderId === hostUserId);
+      return {
         id: m.id,
         bookingId: m.bookingId,
         senderId: m.senderId,
-        senderName: m.sender.name || "Member",
-        senderRole: m.sender.role === "COMPANION" ? "COMPANION" : "MEMBER",
+        senderName: isHostSender
+          ? booking?.companion?.displayName || m.sender.name || "Host"
+          : m.sender.name || "Member",
+        senderRole: isHostSender ? "COMPANION" : "MEMBER",
         content: m.content,
         isRedacted: m.isRedacted,
         redactionReason: m.redactionReason || undefined,
         sentAt: m.sentAt.toISOString(),
-      }));
-      chatHistoryMap.set(bookingId, records);
-      return records;
-    }
+      };
+    });
   } catch (err) {
-    console.warn("[GET CHAT PRISMA FALLBACK]:", (err as Error).message);
+    console.warn("[GET CHAT PRISMA ERROR]:", (err as Error).message);
+    return [];
   }
-
-  return inMem || [];
 }

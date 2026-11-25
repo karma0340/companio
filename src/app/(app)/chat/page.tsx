@@ -9,7 +9,7 @@ import { BookingRecord } from "@/lib/bookings";
 import { useAuth } from "@/context/auth-context";
 
 export default function ChatIndexPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -100,26 +100,38 @@ export default function ChatIndexPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {bookings.map((b) => (
+              {bookings.map((b) => {
+                const isHostViewer = Boolean(user?.id && b.companionUserId === user.id);
+                const partnerName = isHostViewer ? b.memberName : b.companionName;
+                return (
                 <Link
                   key={b.id}
                   href={`/chat/${b.id}`}
                   className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border-brutal bg-white p-5 shadow-brutal transition hover:shadow-brutal-lg"
                 >
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 border-ink bg-paper-deep">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={b.companionAvatar}
-                        alt={b.companionName}
-                        className="h-full w-full object-cover"
-                      />
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 border-ink bg-paper-deep flex items-center justify-center">
+                      {isHostViewer ? (
+                        <span className="font-display text-lg font-black text-ink">
+                          {partnerName.charAt(0).toUpperCase()}
+                        </span>
+                      ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={b.companionAvatar}
+                          alt={partnerName}
+                          className="h-full w-full object-cover"
+                        />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="font-display text-base font-black text-ink truncate">
-                          {b.companionName}
+                          {partnerName}
                         </h2>
+                        <span className="rounded-lg border border-ink bg-paper px-2 py-0.5 text-[10px] font-black uppercase text-ink">
+                          {isHostViewer ? "Member" : "Host"}
+                        </span>
                         <span className="rounded-lg border border-ink bg-[#D4F7A5] px-2 py-0.5 text-[10px] font-black uppercase text-ink">
                           {b.status.replace(/_/g, " ")}
                         </span>
@@ -136,6 +148,7 @@ export default function ChatIndexPage() {
                             {new Date(b.scheduledDate).toLocaleDateString("en-IN", {
                               day: "numeric",
                               month: "short",
+                              timeZone: "Asia/Kolkata",
                             })}
                           </span>
                         </span>
@@ -150,7 +163,8 @@ export default function ChatIndexPage() {
                     </span>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

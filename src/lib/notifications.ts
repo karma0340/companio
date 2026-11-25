@@ -27,20 +27,12 @@ export async function getUserNotifications(userId: string): Promise<{
         coinBalance: true,
         referralCode: true,
         role: true,
+        companion: {
+          select: { id: true, displayName: true },
+        },
         coinTransactions: {
           orderBy: { createdAt: "desc" },
           take: 5,
-        },
-        chatUnlocksInitiated: {
-          where: {
-            status: { in: ["ACTIVE", "HOST_RESPONDED"] },
-            tier: "TWENTY_FOUR_HOURS",
-          },
-          include: {
-            companion: { select: { displayName: true } },
-          },
-          orderBy: { createdAt: "desc" },
-          take: 2,
         },
       },
     });
@@ -52,17 +44,106 @@ export async function getUserNotifications(userId: string): Promise<{
     const notifications: AppNotification[] = [];
     const offers: AppNotification[] = [];
 
-    // 1. Balance Alerts
-    if (user.coinBalance < 70) {
+    // 1. Incoming Host Meetup Requests & Scheduled Meetups
+    if (user.companion?.id) {
+      const hostBookings = await prisma.booking.findMany({
+        where: {
+          companionId: user.companion.id,
+          status: { in: ["PENDING_ACCEPTANCE", "CONFIRMED", "IN_PROGRESS"] },
+        },
+        include: {
+          member: { select: { name: true } },
+          activity: { select: { title: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+      });
+
+      for (const b of hostBookings) {
+        const istDate = b.scheduledDate.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          timeZone: "Asia/Kolkata",
+        });
+        const istTime = b.scheduledDate.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "Asia/Kolkata",
+        });
+
+        if (b.status === "PENDING_ACCEPTANCE") {
+          notifications.push({
+            id: `host_req_${b.id}`,
+            type: "ALERT",
+            title: `New Meetup Request from ${b.member?.name || "Member"}`,
+            message: `${b.activity?.title || "Meetup"} at ${b.venueName} on ${istDate} (${istTime}) · Earn INR ${Number(b.companionFee).toFixed(0)}.`,
+            badge: "Action Required",
+            badgeVariant: "sunny",
+            ctaText: "Accept / Decline →",
+            ctaUrl: "/companion/dashboard",
+            createdAt: b.createdAt.toISOString(),
+          });
+        } else {
+          notifications.push({
+            id: `host_active_${b.id}`,
+            type: "CHAT",
+            title: `${b.status === "IN_PROGRESS" ? "Meetup Live" : "Upcoming Confirmed Meetup"}`,
+            message: `${b.activity?.title || "Meetup"} with ${b.member?.name || "Member"} at ${b.venueName} (${istDate}, ${istTime}).`,
+            badge: b.status === "IN_PROGRESS" ? "Live Now" : "Confirmed",
+            badgeVariant: "lime",
+            ctaText: "Open Session / Chat →",
+            ctaUrl: `/session/${b.id}`,
+            createdAt: b.updatedAt.toISOString(),
+          });
+        }
+      }
+    }
+
+    // 2. Member Confirmed / In-Progress Meetup Notifications
+    const memberBookings = await prisma.booking.findMany({
+      where: {
+        memberId: userId,
+        status: { in: ["CONFIRMED", "IN_PROGRESS"] },
+      },
+      include: {
+        companion: { select: { displayName: true } },
+        activity: { select: { title: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 4,
+    });
+
+    for (const b of memberBookings) {
+      const istDate = b.scheduledDate.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        timeZone: "Asia/Kolkata",
+      });
+      notifications.push({
+        id: `member_conf_${b.id}`,
+        type: "CHAT",
+        title: `${b.companion?.displayName || "Host"} accepted your meetup!`,
+        message: `Chat is now open (10 Coins/msg) for ${b.activity?.title || "Meetup"} on ${istDate} at ${b.venueName}.`,
+        badge: "Chat Open",
+        badgeVariant: "lime",
+        ctaText: "Message Host →",
+        ctaUrl: `/chat/${b.id}`,
+        createdAt: b.updatedAt.toISOString(),
+      });
+    }
+
+    // 3. Low Coin Balance Alert (10 Coins per sent message)
+    if (user.coinBalance < 10) {
       notifications.push({
         id: "alert_low_balance",
         type: "ALERT",
         title: user.coinBalance === 0 ? "Zero Coin Balance" : "Low Coin Balance",
         message:
           user.coinBalance === 0
-            ? "You have 0 coins left. Top up your wallet to message companions or book meetups."
-            : `You have ${user.coinBalance} coins remaining. Top up to unlock 24-hour companion chats (69 coins).`,
-        badge: "Wallet Alert",
+            ? "You have 0 coins left. Recharge coins via Razorpay (INR 1 = 1 Coin) to send chat messages (10 Coins/message)."
+            : `You have ${user.coinBalance} coins remaining. Sending a chat message requires 10 Coins.`,
+        badge: "Recharge Coins",
         badgeVariant: "danger",
         ctaText: "Top Up Coins →",
         ctaUrl: "/wallet",
@@ -70,37 +151,14 @@ export async function getUserNotifications(userId: string): Promise<{
       });
     }
 
-    // 2. Chat Expiration Alerts
-    const now = new Date();
-    user.chatUnlocksInitiated.forEach((unlock) => {
-      if (unlock.expiresAt) {
-        const msRemaining = new Date(unlock.expiresAt).getTime() - now.getTime();
-        const hoursRemaining = msRemaining / (1000 * 60 * 60);
-
-        if (msRemaining > 0 && hoursRemaining < 3) {
-          notifications.push({
-            id: `chat_expiring_${unlock.id}`,
-            type: "CHAT",
-            title: "Chat Pass Expiring Soon",
-            message: `Your 24-hour pass with ${unlock.companion.displayName} expires in ${Math.round(hoursRemaining * 60)} minutes.`,
-            badge: "Pass Alert",
-            badgeVariant: "pink",
-            ctaText: "Open Chat →",
-            ctaUrl: "/bookings",
-            createdAt: unlock.createdAt.toISOString(),
-          });
-        }
-      }
-    });
-
-    // 3. Recent Transaction Notifications (Refunds, Welcome credits, etc.)
+    // 4. Recent Transaction Notifications (Refunds & Referral Rewards)
     user.coinTransactions.forEach((tx) => {
-      if (tx.type === CoinTransactionType.CHAT_REFUND_TIMEOUT) {
+      if (tx.type === CoinTransactionType.MEETUP_REFUND) {
         notifications.push({
           id: `tx_${tx.id}`,
           type: "TRANSACTION",
-          title: "SLA Auto-Refund Processed",
-          message: `69 coins refunded: The companion was unable to reply within 48 hours.`,
+          title: "Meetup Coins Refunded",
+          message: tx.description || `+${tx.amount} coins credited back to your wallet.`,
           badge: "Refunded",
           badgeVariant: "lime",
           ctaText: "View Wallet →",
@@ -122,7 +180,7 @@ export async function getUserNotifications(userId: string): Promise<{
       }
     });
 
-    // 3.5 Referral Connections Alert
+    // 5. Referral Connections Alert
     try {
       const recentReferrals = await prisma.user.findMany({
         where: { referredById: user.id },
@@ -156,7 +214,7 @@ export async function getUserNotifications(userId: string): Promise<{
       });
     } catch {}
 
-    // 4. Promotional Offers
+    // 6. Promotional Offers
     const priorTopups = await prisma.coinTransaction.count({
       where: { userId, type: CoinTransactionType.TOPUP },
     });

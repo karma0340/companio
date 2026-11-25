@@ -14,6 +14,7 @@ import { useAuth } from '@/context/auth-context';
 interface CompanionCardProps {
   companion: Companion;
   featured?: boolean;
+  priority?: boolean;
   isLocked?: boolean;
   isCompared?: boolean;
   initialBookmarked?: boolean;
@@ -23,6 +24,7 @@ interface CompanionCardProps {
 
 export function CompanionCard({
   companion,
+  priority = false,
   isCompared = false,
   initialBookmarked = false,
   onCompareClick,
@@ -130,6 +132,7 @@ export function CompanionCard({
               src={imgSrc}
               alt={companion.name}
               fill
+              priority={priority}
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               onError={() => {

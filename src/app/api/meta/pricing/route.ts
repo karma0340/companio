@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
-import { PASS_TIER_OPTIONS } from "@/lib/data";
+import { HOST_REGISTRATION_FEE, PASS_TIER_OPTIONS } from "@/lib/data";
 
 export async function GET() {
   return NextResponse.json({
     success: true,
     passTiers: PASS_TIER_OPTIONS,
-    hourlyRange: { min: 299, max: 999, default: 499 },
-    platformFeeRate: 0.25,
-    gstRate: 0.18,
+    hourlyRange: { min: 399, max: 1299, default: 499 },
+    hostShareRate: 0.7,
+    platformFeeRate: 0.3,
+    gstIncludedInPlatformShare: true,
+    chatCoinCostPerMessage: 10,
+    hostRegistrationFee: HOST_REGISTRATION_FEE,
     currency: "INR",
   });
 }

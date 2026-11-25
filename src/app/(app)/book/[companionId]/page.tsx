@@ -418,7 +418,7 @@ export default function BookPage({ params }: BookPageProps) {
                 Secret Meetup Start Code
               </span>
               <div className="font-mono text-3xl font-black tracking-widest text-ink">
-                {startCode || '7492'}
+                {startCode}
               </div>
               <p className="text-[11px] font-bold text-ink-soft">
                 Only share this 4-digit code in-person when you meet at the public venue.

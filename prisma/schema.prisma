@@ -303,6 +303,9 @@ model Booking {
   sessionStartedAt        DateTime?
   sessionEndedAt          DateTime?
   hostAcceptanceDeadline  DateTime        // Current + 12 hours SLA
+  hostScore               Int?
+  hostComment             String?         @db.Text
+  hostReviewedAt          DateTime?
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
 

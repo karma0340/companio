@@ -50,7 +50,7 @@ export default function RefundsPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                 <p>
-                  <strong>Host Fails to Respond (Timeout):</strong> Requests expire automatically after 4 hours if not accepted. 100% refund is initiated automatically.
+                  <strong>Host Fails to Respond (12-Hour SLA):</strong> Requests expire automatically after 12 hours if not accepted, triggering an automatic 100% escrow refund.
                 </p>
               </div>
 

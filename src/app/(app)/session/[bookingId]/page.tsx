@@ -326,12 +326,33 @@ export default function SessionLivePage() {
             <h1 className="mt-4 text-2xl sm:text-4xl font-black text-ink uppercase tracking-tight">
               {booking.companionName} &amp; {booking.memberName}
             </h1>
-            <p className="mt-2 text-xs sm:text-sm font-bold text-ink/80 flex items-center gap-1.5">
-              <MapPin className="h-4 w-4 shrink-0" />
-              <span>
-                {booking.venueName} - {booking.venueAddress}
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm font-bold text-ink/80">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span>
+                  {booking.venueName} - {booking.venueAddress}
+                </span>
               </span>
-            </p>
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 shrink-0" />
+                <span>
+                  {new Date(booking.scheduledDate).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    timeZone: "Asia/Kolkata",
+                  })}{" "}
+                  ·{" "}
+                  {new Date(booking.scheduledDate).toLocaleTimeString("en-IN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                    timeZone: "Asia/Kolkata",
+                  })}{" "}
+                  ({booking.durationHours}h)
+                </span>
+              </span>
+            </div>
           </div>
 
           {/* STATE 1: PRE-HANDSHAKE */}
@@ -536,25 +557,35 @@ export default function SessionLivePage() {
                 </div>
               </div>
 
-              {viewerRole === "MEMBER" && (
-                <div className="border-brutal shadow-brutal bg-white p-6 sm:p-8">
-                  {reviewSubmitted ? (
-                    <div className="py-6 text-center">
+              {/* Two-Way Verified Feedback (Member <-> Host) */}
+              <div className="border-brutal shadow-brutal bg-white p-6 sm:p-8 space-y-6">
+                {viewerRole === "MEMBER" ? (
+                  reviewSubmitted || booking.memberReview ? (
+                    <div className="py-4 text-center space-y-2">
                       <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-                      <h3 className="mt-3 text-lg font-black text-ink uppercase">
-                        Rating &amp; Feedback Submitted
+                      <h3 className="text-lg font-black text-ink uppercase">
+                        Your Review of {booking.companionName} Submitted
                       </h3>
-                      <p className="text-xs font-bold text-ink/70 mt-1">
-                        Thank you for keeping our community verified and trustworthy.
-                      </p>
+                      {booking.memberReview && (
+                        <p className="text-xs font-bold text-ink/80">
+                          {booking.memberReview.score}/5 Stars
+                          {booking.memberReview.comment ? ` — "${booking.memberReview.comment}"` : ""}
+                        </p>
+                      )}
+                      {booking.hostScore && (
+                        <div className="mx-auto mt-3 max-w-md rounded-xl border-2 border-ink bg-paper p-3 text-xs font-bold text-ink">
+                          Host Feedback from {booking.companionName}: {booking.hostScore}/5 Stars
+                          {booking.hostComment ? ` — "${booking.hostComment}"` : ""}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <form onSubmit={handleSubmitReview} className="space-y-4">
                       <h3 className="text-sm font-black uppercase tracking-wider text-ink">
-                        Rate Your Meetup Experience
+                        Rate Your Meetup with {booking.companionName}
                       </h3>
                       <p className="text-xs font-medium text-ink/70">
-                        How was your meetup with {booking.companionName}?
+                        Share honest feedback about punctuality, public meetup safety, and conversation.
                       </p>
 
                       <div className="flex gap-2">
@@ -576,6 +607,7 @@ export default function SessionLivePage() {
 
                       <textarea
                         rows={3}
+                        required
                         placeholder="Share honest feedback about punctuality and conversation..."
                         value={reviewComment}
                         onChange={(e) => setReviewComment(e.target.value)}
@@ -589,9 +621,70 @@ export default function SessionLivePage() {
                         Submit Verified Review
                       </button>
                     </form>
-                  )}
-                </div>
-              )}
+                  )
+                ) : reviewSubmitted || booking.hostScore ? (
+                  <div className="py-4 text-center space-y-2">
+                    <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
+                    <h3 className="text-lg font-black text-ink uppercase">
+                      Member Feedback Recorded
+                    </h3>
+                    {booking.hostScore && (
+                      <p className="text-xs font-bold text-ink/80">
+                        Your Rating for {booking.memberName}: {booking.hostScore}/5 Stars
+                        {booking.hostComment ? ` — "${booking.hostComment}"` : ""}
+                      </p>
+                    )}
+                    {booking.memberReview && (
+                      <div className="mx-auto mt-3 max-w-md rounded-xl border-2 border-ink bg-paper p-3 text-xs font-bold text-ink">
+                        Member Review: {booking.memberReview.score}/5 Stars
+                        {booking.memberReview.comment ? ` — "${booking.memberReview.comment}"` : ""}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitReview} className="space-y-4">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-ink">
+                      Rate Your Meetup with {booking.memberName}
+                    </h3>
+                    <p className="text-xs font-medium text-ink/70">
+                      Was {booking.memberName} punctual, respectful, and aligned with platonic community rules?
+                    </p>
+
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          type="button"
+                          key={star}
+                          onClick={() => setReviewScore(star)}
+                          className="p-1 hover:scale-110 transition cursor-pointer"
+                        >
+                          <Star
+                            className={`h-6 w-6 ${
+                              star <= reviewScore ? "fill-amber-400 text-ink" : "text-slate-300"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+
+                    <textarea
+                      rows={3}
+                      required
+                      placeholder={`Share feedback about your meetup with ${booking.memberName}...`}
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      className="w-full border-2 border-ink bg-paper p-3.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
+                    />
+
+                    <button
+                      type="submit"
+                      className="border-2 border-ink bg-ink px-6 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-brutal btn-press cursor-pointer"
+                    >
+                      Submit Member Feedback
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           )}
         </div>

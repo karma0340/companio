@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { getBookingById, submitHostFeedback, submitSessionReview } from "@/lib/bookings";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,58 +25,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const booking = await prisma.booking.findFirst({
-      where: { OR: [{ id: bookingId }, { bookingNumber: bookingId }] },
-    });
-
+    const booking = await getBookingById(bookingId);
     if (!booking) {
       return NextResponse.json({ error: "Booking not found." }, { status: 404 });
     }
 
+    // Host reviewing Member
+    if (booking.companionUserId && booking.companionUserId === session.userId) {
+      const hostRes = await submitHostFeedback({
+        bookingId: booking.id,
+        hostUserId: session.userId,
+        score: rating,
+        comment,
+      });
+      if (!hostRes.success) {
+        return NextResponse.json({ error: hostRes.error }, { status: 400 });
+      }
+      return NextResponse.json({
+        success: true,
+        message: "Your member feedback has been saved!",
+      });
+    }
+
+    // Member reviewing Host (automatically settles escrow cleanly if session was IN_PROGRESS)
     if (booking.memberId !== session.userId) {
       return NextResponse.json(
-        { error: "Only the member who booked can review this meetup." },
+        { error: "Only participants of this meetup can submit feedback." },
         { status: 403 }
       );
     }
 
-    await prisma.$transaction(async (tx) => {
-      if (booking.status !== "COMPLETED") {
-        await tx.booking.update({
-          where: { id: booking.id },
-          data: { status: "COMPLETED" },
-        });
-      }
-
-      await tx.reviewRating.upsert({
-        where: { bookingId: booking.id },
-        update: {
-          score: rating,
-          comment,
-        },
-        create: {
-          bookingId: booking.id,
-          memberId: session.userId,
-          companionId: booking.companionId,
-          score: rating,
-          comment,
-        },
-      });
-
-      const stats = await tx.reviewRating.aggregate({
-        where: { companionId: booking.companionId },
-        _avg: { score: true },
-        _count: { score: true },
-      });
-
-      await tx.companion.update({
-        where: { id: booking.companionId },
-        data: {
-          ratingAverage: Number((stats._avg.score || rating).toFixed(2)),
-          totalReviews: stats._count.score || 1,
-        },
-      });
+    const res = await submitSessionReview({
+      bookingId: booking.id,
+      memberId: session.userId,
+      score: rating,
+      comment,
     });
+
+    if (!res.success) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
 
     return NextResponse.json({
       success: true,

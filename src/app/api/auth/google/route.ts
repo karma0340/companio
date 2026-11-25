@@ -10,6 +10,16 @@ function sanitizeRedirectPath(rawNext: string | null): string {
   return rawNext === "/login" ? "/explore" : rawNext;
 }
 
+function getRedirectUri(req: NextRequest): string {
+  const envUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl && !envUrl.includes("localhost")) {
+    return `${envUrl.replace(/\/$/, "")}/api/auth/google/callback`;
+  }
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
+  const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  return `${proto}://${host}/api/auth/google/callback`;
+}
+
 export async function GET(request: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
@@ -24,11 +34,15 @@ export async function GET(request: NextRequest) {
   }
 
   const intent = request.nextUrl.searchParams.get("intent") === "host" ? "host" : "member";
-  const nextPath = sanitizeRedirectPath(request.nextUrl.searchParams.get("next"));
-  const referralCode = (request.nextUrl.searchParams.get("ref") || "").trim().toUpperCase().slice(0, 16);
+  const nextPath = sanitizeRedirectPath(
+    request.nextUrl.searchParams.get("next") || request.nextUrl.searchParams.get("redirect")
+  );
+  const referralCode = (request.nextUrl.searchParams.get("ref") || "")
+    .trim()
+    .toUpperCase()
+    .slice(0, 16);
 
-  const origin = request.nextUrl.origin;
-  const redirectUri = `${origin}/api/auth/google/callback`;
+  const redirectUri = getRedirectUri(request);
   const state = crypto.randomBytes(24).toString("hex");
 
   const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -37,6 +51,7 @@ export async function GET(request: NextRequest) {
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("scope", "openid email profile");
   authUrl.searchParams.set("state", state);
+  authUrl.searchParams.set("access_type", "online");
   authUrl.searchParams.set("prompt", "select_account");
 
   const response = NextResponse.redirect(authUrl.toString());

@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const booking = await createBooking({
       memberId: session.userId,
       memberName: session.name || body.name || "Verified Member",
-      memberPhone: session.phone,
+      memberPhone: session.phone || "",
       companionId,
       activityId,
       scheduledDate: scheduledDate || new Date(Date.now() + 24 * 3600000).toISOString(),

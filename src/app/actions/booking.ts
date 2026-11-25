@@ -30,21 +30,31 @@ export interface CreateBookingInput {
 function parseScheduledDate(dateStr: string, timeStr?: string): Date {
   try {
     const lower = (timeStr || '').toLowerCase();
-    let defaultHour = 16;
-    if (lower.includes('morning')) defaultHour = 8;
-    else if (lower.includes('afternoon')) defaultHour = 13;
-    else if (lower.includes('evening')) defaultHour = 17;
+    let hours = 17;
+    let minutes = 0;
 
-    const cleanTime = (timeStr || '').replace(/[^0-9:]/g, '').trim();
-    const parts = cleanTime.split(':');
-    const parsedHour = parts[0] ? parseInt(parts[0], 10) : NaN;
-    const hours = !isNaN(parsedHour) && parsedHour >= 0 && parsedHour <= 23 ? parsedHour : defaultHour;
-    const minutes = parts[1] ? parseInt(parts[1], 10) || 0 : 0;
+    if (lower.includes('morning')) hours = 8;
+    else if (lower.includes('afternoon')) hours = 13;
+    else if (lower.includes('evening')) hours = 17;
+    else {
+      const explicitMatch = lower.match(/(\d{1,2}):(\d{2})/);
+      if (explicitMatch) {
+        const h = parseInt(explicitMatch[1], 10);
+        const m = parseInt(explicitMatch[2], 10);
+        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+          hours = h;
+          minutes = m;
+        }
+      }
+    }
 
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-      d.setHours(hours, minutes, 0, 0);
-      return d;
+    const isoDateOnly = String(dateStr || '').trim().split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(isoDateOnly)) {
+      const istIso = `${isoDateOnly}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00+05:30`;
+      const parsed = new Date(istIso);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
     }
   } catch {}
   return new Date(Date.now() + 86400000);

@@ -198,6 +198,18 @@ export async function POST(
       remainingCoins,
     });
   } catch (error) {
+    const msg = (error as Error)?.message || "";
+    if (msg.toLowerCase().includes("insufficient coins") || msg.toLowerCase().includes("cannot be negative")) {
+      return NextResponse.json(
+        {
+          success: false,
+          insufficientCoins: true,
+          requiredCoins: COINS_PER_MESSAGE,
+          error: "Insufficient chat coins (10 coins required per message). Recharge via Razorpay to continue chatting.",
+        },
+        { status: 402 }
+      );
+    }
     console.error("[POST CHAT MESSAGE ERROR]:", error);
     return NextResponse.json(
       { success: false, error: "Failed to dispatch chat message." },

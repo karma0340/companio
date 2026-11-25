@@ -235,42 +235,44 @@ export async function debitCoins(params: {
   referenceId?: string;
 }) {
   const { userId, amount, type, description, referenceId } = params;
+  const safeAmount = Math.max(1, Math.round(amount));
 
   return await prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-      select: { coinBalance: true },
-    });
-
-    if (!user || user.coinBalance < amount) {
-      throw new Error(`Insufficient coins. Balance is ${user?.coinBalance ?? 0}, required ${amount}.`);
-    }
-
-    const updatedUser = await tx.user.update({
-      where: { id: userId },
-      data: {
-        coinBalance: { decrement: amount },
+    // Atomic conditional decrement guarantees coinBalance can never go negative under concurrency
+    const updateRes = await tx.user.updateMany({
+      where: {
+        id: userId,
+        coinBalance: { gte: safeAmount },
       },
+      data: {
+        coinBalance: { decrement: safeAmount },
+      },
+    });
+
+    const latestUser = await tx.user.findUnique({
+      where: { id: userId },
       select: { coinBalance: true },
     });
 
-    if (updatedUser.coinBalance < 0) {
-      throw new Error("Transaction rejected: Coin balance cannot be negative.");
+    if (updateRes.count === 0 || !latestUser || latestUser.coinBalance < 0) {
+      throw new Error(
+        `Insufficient coins. Balance is ${latestUser?.coinBalance ?? 0}, required ${safeAmount}.`
+      );
     }
 
     const transaction = await tx.coinTransaction.create({
       data: {
         userId,
         type,
-        amount: -Math.abs(amount),
-        balanceAfter: updatedUser.coinBalance,
+        amount: -Math.abs(safeAmount),
+        balanceAfter: latestUser.coinBalance,
         description,
         referenceId,
       },
     });
 
     return {
-      newBalance: updatedUser.coinBalance,
+      newBalance: latestUser.coinBalance,
       transaction,
     };
   });

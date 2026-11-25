@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { refundEscrowCoinsIfWalletPaid } from "@/lib/bookings";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export async function GET() {
       include: {
         member: { select: { name: true } },
         activity: { select: { title: true } },
+        review: { select: { score: true, comment: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 30,
@@ -37,8 +39,14 @@ export async function GET() {
       bookingNumber: b.bookingNumber,
       memberName: b.member?.name || "Verified Member",
       activityTitle: b.activity?.title || "Meetup",
-      date: b.scheduledDate.toISOString().split("T")[0],
-      startTime: b.scheduledDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+      scheduledDate: b.scheduledDate.toISOString(),
+      date: b.scheduledDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }),
+      startTime: b.scheduledDate.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      }),
       durationHours: b.durationHours,
       venueName: b.venueName,
       venueAddress: b.venueAddress,
@@ -46,6 +54,10 @@ export async function GET() {
       companionFee: Number(b.companionFee), // 70% Host Share
       status: b.status.toLowerCase(),
       escrowStatus: b.escrowStatus,
+      hostScore: b.hostScore ?? null,
+      hostComment: b.hostComment ?? null,
+      memberReviewScore: b.review?.score ?? null,
+      memberReviewComment: b.review?.comment ?? null,
       createdAt: b.createdAt.toISOString(),
     }));
 
@@ -116,6 +128,14 @@ export async function PATCH(req: NextRequest) {
           status: "CANCELLED",
           escrowStatus: "REFUNDED_TO_MEMBER",
         },
+      });
+
+      await refundEscrowCoinsIfWalletPaid({
+        bookingId: booking.id,
+        memberId: booking.memberId,
+        totalAmount: Number(booking.totalAmount),
+        bookingNumber: booking.bookingNumber,
+        reason: "Booking declined by host",
       });
 
       return NextResponse.json({

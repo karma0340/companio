@@ -13,6 +13,16 @@ interface GoogleStateCookie {
   ref?: string;
 }
 
+function getRedirectUri(req: NextRequest): string {
+  const envUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl && !envUrl.includes("localhost")) {
+    return `${envUrl.replace(/\/$/, "")}/api/auth/google/callback`;
+  }
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
+  const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  return `${proto}://${host}/api/auth/google/callback`;
+}
+
 function redirectWithError(origin: string, message: string) {
   const url = new URL("/login", origin);
   url.searchParams.set("oauth_error", message);
@@ -55,7 +65,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const redirectUri = `${origin}/api/auth/google/callback`;
+    const redirectUri = getRedirectUri(request);
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -182,14 +192,14 @@ export async function GET(request: NextRequest) {
 
     const intent = parsedState.intent === "host" ? "host" : "member";
     const hasCompanion = Boolean(dbUser.companion);
-    const effectiveRole: "MEMBER" | "COMPANION" =
-      intent === "host" && hasCompanion ? "COMPANION" : dbUser.role === "ADMIN" ? "MEMBER" : "MEMBER";
     const resolvedRole =
       dbUser.role === "ADMIN"
         ? "ADMIN"
         : intent === "host" && hasCompanion
         ? "COMPANION"
-        : effectiveRole;
+        : dbUser.role === "COMPANION" && intent === "host"
+        ? "COMPANION"
+        : "MEMBER";
 
     const sessionPayload: UserTokenPayload = {
       userId: dbUser.id,
@@ -206,15 +216,16 @@ export async function GET(request: NextRequest) {
 
     const token = signUserToken(sessionPayload, "7d");
 
-    const isMemberOnboarded = Boolean(
-      dbUser.onboardingCompleted ||
-        (dbUser.name && dbUser.name !== "Member" && dbUser.name.trim().length > 1)
-    );
+    // Enforce member onboarding if profile or gender hasn't been completed yet
+    const needsOnboarding =
+      intent !== "host" &&
+      dbUser.role === "MEMBER" &&
+      (!dbUser.onboardingCompleted || !dbUser.gender);
 
     let destination = "/explore";
     if (intent === "host") {
       destination = hasCompanion ? "/companion/dashboard" : "/become-a-companion/apply";
-    } else if (!isMemberOnboarded) {
+    } else if (needsOnboarding) {
       destination = "/onboarding/member";
     } else if (
       parsedState.next &&

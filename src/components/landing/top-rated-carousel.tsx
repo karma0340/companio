@@ -164,7 +164,7 @@ export function TopRatedCarousel({
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           <AnimatePresence mode="popLayout">
-            {filteredCompanions.map((comp) => (
+            {filteredCompanions.map((comp, idx) => (
               <motion.div
                 key={comp.id}
                 layout
@@ -177,6 +177,7 @@ export function TopRatedCarousel({
                 <TiltCard maxTilt={4}>
                   <CompanionCard
                     companion={comp}
+                    priority={idx < 4}
                     isCompared={compareList.some((c) => c.id === comp.id)}
                     initialBookmarked={savedIds.includes(comp.id)}
                     onCompareClick={handleToggleCompare}

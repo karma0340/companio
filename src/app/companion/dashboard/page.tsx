@@ -62,6 +62,7 @@ interface HostBookingItem {
   bookingNumber: string;
   memberName: string;
   activityTitle: string;
+  scheduledDate?: string;
   date: string;
   startTime: string;
   durationHours: number;
@@ -71,6 +72,10 @@ interface HostBookingItem {
   companionFee: number;
   status: string;
   escrowStatus: string;
+  hostScore?: number | null;
+  hostComment?: string | null;
+  memberReviewScore?: number | null;
+  memberReviewComment?: string | null;
   createdAt: string;
 }
 
@@ -135,6 +140,12 @@ export default function CompanionDashboardPage() {
   const [editAvailabilitySlots, setEditAvailabilitySlots] = useState<string[]>([]);
   const [editPreferredVenues, setEditPreferredVenues] = useState<string[]>([]);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Host -> Member Feedback Modal State
+  const [feedbackBooking, setFeedbackBooking] = useState<HostBookingItem | null>(null);
+  const [feedbackScore, setFeedbackScore] = useState<number>(5);
+  const [feedbackComment, setFeedbackComment] = useState<string>('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState<boolean>(false);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -208,6 +219,17 @@ export default function CompanionDashboardPage() {
     }
     if (!isLoadingAuth && isAuthenticated) {
       loadDashboard();
+      const poll = setInterval(() => {
+        fetch('/api/companion/bookings', { cache: 'no-store' })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data?.success && Array.isArray(data.bookings)) {
+              setBookings(data.bookings);
+            }
+          })
+          .catch(() => {});
+      }, 15000);
+      return () => clearInterval(poll);
     }
   }, [isLoadingAuth, isAuthenticated, loadDashboard, router]);
 
@@ -335,8 +357,8 @@ export default function CompanionDashboardPage() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     const rate = Number(editHourlyRate);
-    if (!Number.isFinite(rate) || rate < 199 || rate > 10000) {
-      toast.error('Hourly rate must be between INR 199 and INR 10,000.');
+    if (!Number.isFinite(rate) || rate < 399 || rate > 1299) {
+      toast.error('Hourly rate must be between INR 399 and INR 1,299.');
       return;
     }
     if (editDisplayName.trim().length < 2) {
@@ -390,11 +412,49 @@ export default function CompanionDashboardPage() {
     }
   };
 
-  const pendingRequests = bookings.filter((b) => b.status === 'PENDING_ACCEPTANCE');
-  const activeMeetups = bookings.filter((b) => b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS');
-  const pastMeetups = bookings.filter((b) => b.status === 'COMPLETED' || b.status === 'CANCELLED');
+  const handleSubmitMemberFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackBooking) return;
+    if (feedbackComment.trim().length < 5) {
+      toast.error('Please write short feedback about the member (at least 5 characters).');
+      return;
+    }
+    setIsSubmittingFeedback(true);
+    try {
+      const res = await fetch(`/api/session/${feedbackBooking.id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          score: feedbackScore,
+          rating: feedbackScore,
+          comment: feedbackComment.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data.error || 'Could not save member feedback.');
+        return;
+      }
+      toast.success('Member feedback saved.');
+      setFeedbackBooking(null);
+      setFeedbackComment('');
+      await loadDashboard();
+    } catch {
+      toast.error('Network error while saving feedback.');
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
+  const pendingRequests = bookings.filter((b) => b.status.toUpperCase() === 'PENDING_ACCEPTANCE');
+  const activeMeetups = bookings.filter(
+    (b) => b.status.toUpperCase() === 'CONFIRMED' || b.status.toUpperCase() === 'IN_PROGRESS'
+  );
+  const pastMeetups = bookings.filter(
+    (b) => b.status.toUpperCase() === 'COMPLETED' || b.status.toUpperCase() === 'CANCELLED'
+  );
   const totalEarned = pastMeetups
-    .filter((b) => b.status === 'COMPLETED')
+    .filter((b) => b.status.toUpperCase() === 'COMPLETED')
     .reduce((sum, b) => sum + b.companionFee, 0);
 
   if (loading || isLoadingAuth) {
@@ -662,10 +722,11 @@ export default function CompanionDashboardPage() {
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-3.5 w-3.5 text-ink" />
                           <span>
-                            {new Date(req.date).toLocaleDateString('en-IN', {
+                            {new Date(req.scheduledDate || req.date).toLocaleDateString('en-IN', {
                               day: 'numeric',
                               month: 'short',
                               year: 'numeric',
+                              timeZone: 'Asia/Kolkata',
                             })}{' '}
                             at {req.startTime} ({req.durationHours}h)
                           </span>
@@ -722,7 +783,7 @@ export default function CompanionDashboardPage() {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <span className="inline-flex items-center gap-1 rounded-md border-brutal-thin bg-sunny px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-ink">
-                            {item.status === 'IN_PROGRESS' ? 'Session Live' : 'Confirmed — Meet in Person'}
+                            {item.status.toUpperCase() === 'IN_PROGRESS' ? 'Session Live' : 'Confirmed — Meet in Person'}
                           </span>
                           <h3 className="mt-1 font-display text-base sm:text-lg font-black text-ink">
                             {item.activityTitle} with {item.memberName}
@@ -735,11 +796,12 @@ export default function CompanionDashboardPage() {
 
                       <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold text-ink/75">
                         <span>
-                          {new Date(item.date).toLocaleDateString('en-IN', {
+                          {new Date(item.scheduledDate || item.date).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
+                            timeZone: 'Asia/Kolkata',
                           })}{' '}
-                          • {item.startTime} ({item.durationHours}h)
+                          · {item.startTime} ({item.durationHours}h)
                         </span>
                         <span>Public Venue: {item.venueName}</span>
                       </div>
@@ -869,23 +931,60 @@ export default function CompanionDashboardPage() {
             {pastMeetups.length > 0 && (
               <div className="rounded-3xl border-brutal bg-white p-5 sm:p-6 shadow-brutal space-y-3">
                 <h2 className="font-display text-lg font-black text-ink">Recent Completed Meetups</h2>
-                <div className="space-y-2">
-                  {pastMeetups.slice(0, 5).map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border-brutal-thin bg-cream/60 p-3 flex items-center justify-between gap-2 text-xs"
-                    >
-                      <div>
-                        <p className="font-black text-ink">
-                          {item.activityTitle} ({item.memberName})
-                        </p>
-                        <p className="font-semibold text-ink/60">
-                          {item.status} • {item.durationHours}h
-                        </p>
+                <div className="space-y-2.5">
+                  {pastMeetups.slice(0, 6).map((item) => {
+                    const isCompleted = item.status.toUpperCase() === 'COMPLETED';
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border-brutal-thin bg-cream/60 p-3 space-y-2 text-xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="font-black text-ink">
+                              {item.activityTitle} ({item.memberName})
+                            </p>
+                            <p className="font-semibold text-ink/60">
+                              {item.status.toUpperCase()} · {item.durationHours}h
+                            </p>
+                          </div>
+                          <span className="font-black text-emerald-700">
+                            {isCompleted ? `INR ${item.companionFee}` : 'Refunded'}
+                          </span>
+                        </div>
+                        {item.memberReviewScore && (
+                          <p className="rounded-lg border border-ink/15 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-ink">
+                            Member Review: {item.memberReviewScore}/5
+                            {item.memberReviewComment ? ` — "${item.memberReviewComment}"` : ''}
+                          </p>
+                        )}
+                        {isCompleted && (
+                          <div className="flex items-center justify-between gap-2">
+                            {item.hostScore ? (
+                              <span className="text-[11px] font-bold text-emerald-700">
+                                Your Feedback: {item.hostScore}/5 stars
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-semibold text-ink/60">
+                                Share member feedback
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFeedbackBooking(item);
+                                setFeedbackScore(item.hostScore || 5);
+                                setFeedbackComment(item.hostComment || '');
+                              }}
+                              className="rounded-lg border-brutal-thin bg-sunny px-2.5 py-1 text-[11px] font-black text-ink hover:bg-lime transition cursor-pointer"
+                            >
+                              {item.hostScore ? 'Edit Feedback' : 'Rate Member'}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <span className="font-black text-emerald-700">INR {item.companionFee}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1005,8 +1104,8 @@ export default function CompanionDashboardPage() {
                 </label>
                 <input
                   type="number"
-                  min={199}
-                  max={10000}
+                  min={399}
+                  max={1299}
                   value={editHourlyRate}
                   onChange={(e) => setEditHourlyRate(e.target.value)}
                   className="w-full rounded-xl border-brutal bg-cream px-3 py-2 text-sm font-bold text-ink"
@@ -1135,6 +1234,78 @@ export default function CompanionDashboardPage() {
                 className="rounded-xl border-brutal bg-lime px-5 py-2.5 font-display text-xs font-black text-ink shadow-brutal-sm"
               >
                 {isSavingProfile ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Host -> Member Feedback Modal */}
+      {feedbackBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-xs p-4">
+          <form
+            onSubmit={handleSubmitMemberFeedback}
+            className="w-full max-w-md rounded-3xl border-brutal bg-white p-6 shadow-brutal space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-xl font-black text-ink">
+                Rate Meetup with {feedbackBooking.memberName}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setFeedbackBooking(null)}
+                className="rounded-lg border-brutal-thin p-1.5 hover:bg-cream cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-xs font-semibold text-ink/70">
+              {feedbackBooking.activityTitle} · {feedbackBooking.venueName}
+            </p>
+
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setFeedbackScore(star)}
+                  className={`p-2 rounded-xl border-brutal-thin cursor-pointer ${
+                    feedbackScore >= star ? 'bg-sunny' : 'bg-cream'
+                  }`}
+                >
+                  <Star
+                    className={`h-5 w-5 ${
+                      feedbackScore >= star ? 'fill-ink text-ink' : 'text-ink/40'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              rows={3}
+              required
+              value={feedbackComment}
+              onChange={(e) => setFeedbackComment(e.target.value)}
+              placeholder="Was the member punctual, respectful, and strictly platonic?"
+              className="w-full rounded-xl border-brutal bg-cream p-3 text-xs font-bold text-ink focus:outline-none"
+            />
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setFeedbackBooking(null)}
+                className="w-1/2 rounded-xl border-brutal bg-white py-2.5 text-xs font-black text-ink cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingFeedback}
+                className="w-1/2 rounded-xl border-brutal bg-ink py-2.5 text-xs font-black text-white shadow-brutal-sm disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmittingFeedback ? 'Saving...' : 'Submit Feedback'}
               </button>
             </div>
           </form>

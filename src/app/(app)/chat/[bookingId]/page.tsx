@@ -49,9 +49,8 @@ export default function ChatRoomPage() {
   const [unlockInfo, setUnlockInfo] = useState<UnlockInfo | null>(null);
   const [inputContent, setInputContent] = useState<string>("");
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [currentUserId, setCurrentUserId] = useState<string>("user_member_demo");
+  const [currentUserId, setCurrentUserId] = useState<string>("");
   const [preflightWarning, setPreflightWarning] = useState<string | null>(null);
-  const [isRenewing, setIsRenewing] = useState<boolean>(false);
   const [isTopupModalOpen, setIsTopupModalOpen] = useState<boolean>(false);
 
   const socketRef = useRef<WebSocket | null>(null);
@@ -245,52 +244,12 @@ export default function ChatRoomPage() {
     }
   };
 
-  const handleRenewPass = async () => {
-    if (!booking?.companionId) return;
-
-    const coinsAvailable = user?.coinBalance ?? 0;
-    if (coinsAvailable < 69) {
-      toast({
-        title: "Insufficient Coins",
-        description: `You have ${coinsAvailable} coins. Please recharge coins to renew.`,
-      });
-      setIsTopupModalOpen(true);
-      return;
-    }
-
-    try {
-      setIsRenewing(true);
-      const res = await fetch("/api/chat/unlock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companionId: booking.companionId,
-          tier: "TWENTY_FOUR_HOURS",
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to renew pass.");
-      }
-
-      toast({
-        title: "Pass Renewed",
-        description: "Deducted 69 coins. 24-hour messaging is active again!",
-      });
-
-      await refreshSession();
-      fetchChatData();
-    } catch (err: any) {
-      toast({
-        title: "Renewal Failed",
-        description: err.message || "Could not complete renewal.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRenewing(false);
-    }
-  };
+  const isHostViewer = Boolean(booking && currentUserId && booking.companionUserId === currentUserId);
+  const partnerDisplayName = booking
+    ? isHostViewer
+      ? booking.memberName
+      : booking.companionName
+    : "Meetup Chat";
 
   return (
     <div className="min-h-screen bg-paper text-ink font-sans flex flex-col justify-between">
@@ -310,7 +269,7 @@ export default function ChatRoomPage() {
               </Link>
               <div>
                 <h1 className="text-base font-black uppercase text-ink">
-                  {booking?.companionName || "Companion Host"}
+                  {partnerDisplayName}
                 </h1>
                 <div className="flex items-center gap-2 text-xs font-bold text-ink/70">
                   <span className="flex items-center gap-1">
@@ -321,11 +280,13 @@ export default function ChatRoomPage() {
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {booking?.scheduledDate
-                      ? new Date(booking.scheduledDate).toLocaleTimeString([], {
+                      ? new Date(booking.scheduledDate).toLocaleTimeString("en-IN", {
                           hour: "2-digit",
                           minute: "2-digit",
+                          hour12: true,
+                          timeZone: "Asia/Kolkata",
                         })
-                      : "04:00 PM"}
+                      : "Scheduled"}
                   </span>
                 </div>
               </div>
@@ -362,7 +323,11 @@ export default function ChatRoomPage() {
             <div className="border-b-2 border-ink bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <Lock className="h-4 w-4 text-amber-700 shrink-0" />
-                <span>Waiting for {booking.companionName} to accept your meetup request before chat opens.</span>
+                <span>
+                  {isHostViewer
+                    ? `Accept ${booking.memberName}'s meetup request in Host Studio to unlock chat.`
+                    : `Waiting for ${booking.companionName} to accept your meetup request before chat opens.`}
+                </span>
               </div>
               <span className="text-[10px] uppercase font-black bg-amber-200 px-1.5 py-0.5 rounded border border-ink shrink-0">
                 Pending Accept
@@ -373,7 +338,7 @@ export default function ChatRoomPage() {
               <div className="flex items-center gap-1.5">
                 <ShieldCheck className="h-4 w-4 text-emerald-700 shrink-0" />
                 <span>
-                  {currentUserId === booking.memberId
+                  {!isHostViewer
                     ? "Meetup Accepted · 10 Coins per sent message (uses your 100 bonus coins first)."
                     : "Meetup Accepted · Replies are unlocked and contact-shielded."}
                 </span>

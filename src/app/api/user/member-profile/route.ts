@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
         phone: user.phone,
         fullName: user.name || "Member",
         email: user.email || "",
-        gender: user.gender || "female",
+        gender: user.gender || null,
         city: user.city || "chandigarh",
         area: user.area || "",
         bio: user.bio || "",
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const fullName = String(body?.fullName || "").trim();
-    const gender = String(body?.gender || "female").trim();
+    const gender = String(body?.gender || "").trim().toLowerCase();
     const city = String(body?.city || "chandigarh").trim();
     const area = String(body?.area || "").trim();
     const bio = String(body?.bio || "").trim();
@@ -122,13 +122,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Update existing user or upsert by phone
+    const safeGender = (gender === "male" || gender === "female" || gender === "non-binary") ? gender : undefined;
+
     let updatedUser;
     if (existingUser) {
       updatedUser = await prisma.user.update({
         where: { id: existingUser.id },
         data: {
           name: fullName,
-          gender: gender || "female",
+          ...(safeGender ? { gender: safeGender } : {}),
           city: city || "chandigarh",
           area: area || null,
           bio: bio || null,
@@ -143,7 +145,7 @@ export async function POST(req: NextRequest) {
         where: { phone: targetPhone },
         update: {
           name: fullName,
-          gender: gender || "female",
+          ...(safeGender ? { gender: safeGender } : {}),
           city: city || "chandigarh",
           area: area || null,
           bio: bio || null,
@@ -156,7 +158,7 @@ export async function POST(req: NextRequest) {
           phone: targetPhone,
           name: fullName,
           role: "MEMBER",
-          gender: gender || "female",
+          gender: safeGender || "male",
           city: city || "chandigarh",
           area: area || null,
           bio: bio || null,

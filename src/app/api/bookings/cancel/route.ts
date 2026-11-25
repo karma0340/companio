@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { refundEscrowCoinsIfWalletPaid } from "@/lib/bookings";
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,6 +57,14 @@ export async function POST(req: NextRequest) {
         status: "CANCELLED",
         escrowStatus: "REFUNDED_TO_MEMBER",
       },
+    });
+
+    await refundEscrowCoinsIfWalletPaid({
+      bookingId: booking.id,
+      memberId: booking.memberId,
+      totalAmount: Number(booking.totalAmount),
+      bookingNumber: booking.bookingNumber,
+      reason: "Meetup cancelled by member",
     });
 
     return NextResponse.json({

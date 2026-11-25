@@ -48,6 +48,14 @@ export interface BookingRecord {
   sessionStartedAt?: string | null;
   sessionEndedAt?: string | null;
   hostAcceptanceDeadline: string;
+  hostScore?: number | null;
+  hostComment?: string | null;
+  hostReviewedAt?: string | null;
+  memberReview?: {
+    score: number;
+    comment: string | null;
+    createdAt: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,6 +77,11 @@ export function sanitizeBookingForViewer(
 }
 
 function mapPrismaBooking(dbRecord: any): BookingRecord {
+  const defaultAvatar =
+    dbRecord.companion?.gender === "male"
+      ? "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/aarav-mum.jpg"
+      : "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg";
+
   return {
     id: dbRecord.id,
     bookingNumber: dbRecord.bookingNumber,
@@ -78,9 +91,7 @@ function mapPrismaBooking(dbRecord: any): BookingRecord {
     companionId: dbRecord.companionId,
     companionUserId: dbRecord.companion?.userId || undefined,
     companionName: dbRecord.companion?.displayName || "Companion",
-    companionAvatar:
-      dbRecord.companion?.avatarUrl ||
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+    companionAvatar: dbRecord.companion?.avatarUrl || defaultAvatar,
     companionUpiId: dbRecord.companion?.upiId || null,
     cityId: dbRecord.cityId,
     cityName: dbRecord.city?.name || "Chandigarh",
@@ -103,9 +114,68 @@ function mapPrismaBooking(dbRecord: any): BookingRecord {
     sessionStartedAt: dbRecord.sessionStartedAt?.toISOString() || null,
     sessionEndedAt: dbRecord.sessionEndedAt?.toISOString() || null,
     hostAcceptanceDeadline: dbRecord.hostAcceptanceDeadline.toISOString(),
+    hostScore: dbRecord.hostScore ?? null,
+    hostComment: dbRecord.hostComment ?? null,
+    hostReviewedAt: dbRecord.hostReviewedAt ? dbRecord.hostReviewedAt.toISOString() : null,
+    memberReview: dbRecord.review
+      ? {
+          score: dbRecord.review.score,
+          comment: dbRecord.review.comment ?? null,
+          createdAt: dbRecord.review.createdAt.toISOString(),
+        }
+      : null,
     createdAt: dbRecord.createdAt.toISOString(),
     updatedAt: dbRecord.updatedAt.toISOString(),
   };
+}
+
+export async function refundEscrowCoinsIfWalletPaid(params: {
+  bookingId: string;
+  memberId: string;
+  totalAmount: number;
+  bookingNumber: string;
+  reason: string;
+}): Promise<boolean> {
+  try {
+    const walletDeposit = await prisma.transaction.findFirst({
+      where: {
+        bookingId: params.bookingId,
+        type: "ESCROW_DEPOSIT",
+        gateway: "WALLET",
+        status: "SUCCESS",
+      },
+      select: { id: true, amount: true },
+    });
+
+    if (!walletDeposit) return false;
+
+    const alreadyRefunded = await prisma.coinTransaction.findFirst({
+      where: {
+        userId: params.memberId,
+        type: "MEETUP_REFUND",
+        referenceId: params.bookingId,
+      },
+      select: { id: true },
+    });
+
+    if (alreadyRefunded) return false;
+
+    const coinsToRefund = Math.round(Number(walletDeposit.amount || params.totalAmount));
+    if (coinsToRefund <= 0) return false;
+
+    const { creditCoins } = await import("@/lib/wallet");
+    await creditCoins({
+      userId: params.memberId,
+      amount: coinsToRefund,
+      type: "MEETUP_REFUND",
+      description: `${params.reason} · #${params.bookingNumber} (+${coinsToRefund} Coins)`,
+      referenceId: params.bookingId,
+    });
+    return true;
+  } catch (err) {
+    console.warn("[WALLET ESCROW COIN REFUND WARN]:", (err as Error).message);
+    return false;
+  }
 }
 
 export interface CreateBookingInput {
@@ -205,9 +275,10 @@ export async function getBookingById(bookingId: string): Promise<BookingRecord |
       },
       include: {
         member: { select: { id: true, name: true, phone: true } },
-        companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true } },
+        companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true, gender: true } },
         city: { select: { id: true, name: true } },
         activity: { select: { id: true, title: true } },
+        review: { select: { score: true, comment: true, createdAt: true } },
       },
     });
 
@@ -241,9 +312,10 @@ export async function getBookingsForUser(
       where,
       include: {
         member: { select: { id: true, name: true, phone: true } },
-        companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true } },
+        companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true, gender: true } },
         city: { select: { id: true, name: true } },
         activity: { select: { id: true, title: true } },
+        review: { select: { score: true, comment: true, createdAt: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -302,11 +374,22 @@ export async function respondToBooking(
     },
     include: {
       member: { select: { id: true, name: true, phone: true } },
-      companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true } },
+      companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true, gender: true } },
       city: { select: { id: true, name: true } },
       activity: { select: { id: true, title: true } },
+      review: { select: { score: true, comment: true, createdAt: true } },
     },
   });
+
+  if (action === "DECLINE") {
+    await refundEscrowCoinsIfWalletPaid({
+      bookingId: booking.id,
+      memberId: booking.memberId,
+      totalAmount: booking.totalAmount,
+      bookingNumber: booking.bookingNumber,
+      reason: "Booking declined by host",
+    });
+  }
 
   const record = sanitizeBookingForViewer(mapPrismaBooking(updated), hostUserId);
   bookingsStore.set(booking.id, record);
@@ -322,7 +405,7 @@ export async function checkAndExpireSlaBookings(): Promise<{ expiredCount: numbe
         status: "PENDING_ACCEPTANCE",
         hostAcceptanceDeadline: { lt: now },
       },
-      select: { id: true },
+      select: { id: true, memberId: true, totalAmount: true, bookingNumber: true },
     });
 
     if (overdue.length > 0) {
@@ -333,6 +416,16 @@ export async function checkAndExpireSlaBookings(): Promise<{ expiredCount: numbe
           escrowStatus: "REFUNDED_TO_MEMBER",
         },
       });
+
+      for (const b of overdue) {
+        await refundEscrowCoinsIfWalletPaid({
+          bookingId: b.id,
+          memberId: b.memberId,
+          totalAmount: Number(b.totalAmount),
+          bookingNumber: b.bookingNumber,
+          reason: "12h host acceptance SLA expired",
+        });
+      }
     }
 
     return {
@@ -602,7 +695,15 @@ export async function submitSessionReview(input: {
   }
 
   if (booking.memberId !== input.memberId) {
-    return { success: false, error: "Only the member who booked can leave a verified review." };
+    return { success: false, error: "Only the member who booked can leave a verified host review." };
+  }
+
+  // Ensure escrow & payout settlement executes cleanly before storing review
+  if (booking.status !== "COMPLETED") {
+    const completion = await completeSession(booking.id, input.memberId);
+    if (!completion.success) {
+      return { success: false, error: completion.error || "Session must be active or confirmed to review." };
+    }
   }
 
   const clampedScore = Math.max(1, Math.min(5, Math.round(input.score)));
@@ -653,6 +754,50 @@ export async function submitSessionReview(input: {
       createdAt: reviewRecord.createdAt.toISOString(),
     },
   };
+}
+
+export async function submitHostFeedback(input: {
+  bookingId: string;
+  hostUserId: string;
+  score: number;
+  comment?: string;
+}): Promise<{ success: boolean; booking?: BookingRecord; error?: string }> {
+  const booking = await getBookingById(input.bookingId);
+  if (!booking) {
+    return { success: false, error: "Booking record not found." };
+  }
+
+  if (!booking.companionUserId || booking.companionUserId !== input.hostUserId) {
+    return { success: false, error: "Only the assigned Host can submit member feedback." };
+  }
+
+  if (booking.status !== "COMPLETED" && booking.status !== "IN_PROGRESS") {
+    return {
+      success: false,
+      error: "Host feedback can be submitted during or after completing the meetup.",
+    };
+  }
+
+  const clampedScore = Math.max(1, Math.min(5, Math.round(input.score)));
+  const updated = await prisma.booking.update({
+    where: { id: booking.id },
+    data: {
+      hostScore: clampedScore,
+      hostComment: input.comment?.trim() || null,
+      hostReviewedAt: new Date(),
+    },
+    include: {
+      member: { select: { id: true, name: true, phone: true } },
+      companion: { select: { id: true, userId: true, displayName: true, avatarUrl: true, upiId: true, gender: true } },
+      city: { select: { id: true, name: true } },
+      activity: { select: { id: true, title: true } },
+      review: { select: { score: true, comment: true, createdAt: true } },
+    },
+  });
+
+  const record = sanitizeBookingForViewer(mapPrismaBooking(updated), input.hostUserId);
+  bookingsStore.set(booking.id, record);
+  return { success: true, booking: record };
 }
 
 export async function triggerSosAlert(input: {

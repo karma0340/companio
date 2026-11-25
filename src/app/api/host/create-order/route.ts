@@ -24,7 +24,7 @@ export async function POST() {
         basePrice: String(HOST_REGISTRATION_FEE.basePrice),
         taxesAndCharges: String(HOST_REGISTRATION_FEE.taxesAndCharges),
         userId: session.userId,
-        phone: session.phone,
+        phone: session.phone || "",
       }
     );
 

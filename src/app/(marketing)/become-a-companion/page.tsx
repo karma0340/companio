@@ -38,11 +38,11 @@ export default function BecomeACompanionPage() {
   const faqs = [
     {
       q: 'Who can become a host?',
-      a: 'Anyone aged 18+ who is friendly, reliable, and excited to share public activities like coffee chats, gym workouts, or city walks. You simply verify your Indian mobile number via live SMS OTP, set your public profile photo, and pick a Host Pack. Zero Aadhaar or government ID uploads required.',
+      a: 'Anyone aged 18+ who is friendly, reliable, and excited to share public activities like coffee chats, gym workouts, or city walks. You simply verify your Indian mobile number via live SMS OTP, set your public profile photo, and complete the one-time INR 113 registration. Zero Aadhaar or government ID uploads required.',
     },
     {
       q: 'How does the 70-30 payout split work?',
-      a: 'Every Host Package (Starter, Pro, and Elite) guarantees the exact same 70-30 split: you take home 70% of your meetup fee directly into your Host Earnings Wallet upon session completion, while 30% covers statutory GST, Razorpay processing charges, 24/7 SOS & escrow infrastructure, and platform revenue.',
+      a: 'With our unified INR 113 Verified Host Registration, every Host receives the exact same transparent 70-30 split: you take home 70% of your meetup fee directly into your Host Earnings Wallet upon session completion, while 30% covers statutory GST, Razorpay processing charges, 24/7 SOS & escrow infrastructure, and platform revenue.',
     },
     {
       q: 'Why is there a INR 113 Host Registration fee?',

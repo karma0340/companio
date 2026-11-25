@@ -300,6 +300,13 @@ export default function MemberBookingsPage() {
 
                       <div className="flex flex-wrap items-center gap-2.5">
                         <Link
+                          href={`/chat/${booking.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-white px-3.5 py-2 font-display text-xs font-black text-ink shadow-brutal-sm hover:bg-paper-deep btn-press cursor-pointer"
+                        >
+                          <span>{booking.rawStatus === 'pending_acceptance' ? 'Chat Status' : 'Message Host'}</span>
+                        </Link>
+
+                        <Link
                           href={`/session/${booking.id}`}
                           className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-sunny px-3.5 py-2 font-display text-xs font-black text-ink shadow-brutal-sm hover:bg-yellow-300 btn-press cursor-pointer"
                         >
@@ -377,17 +384,22 @@ export default function MemberBookingsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="lime" size="sm" className="inline-flex items-center gap-1">
                         <CheckCircle2 className="h-3 w-3 stroke-[2.25]" />
                         <span>Meetup Completed</span>
                       </Badge>
+                      {b.hostScore && (
+                        <Badge variant="sunny" size="sm">
+                          Host Rated You {b.hostScore}/5
+                        </Badge>
+                      )}
                       <button
                         onClick={() => setReviewModalBooking(b)}
                         className="inline-flex items-center gap-1 rounded-xl border-brutal bg-sunny px-3 py-1 font-display text-xs font-black text-ink shadow-brutal-sm btn-press cursor-pointer"
                       >
                         <Star className="h-3 w-3 fill-ink" />
-                        <span>Leave Review</span>
+                        <span>{b.hasMemberReview ? `Reviewed (${b.memberReviewScore}/5)` : 'Leave Review'}</span>
                       </button>
                     </div>
                   </div>

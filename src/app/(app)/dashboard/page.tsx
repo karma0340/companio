@@ -190,10 +190,10 @@ function DashboardContent() {
   const displayPhone =
     cleanPhone.length === 10
       ? `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`
-      : user?.phone || '+91 85434 52677';
+      : user?.phone || user?.email || 'No mobile linked';
 
-  const referralCode = user?.referralCode || 'ZXZ2PBZ';
-  const referralLink = `https://trycompanio.in/?invite=${referralCode}`;
+  const referralCode = user?.referralCode || '';
+  const referralLink = referralCode ? `https://meetzy.club/?ref=${referralCode}` : 'https://meetzy.club/';
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
