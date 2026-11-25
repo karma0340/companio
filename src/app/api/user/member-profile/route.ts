@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
     try {
       await setSessionCookie({
         userId: updatedUser.id,
-        phone: updatedUser.phone,
+        phone: updatedUser.phone || '',
         email: updatedUser.email || session.email || null,
         name: updatedUser.name || fullName,
         role: (session.role as any) || "MEMBER",

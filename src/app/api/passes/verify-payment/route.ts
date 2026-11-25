@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         });
         userId = user.id;
         userEmail = user.email;
-        userPhone = user.phone;
+        userPhone = user.phone || "";
       } else {
         const cleanPhone = userPhone.replace(/[\s-]/g, "");
         const normalized = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
           },
         });
         userId = user.id;
-        userPhone = user.phone;
+        userPhone = user.phone || "";
       }
 
       // 2. Update or create AccessPass record

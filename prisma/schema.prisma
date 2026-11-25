@@ -141,7 +141,9 @@ enum ChatUnlockStatus {
 
 model User {
   id              String      @id @default(uuid())
-  phone           String      @unique
+  phone           String?     @unique
+  googleId        String?     @unique
+  avatarUrl       String?
   name            String?
   email           String?     @unique
   role            UserRole    @default(MEMBER)
@@ -177,6 +179,8 @@ model User {
   savedCompanions SavedCompanion[]
 
   @@index([phone])
+  @@index([googleId])
+  @@index([email])
   @@index([role])
 }
 

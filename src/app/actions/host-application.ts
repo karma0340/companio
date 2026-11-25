@@ -177,7 +177,7 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
     // Save HostApplication record
     const application = await prisma.hostApplication.create({
       data: {
-        phone: existingUser.phone,
+        phone: existingUser.phone || input.phone || '',
         fullName: input.fullName.trim(),
         city: cityRecord.name,
         locality: input.locality?.trim() || null,
@@ -284,7 +284,7 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
 
     await setSessionCookie({
       userId: updatedUser.id,
-      phone: updatedUser.phone,
+      phone: updatedUser.phone || '',
       email: updatedUser.email || null,
       name: updatedUser.name || cleanDisplayName,
       role: 'COMPANION',
