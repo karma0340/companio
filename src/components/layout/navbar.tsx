@@ -227,7 +227,7 @@ export function Navbar() {
               </Link>
             ) : (
               <Link
-                href="/become-a-companion"
+                href="/become-a-host"
                 className="font-display text-xs font-black text-ink hover:text-lavender transition-colors py-1 px-2 rounded-lg hover:bg-paper-deep"
               >
                 Become a Host

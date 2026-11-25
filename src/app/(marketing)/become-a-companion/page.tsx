@@ -25,10 +25,10 @@ export default function BecomeACompanionPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const destinationHref = !isAuthenticated
-    ? '/become-a-companion/apply'
+    ? '/become-a-host/apply'
     : activeRole === 'host' && hostProfile?.verificationStatus === 'approved'
     ? '/companion/dashboard'
-    : '/become-a-companion/apply';
+    : '/become-a-host/apply';
 
   const buttonText =
     isAuthenticated && activeRole === 'host' && hostProfile?.verificationStatus === 'approved'

@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: "%s | Meetzy Club",
   },
   description:
-    "Looking for a gym partner, movie buddy, or coffee companion? Connect with ID-verified local buddies across India. 100% platonic, escrow-safe, public places only. Zero awkwardness.",
+    "Looking for a gym partner, movie buddy, or coffee companion? Connect with mobile OTP-verified local hosts across India. 100% platonic, escrow-safe, public places only. Zero awkwardness.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },

@@ -180,7 +180,7 @@ export function HostEarningsCalculator() {
             </div>
           </div>
 
-          <Link href="/become-a-companion/apply" className="block">
+          <Link href="/become-a-host/apply" className="block">
             <button
               type="button"
               className="w-full flex items-center justify-center gap-2 rounded-2xl border-brutal bg-ink text-white py-3.5 px-6 font-display text-sm font-black shadow-brutal hover:bg-black transition btn-press cursor-pointer"
