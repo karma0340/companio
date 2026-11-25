@@ -192,13 +192,25 @@ export default function BookPage({ params }: BookPageProps) {
       }
       setStep(5);
     }
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
   };
 
   const handlePrevStep = () => {
     if (step > 1) {
       setStep((prev) => (prev - 1) as any);
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
     }
   };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !loadingCompanion) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [loadingCompanion, step, bookingSuccess]);
 
   const handleFinalBookingAndPayment = async () => {
     if (!companion) return;

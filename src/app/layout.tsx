@@ -4,6 +4,7 @@ import { Inter, Caveat, Outfit, Fraunces, Bricolage_Grotesque, DM_Sans } from "n
 import { AuthProvider } from "@/context/auth-context";
 import { ToastProvider } from "@/components/ui/toast";
 import { CelebrationOverlay } from "@/components/ui/celebration";
+import { ScrollManager } from "@/components/layout/scroll-manager";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -64,6 +65,7 @@ export default function RootLayout({
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
         <AuthProvider>
           <ToastProvider>
+            <ScrollManager />
             <CelebrationOverlay />
             {children}
           </ToastProvider>
