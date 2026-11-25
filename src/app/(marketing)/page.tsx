@@ -71,22 +71,22 @@ function mapToActivityCategories(activities: string[] = []): ActivityCategory[] 
 }
 
 const DEFAULT_HERO_COMPANION: Companion = {
-  id: 'kashish-chd',
-  name: 'Kashish',
-  age: 22,
+  id: 'ananya-del',
+  name: 'Ananya',
+  age: 23,
   gender: 'female',
-  city: 'chandigarh',
-  area: 'Sector 35, CHD',
-  tagline: 'Show me around? No - let me show you around Chandigarh & Tricity',
-  about: 'Architecture Student & Coffee Enthusiast in Chandigarh.',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
-  languages: ['English', 'Hindi', 'Punjabi'],
+  city: 'delhi',
+  area: 'Hauz Khas / Connaught Place',
+  tagline: 'Coffee roasteries, contemporary art & quiet city walks',
+  about: 'Literature graduate and visual storyteller based in South Delhi.',
+  avatarUrl: 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg',
+  languages: ['English', 'Hindi'],
   hourlyRate: 599,
   verifiedId: true,
   verifiedPhoto: true,
-  rating: 4.9,
-  reviewCount: 28,
-  meetupsCount: 28,
+  rating: 4.95,
+  reviewCount: 34,
+  meetupsCount: 34,
   activities: ['shopping-buddy', 'coffee-chat'],
   isFreeToday: true,
   memberSince: '2026',
@@ -111,12 +111,12 @@ export default function HomePage() {
             id: c.id,
             name: c.displayName || c.name,
             age: 24,
-            gender: 'female' as const,
+            gender: (c.gender === 'male' ? 'male' : 'female') as 'female' | 'male',
             city: c.citySlug,
             area: `${c.city} Central`,
             tagline: c.shortBio || 'Verified local companion',
             about: c.bio || c.shortBio || '',
-            avatarUrl: c.avatarUrl,
+            avatarUrl: c.avatarUrl || 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg',
             languages: c.spokenLanguages || ['English', 'Hindi'],
             hourlyRate: c.hourlyRate || 499,
             verifiedId: true,
@@ -364,7 +364,7 @@ export default function HomePage() {
                           <div className="flex gap-4 items-center">
                             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-brutal bg-paper-deep">
                               <Image
-                                src={featured.avatarUrl}
+                                src={featured.avatarUrl || 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg'}
                                 alt={featured.name}
                                 fill
                                 sizes="80px"

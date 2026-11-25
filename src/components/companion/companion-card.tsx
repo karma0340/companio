@@ -30,10 +30,19 @@ export function CompanionCard({
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [isBookmarked, setIsBookmarked] = useState(initialBookmarked);
+  const defaultFallback =
+    companion.gender === 'male'
+      ? 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/aarav-mum.jpg'
+      : 'https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ananya-del.jpg';
+  const [imgSrc, setImgSrc] = useState(companion.avatarUrl || defaultFallback);
 
   useEffect(() => {
     setIsBookmarked(initialBookmarked);
   }, [initialBookmarked]);
+
+  useEffect(() => {
+    setImgSrc(companion.avatarUrl || defaultFallback);
+  }, [companion.avatarUrl, defaultFallback]);
 
   const companionActivities = companion.activities
     .map((slug) => ACTIVITIES.find((a) => a.slug === slug))
@@ -98,11 +107,16 @@ export function CompanionCard({
         <Link href={`/companions/${companion.id}`} className="block">
           <div className="relative aspect-[3.2/4] w-full overflow-hidden rounded-xl border-2 border-ink bg-paper-deep">
             <Image
-              src={companion.avatarUrl}
+              src={imgSrc}
               alt={companion.name}
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              onError={() => {
+                if (imgSrc !== defaultFallback) {
+                  setImgSrc(defaultFallback);
+                }
+              }}
             />
 
             {/* Top-Left Status Tag */}
