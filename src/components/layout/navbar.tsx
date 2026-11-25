@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Menu,
@@ -130,7 +131,13 @@ export function Navbar() {
   let badgeLabel = activeRole === 'host' ? 'Verified Host' : 'Active Member';
   let badgeVariant: 'lime' | 'sunny' | 'coral' | 'lavender' = activeRole === 'host' ? 'lime' : 'sunny';
 
-  if (isApplyingHost) {
+  const activeAvatarUrl =
+    (activeRole === 'host' ? hostProfile?.avatarUrl : (user?.avatarUrl || memberProfile?.avatarUrl)) ||
+    hostProfile?.avatarUrl ||
+    user?.avatarUrl ||
+    memberProfile?.avatarUrl;
+
+  if (isApplyingHost && !hostProfile && user?.role !== 'COMPANION') {
     resolvedName = !isAnonymousName ? resolvedName : (user?.phone ? formatPhoneNumber(user.phone) : 'Host Applicant');
     roleLabel = 'Host Applicant';
     badgeLabel = 'Application in Progress';
@@ -389,11 +396,22 @@ export function Navbar() {
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className="flex items-center gap-2 rounded-xl border-brutal bg-white px-2.5 py-1.5 shadow-brutal-sm hover:bg-paper-deep btn-press cursor-pointer"
                   >
-                  <AvatarVector
-                    gender={memberProfile?.gender || 'female'}
-                    size="sm"
-                    bgVariant={memberProfile?.gender === 'male' ? 'sky' : 'pink'}
-                  />
+                  {activeAvatarUrl ? (
+                    <div className="relative h-7 w-7 rounded-lg overflow-hidden border-2 border-ink shrink-0">
+                      <Image
+                        src={activeAvatarUrl}
+                        alt={resolvedName}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <AvatarVector
+                      gender={memberProfile?.gender || 'female'}
+                      size="sm"
+                      bgVariant={memberProfile?.gender === 'male' ? 'sky' : 'pink'}
+                    />
+                  )}
                   <div className="text-left">
                     <span className="block font-display text-xs font-black text-ink leading-tight">
                       {resolvedName}
@@ -406,17 +424,35 @@ export function Navbar() {
                 </button>
 
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border-brutal bg-white p-2.5 shadow-brutal-lg z-50 space-y-1 animate-in fade-in">
+                  <div className="absolute right-0 mt-2 w-60 rounded-2xl border-brutal bg-white p-2.5 shadow-brutal-lg z-50 space-y-1 animate-in fade-in">
                     {/* Header Details */}
-                    <div className="border-b-brutal-sm p-2 pb-2.5">
-                      <p className="font-display text-xs font-black text-ink">{resolvedName}</p>
-                      <p className="text-[11px] font-mono text-ink-muted">
-                        {formatPhoneNumber(user?.phone)}
-                      </p>
-                      <div className="mt-1">
-                        <Badge variant={badgeVariant} size="sm">
-                          {badgeLabel}
-                        </Badge>
+                    <div className="border-b-brutal-sm p-2 pb-2.5 flex items-center gap-2.5">
+                      {activeAvatarUrl ? (
+                        <div className="relative h-9 w-9 rounded-xl overflow-hidden border-2 border-ink shrink-0">
+                          <Image
+                            src={activeAvatarUrl}
+                            alt={resolvedName}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <AvatarVector
+                          gender={memberProfile?.gender || 'female'}
+                          size="md"
+                          bgVariant={memberProfile?.gender === 'male' ? 'sky' : 'pink'}
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-display text-xs font-black text-ink truncate">{resolvedName}</p>
+                        <p className="text-[10px] font-mono text-ink-muted truncate">
+                          {formatPhoneNumber(user?.phone)}
+                        </p>
+                        <div className="mt-1">
+                          <Badge variant={badgeVariant} size="sm">
+                            {badgeLabel}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
 
@@ -462,7 +498,7 @@ export function Navbar() {
                     </Link>
 
                     {/* Host Links if applicable */}
-                    {hostProfile && hostProfile.verificationStatus === 'approved' ? (
+                    {hostProfile || user?.role === 'COMPANION' ? (
                       <>
                         <Link
                           href="/companion/dashboard"

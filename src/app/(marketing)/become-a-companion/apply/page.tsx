@@ -90,10 +90,12 @@ function CompanionApplyForm() {
     hourlyRate: "499",
     languages: "English, Hindi, Punjabi",
     activities: ["Coffee & Conversations", "Cafe Hopping"],
-    idType: "Aadhaar Card (Masked)",
-    idNumber: "",
-    socialHandle: "",
+    availability: ["Weekdays (Mon-Fri)", "Weekends (Sat-Sun)"],
+    preferredVenues: ["Artisan Coffee Shops", "Open Promenades & Parks"],
+    agreePublicOnly: true,
     agreePlatonic: true,
+    agreeEscrowPin: true,
+    agreeTerms: true,
   });
 
   // Photo states & live previews
@@ -101,12 +103,7 @@ function CompanionApplyForm() {
   const [avatarFileName, setAvatarFileName] = useState<string>("");
   const [isAvatarProcessing, setIsAvatarProcessing] = useState<boolean>(false);
 
-  const [idDocBase64, setIdDocBase64] = useState<string>("");
-  const [idDocFileName, setIdDocFileName] = useState<string>("");
-  const [isIdDocProcessing, setIsIdDocProcessing] = useState<boolean>(false);
-
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const idDocInputRef = useRef<HTMLInputElement>(null);
 
   // Pre-fill phone and name from URL or authenticated session
   useEffect(() => {
@@ -172,33 +169,28 @@ function CompanionApplyForm() {
     }
   };
 
-  // ID Document handler with compression & FileReader fallback
-  const handleIdDocFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsIdDocProcessing(true);
-    setIdDocFileName(file.name);
-    try {
-      const compressed = await compressImage(file, 1280, 0.85);
-      setIdDocBase64(compressed);
-      setErrorMessage(null);
-    } catch {
-      // Fallback directly to FileReader
-      const reader = new FileReader();
-      reader.onload = (readEvt) => {
-        if (readEvt.target?.result) {
-          setIdDocBase64(readEvt.target.result as string);
-          setErrorMessage(null);
-        }
+  const handleAvailabilityToggle = (item: string) => {
+    setFormData((prev) => {
+      const exists = prev.availability.includes(item);
+      return {
+        ...prev,
+        availability: exists
+          ? prev.availability.filter((a) => a !== item)
+          : [...prev.availability, item],
       };
-      reader.readAsDataURL(file);
-    } finally {
-      setIsIdDocProcessing(false);
-      if (e.target) {
-        e.target.value = "";
-      }
-    }
+    });
+  };
+
+  const handleVenueToggle = (item: string) => {
+    setFormData((prev) => {
+      const exists = prev.preferredVenues.includes(item);
+      return {
+        ...prev,
+        preferredVenues: exists
+          ? prev.preferredVenues.filter((v) => v !== item)
+          : [...prev.preferredVenues, item],
+      };
+    });
   };
 
   // Step-by-step required fields check to control Next Step button
@@ -225,7 +217,12 @@ function CompanionApplyForm() {
     formData.bio.trim().length >= 15
   );
 
-  const isStep3Valid = Boolean(formData.agreePlatonic);
+  const isStep3Valid = Boolean(
+    formData.agreePublicOnly &&
+    formData.agreePlatonic &&
+    formData.agreeEscrowPin &&
+    formData.agreeTerms
+  );
 
   const canProceed =
     step === 1 ? isStep1Valid :
@@ -282,8 +279,8 @@ function CompanionApplyForm() {
 
     // STEP 3 VALIDATION & FINAL SUBMISSION
     if (step === 3) {
-      if (!formData.agreePlatonic) {
-        setErrorMessage("You must agree to the strictly platonic code and public venues policy.");
+      if (!formData.agreePublicOnly || !formData.agreePlatonic || !formData.agreeEscrowPin || !formData.agreeTerms) {
+        setErrorMessage("Please accept all safety pledges and terms to submit your host profile.");
         return;
       }
 
@@ -302,11 +299,7 @@ function CompanionApplyForm() {
           hourlyRate: parseInt(formData.hourlyRate, 10) || 499,
           activities: formData.activities,
           spokenLanguages: formData.languages.split(",").map((s) => s.trim()).filter(Boolean),
-          idType: formData.idType,
-          idNumber: formData.idNumber.trim() || undefined,
-          socialHandle: formData.socialHandle.trim() || undefined,
           avatarImage: avatarBase64 || undefined,
-          idDocumentImage: idDocBase64 || undefined,
           registrationFeePaid: true,
           paymentId: `free_submission_${Date.now()}`,
         });
@@ -449,7 +442,7 @@ function CompanionApplyForm() {
                     className={`border-2 border-ink p-2 font-black uppercase transition ${step >= 3 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"
                       }`}
                   >
-                    3. Simple Verification
+                    3. Safety &amp; Availability
                   </div>
                 </div>
               </div>
@@ -758,150 +751,135 @@ function CompanionApplyForm() {
                   </div>
                 )}
 
-                {/* STEP 3: Simple & Private Verification */}
+                {/* STEP 3: Safety Pledge & Availability (No Aadhaar / No Document Upload) */}
                 {step === 3 && (
                   <div className="space-y-5 animate-in fade-in">
-                    {/* Privacy Reassurance Banner */}
+                    {/* Privacy & Transparent Data Guarantee Banner */}
                     <div className="border-2 border-ink bg-[#E8DEFF] p-4 space-y-2 shadow-brutal-sm">
                       <div className="flex items-center gap-2">
-                        <Lock className="h-4 w-4 text-ink shrink-0" />
+                        <ShieldCheck className="h-4 w-4 text-ink shrink-0" />
                         <h3 className="text-xs font-black uppercase tracking-wider text-ink">
-                          Private &amp; Confidential Verification
+                          Privacy by Default &mdash; No Government ID Required
                         </h3>
                       </div>
                       <p className="text-xs font-medium text-ink-soft leading-relaxed">
-                        To maintain a trusted and safe community, we ask for a simple identity proof. Your document is stored with 256-bit encryption and is NEVER displayed to members or on your public profile.
+                        We respect your privacy. We do <strong>NOT</strong> collect or store your Aadhaar card, biometrics, or government credentials. Your legal name and phone number remain private and encrypted. Only your display name, city, photo, hourly rate, and accepted activities are visible to verified members.
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-black uppercase text-ink mb-1">
-                          Document Type
-                        </label>
-                        <select
-                          value={formData.idType}
-                          onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
-                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink focus:outline-none"
-                        >
-                          <option value="Aadhaar Card (Masked)">Aadhaar Card (Masked)</option>
-                          <option value="Driving License">Driving License</option>
-                          <option value="Student / College ID">Student / College ID</option>
-                          <option value="Work / Employee ID">Work / Employee ID</option>
-                          <option value="Voter ID">Voter ID</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-black uppercase text-ink mb-1">
-                          ID Number / Last 4 Digits (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={16}
-                          placeholder="e.g. Last 4 digits (1234)"
-                          value={formData.idNumber}
-                          onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
-                          className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
-                        />
+                    {/* Weekly Availability */}
+                    <div>
+                      <label className="block text-xs font-black uppercase text-ink mb-1.5">
+                        Weekly Availability (Select all that apply)
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          "Weekdays (Mon-Fri)",
+                          "Weekends (Sat-Sun)",
+                          "Evenings (5-9 PM)",
+                          "Flexible / On Request",
+                        ].map((item) => {
+                          const isSelected = formData.availability.includes(item);
+                          return (
+                            <button
+                              type="button"
+                              key={item}
+                              onClick={() => handleAvailabilityToggle(item)}
+                              className={`border-2 border-ink p-2 text-center text-xs font-black transition cursor-pointer ${
+                                isSelected ? "bg-lime text-ink shadow-brutal-xs" : "bg-paper text-ink-muted hover:bg-white"
+                              }`}
+                            >
+                              {item}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Single Document Upload */}
+                    {/* Preferred Public Venues */}
                     <div>
-                      <label className="block text-xs font-black uppercase text-ink mb-1">
-                        Upload ID Photo (Clear Photo of Card)
+                      <label className="block text-xs font-black uppercase text-ink mb-1.5">
+                        Preferred Public Venues
                       </label>
-
-                      {idDocBase64 ? (
-                        <div className="border-2 border-ink bg-paper p-3 flex items-center justify-between shadow-brutal-sm">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-6 w-6 text-ink" />
-                            <div>
-                              <span className="text-xs font-black text-ink block truncate max-w-[200px]">
-                                {idDocFileName || "id-document.jpg"}
-                              </span>
-                              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                                <Check className="h-3 w-3" /> Document Ready
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          "Artisan Coffee Shops",
+                          "Open Promenades & Parks",
+                          "Malls & Shopping Centers",
+                          "Cultural Spaces & Museums",
+                        ].map((v) => {
+                          const isSelected = formData.preferredVenues.includes(v);
+                          return (
                             <button
                               type="button"
-                              onClick={() => idDocInputRef.current?.click()}
-                              className="border border-ink bg-white px-2 py-1 text-[10px] font-black uppercase hover:bg-paper-deep"
+                              key={v}
+                              onClick={() => handleVenueToggle(v)}
+                              className={`border-2 border-ink p-2 text-center text-xs font-black transition cursor-pointer ${
+                                isSelected ? "bg-sunny text-ink shadow-brutal-xs" : "bg-paper text-ink-muted hover:bg-white"
+                              }`}
                             >
-                              Replace
+                              {v}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIdDocBase64("");
-                                setIdDocFileName("");
-                              }}
-                              className="p-1 text-danger hover:bg-danger/10 rounded"
-                              title="Remove document"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => idDocInputRef.current?.click()}
-                          className="w-full flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-ink bg-white p-5 hover:bg-paper-deep transition text-center min-h-[90px] cursor-pointer active:scale-[0.99]"
-                        >
-                          <Upload className="h-5 w-5 text-ink/70" />
-                          <span className="text-xs font-black text-ink">
-                            {isIdDocProcessing ? "Compressing document..." : "Upload Document Photo (Click to choose file)"}
-                          </span>
-                          <span className="text-[10px] font-bold text-ink-muted">
-                            Aadhaar, Driving License, Student ID or Work ID
-                          </span>
-                        </button>
-                      )}
-
-                      <input
-                        id="id-doc-upload-input"
-                        ref={idDocInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleIdDocFile}
-                        className="hidden"
-                      />
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    {/* Optional Social Profile */}
-                    <div>
-                      <label className="block text-xs font-black uppercase text-ink mb-1 flex items-center gap-1.5">
-                        <Instagram className="h-3.5 w-3.5 text-pink-600" />
-                        <span>Social Profile (Optional for Faster Approval)</span>
+                    {/* 4 Safety & Legal Commitments */}
+                    <div className="space-y-3 pt-1">
+                      <label className="block text-xs font-black uppercase text-ink">
+                        Safety &amp; Community Commitments
                       </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. @your_instagram or linkedin.com/in/username"
-                        value={formData.socialHandle}
-                        onChange={(e) => setFormData({ ...formData, socialHandle: e.target.value })}
-                        className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
-                      />
-                    </div>
 
-                    {/* Strict Platonic Policy Checkbox */}
-                    <div className="border-2 border-ink bg-white p-4 shadow-brutal-sm">
-                      <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          required
-                          checked={formData.agreePlatonic}
-                          onChange={(e) => setFormData({ ...formData, agreePlatonic: e.target.checked })}
-                          className="mt-0.5 h-4 w-4 border-2 border-ink accent-ink"
-                        />
-                        <span className="text-xs font-bold text-ink leading-relaxed">
-                          I agree to Meetzy Club&apos;s Strictly Platonic &amp; Public Venues policy. All meetups are 100% platonic in open public places only; romantic or sexual propositions are strictly prohibited and result in immediate ban.
-                        </span>
-                      </label>
+                      <div className="border-2 border-ink bg-white p-3.5 space-y-3 shadow-brutal-sm">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.agreePublicOnly}
+                            onChange={(e) => setFormData({ ...formData, agreePublicOnly: e.target.checked })}
+                            className="mt-0.5 h-4 w-4 border-2 border-ink accent-ink"
+                          />
+                          <span className="text-xs font-bold text-ink leading-relaxed">
+                            <strong>Strictly Public Places:</strong> I agree that 100% of meetups take place strictly in open, verified public venues (cafes, promenades, restaurants, museums). I will NEVER meet in private residences, hotel rooms, or secluded private spaces.
+                          </span>
+                        </label>
+
+                        <label className="flex items-start gap-3 cursor-pointer border-t border-ink/10 pt-2.5">
+                          <input
+                            type="checkbox"
+                            checked={formData.agreePlatonic}
+                            onChange={(e) => setFormData({ ...formData, agreePlatonic: e.target.checked })}
+                            className="mt-0.5 h-4 w-4 border-2 border-ink accent-ink"
+                          />
+                          <span className="text-xs font-bold text-ink leading-relaxed">
+                            <strong>100% Platonic &amp; Zero Tolerance:</strong> I understand that Companio / Meetzy Club is strictly platonic. Romantic solicitations, physical intimacy, or adult services of any nature are strictly prohibited and will lead to an immediate ban and legal reporting.
+                          </span>
+                        </label>
+
+                        <label className="flex items-start gap-3 cursor-pointer border-t border-ink/10 pt-2.5">
+                          <input
+                            type="checkbox"
+                            checked={formData.agreeEscrowPin}
+                            onChange={(e) => setFormData({ ...formData, agreeEscrowPin: e.target.checked })}
+                            className="mt-0.5 h-4 w-4 border-2 border-ink accent-ink"
+                          />
+                          <span className="text-xs font-bold text-ink leading-relaxed">
+                            <strong>Escrow Protection &amp; 4-Digit Start PIN:</strong> I understand that member payments are held safely in escrow and are credited to my host wallet immediately upon entering the member&apos;s secret 4-digit start PIN when we meet in-person.
+                          </span>
+                        </label>
+
+                        <label className="flex items-start gap-3 cursor-pointer border-t border-ink/10 pt-2.5">
+                          <input
+                            type="checkbox"
+                            checked={formData.agreeTerms}
+                            onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })}
+                            className="mt-0.5 h-4 w-4 border-2 border-ink accent-ink"
+                          />
+                          <span className="text-xs font-bold text-ink leading-relaxed">
+                            <strong>Terms &amp; Privacy Agreement:</strong> I confirm I am 18 years of age or older, and I agree to Companio&apos;s <Link href="/terms" className="underline font-black text-ink">Terms of Service</Link>, <Link href="/privacy" className="underline font-black text-ink">Privacy Policy</Link>, and <Link href="/community-guidelines" className="underline font-black text-ink">Community Guidelines</Link>.
+                          </span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -914,7 +892,7 @@ function CompanionApplyForm() {
                       <span>
                         {step === 1 && "Please enter your full legal name, 10-digit mobile number, and age (18+) to enable Next Step."}
                         {step === 2 && (!avatarBase64 ? "Please upload your profile photo to enable Next Step." : formData.bio.trim().length < 15 ? "Please write a short bio of at least 15 characters to enable Next Step." : "Please fill in all required fields to enable Next Step.")}
-                        {step === 3 && "Please check the strictly platonic policy box to enable Submit."}
+                        {step === 3 && "Please accept all 4 safety pledges and agreements to enable Submit."}
                       </span>
                     </div>
                   )}

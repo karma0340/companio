@@ -8,6 +8,8 @@ export interface User {
   phone: string;
   email?: string | null;
   name?: string;
+  avatarUrl?: string | null;
+  role?: 'MEMBER' | 'COMPANION' | 'ADMIN' | string;
   activeRole: 'member' | 'host' | 'admin';
   accountStatus: string;
   coinBalance?: number;
@@ -137,6 +139,7 @@ export const useAppStore = create<AppState>()(
                 phone: u.phone,
                 email: u.email,
                 name: u.name,
+                avatarUrl: u.avatarUrl || data.hostProfile?.avatarUrl || data.memberProfile?.avatarUrl || null,
                 activeRole: role,
                 accountStatus: 'active',
                 coinBalance: u.coinBalance ?? 100,
