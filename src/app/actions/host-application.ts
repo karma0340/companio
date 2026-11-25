@@ -6,7 +6,7 @@ import { uploadHostAvatar } from '@/lib/cloudinary';
 import { getSession, setSessionCookie } from '@/lib/session';
 import { HOST_REGISTRATION_FEE } from '@/lib/data';
 import { HostPackTier } from '@/types';
-import { verifyRazorpaySignature } from '@/lib/razorpay';
+import { verifyRazorpaySignature, isValidUpiId, ensureRazorpayXContactAndUpiFundAccount } from '@/lib/razorpay';
 import { creditCoins } from '@/lib/wallet';
 import { CoinTransactionType } from '@prisma/client';
 
@@ -25,6 +25,7 @@ export interface SubmitHostApplicationInput {
   spokenLanguages?: string[];
   availabilitySlots?: string[];
   preferredVenues?: string[];
+  upiId?: string;
   packTier?: HostPackTier;
   avatarImage?: string;
   razorpayOrderId?: string;
@@ -193,6 +194,32 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         ? input.activities
         : ['Coffee & Conversations', 'City Walk'];
 
+    const cleanUpiId = String(input.upiId || '').trim();
+    if (cleanUpiId && !isValidUpiId(cleanUpiId)) {
+      return { success: false, error: 'Please provide a valid Payout UPI ID (e.g. name@okaxis).' };
+    }
+
+    let razorpayContactId: string | null = existingUser.companion?.razorpayContactId || null;
+    let razorpayFundAccountId: string | null = existingUser.companion?.razorpayFundAccountId || null;
+    if (cleanUpiId) {
+      const sameUpi = existingUser.companion?.upiId === cleanUpiId;
+      const faSetup = await ensureRazorpayXContactAndUpiFundAccount({
+        userId: existingUser.id,
+        name: input.fullName.trim(),
+        email: existingUser.email,
+        phone: existingUser.phone || resolvedPhone,
+        upiId: cleanUpiId,
+        existingContactId: razorpayContactId,
+        existingFundAccountId: sameUpi ? razorpayFundAccountId : null,
+      }).catch(() => ({ success: false as const }));
+      if (faSetup.success) {
+        razorpayContactId = faSetup.contactId || razorpayContactId;
+        razorpayFundAccountId = faSetup.fundAccountId || razorpayFundAccountId;
+      } else if (!sameUpi) {
+        razorpayFundAccountId = null;
+      }
+    }
+
     // Save HostApplication record
     const application = await prisma.hostApplication.create({
       data: {
@@ -207,6 +234,7 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         availabilitySlots,
         preferredVenues,
         packTier: packOption.tier,
+        upiId: cleanUpiId || null,
         razorpayOrderId: orderId || null,
         razorpayPaymentId: paymentId,
         selfieVideoUrl: avatarUrl,
@@ -239,6 +267,9 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         acceptedActivities,
         availabilitySlots,
         preferredVenues,
+        ...(cleanUpiId ? { upiId: cleanUpiId } : {}),
+        ...(razorpayContactId ? { razorpayContactId } : {}),
+        ...(razorpayFundAccountId !== undefined ? { razorpayFundAccountId } : {}),
         hostPackTier: packOption.tier,
         hostPackExpiresAt: packExpiresAt,
         photoVerified: true,
@@ -262,6 +293,9 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         acceptedActivities,
         availabilitySlots,
         preferredVenues,
+        upiId: cleanUpiId || null,
+        razorpayContactId,
+        razorpayFundAccountId,
         hostPackTier: packOption.tier,
         hostPackExpiresAt: packExpiresAt,
         photoVerified: true,

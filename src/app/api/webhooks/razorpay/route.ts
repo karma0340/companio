@@ -4,7 +4,7 @@ import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 import { PASS_TIER_OPTIONS } from "@/lib/data";
 import { PassTier } from "@/types";
 import { creditCoins } from "@/lib/wallet";
-import { CoinTransactionType } from "@prisma/client";
+import { CoinTransactionType, TransactionStatus } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -123,6 +123,77 @@ export async function POST(req: NextRequest) {
         } catch (dbErr) {
           console.error("[RAZORPAY WEBHOOK DB ERROR]:", dbErr);
         }
+      }
+    } else if (eventType === "payout.processed" || eventType === "payout.failed" || eventType === "payout.reversed") {
+      const payoutEntity = event.payload?.payout?.entity;
+      const payoutId = String(payoutEntity?.id || "").trim();
+      const utr = payoutEntity?.utr ? String(payoutEntity.utr).trim() : null;
+      const referenceTxId = payoutEntity?.reference_id ? String(payoutEntity.reference_id).trim() : null;
+
+      if (payoutId || referenceTxId) {
+        const cashoutTx = await prisma.transaction.findFirst({
+          where: {
+            OR: [
+              ...(payoutId ? [{ gatewayTransactionId: payoutId }] : []),
+              ...(referenceTxId ? [{ id: referenceTxId }] : []),
+            ],
+            type: "WALLET_CASHOUT",
+          },
+        });
+
+        if (cashoutTx) {
+          if (eventType === "payout.processed") {
+            await prisma.$transaction(async (tx) => {
+              await tx.transaction.update({
+                where: { id: cashoutTx.id },
+                data: {
+                  status: "SUCCESS" as TransactionStatus,
+                  gatewayTransactionId: utr || payoutId || cashoutTx.gatewayTransactionId,
+                  failureReason: null,
+                },
+              });
+              await tx.companion.updateMany({
+                where: { userId: cashoutTx.userId },
+                data: { upiVerified: true },
+              });
+            });
+          } else if (cashoutTx.status !== "FAILED") {
+            const failReason =
+              payoutEntity?.status_details?.description ||
+              payoutEntity?.failure_reason ||
+              `RazorpayX ${eventType}`;
+            // Compensate: atomically restore Host wallet balance once when payout fails or reverses
+            await prisma.$transaction(async (tx) => {
+              const updatedCount = await tx.transaction.updateMany({
+                where: { id: cashoutTx.id, status: { not: "FAILED" } },
+                data: {
+                  status: "FAILED" as TransactionStatus,
+                  failureReason: String(failReason).slice(0, 240),
+                },
+              });
+              if (updatedCount.count > 0) {
+                await tx.user.update({
+                  where: { id: cashoutTx.userId },
+                  data: { walletBalance: { increment: Number(cashoutTx.amount) } },
+                });
+              }
+            });
+          }
+        }
+      }
+    } else if (eventType === "refund.processed") {
+      const refundEntity = event.payload?.refund?.entity;
+      const paymentId = String(refundEntity?.payment_id || "").trim();
+      if (paymentId) {
+        await prisma.transaction
+          .updateMany({
+            where: {
+              gatewayTransactionId: paymentId,
+              type: "ESCROW_DEPOSIT",
+            },
+            data: { status: "REFUNDED" },
+          })
+          .catch(() => {});
       }
     }
 

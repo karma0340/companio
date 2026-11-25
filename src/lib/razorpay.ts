@@ -170,3 +170,223 @@ export function verifyRazorpayWebhookSignature(
     return false;
   }
 }
+
+export function isValidUpiId(upiId: string): boolean {
+  const clean = (upiId || "").trim();
+  return /^[a-zA-Z0-9._-]{2,256}@[a-zA-Z0-9]{2,64}$/.test(clean);
+}
+
+export function getRazorpayXAccountNumber(): string {
+  return (process.env.RAZORPAYX_ACCOUNT_NUMBER || "").replace(/^["']|["']$/g, "").trim();
+}
+
+export function isRazorpayXConfigured(): boolean {
+  return isRazorpayConfigured() && Boolean(getRazorpayXAccountNumber());
+}
+
+function getRazorpayAuthHeader(): string | null {
+  const keyId = process.env.RAZORPAY_KEY_ID?.trim();
+  const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
+  if (!keyId || !keySecret) return null;
+  return `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`;
+}
+
+export async function ensureRazorpayXContactAndUpiFundAccount(params: {
+  userId: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  upiId: string;
+  existingContactId?: string | null;
+  existingFundAccountId?: string | null;
+}): Promise<{
+  success: boolean;
+  contactId?: string;
+  fundAccountId?: string;
+  error?: string;
+}> {
+  const authHeader = getRazorpayAuthHeader();
+  if (!authHeader || !isRazorpayXConfigured()) {
+    return { success: false, error: "RazorpayX is not configured." };
+  }
+
+  try {
+    let contactId = params.existingContactId || "";
+    if (!contactId) {
+      const cleanPhone = (params.phone || "").replace(/\D/g, "").slice(-10);
+      const contactRes = await fetch("https://api.razorpay.com/v1/contacts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({
+          name: (params.name || "Meetzy Host").slice(0, 50),
+          ...(params.email ? { email: params.email } : {}),
+          ...(cleanPhone.length === 10 ? { contact: `+91${cleanPhone}` } : {}),
+          type: "vendor",
+          reference_id: params.userId.slice(0, 40),
+        }),
+      });
+      const contactData = await contactRes.json().catch(() => ({}));
+      if (!contactRes.ok || !contactData?.id) {
+        return {
+          success: false,
+          error: contactData?.error?.description || "Failed to register RazorpayX host contact.",
+        };
+      }
+      contactId = contactData.id;
+    }
+
+    let fundAccountId = params.existingFundAccountId || "";
+    if (!fundAccountId) {
+      const faRes = await fetch("https://api.razorpay.com/v1/fund_accounts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({
+          contact_id: contactId,
+          account_type: "vpa",
+          vpa: {
+            address: params.upiId.trim(),
+          },
+        }),
+      });
+      const faData = await faRes.json().catch(() => ({}));
+      if (!faRes.ok || !faData?.id) {
+        return {
+          success: false,
+          contactId,
+          error: faData?.error?.description || "Failed to register RazorpayX UPI fund account.",
+        };
+      }
+      fundAccountId = faData.id;
+    }
+
+    return { success: true, contactId, fundAccountId };
+  } catch (err) {
+    return { success: false, error: (err as Error).message || "RazorpayX contact setup failed." };
+  }
+}
+
+export async function createRazorpayXUpiPayout(params: {
+  fundAccountId: string;
+  amountInPaise: number;
+  referenceId: string;
+  narration: string;
+  idempotencyKey: string;
+  notes?: Record<string, string>;
+}): Promise<{
+  success: boolean;
+  payoutId?: string;
+  status?: "PENDING" | "SUCCESS" | "FAILED";
+  utr?: string;
+  error?: string;
+}> {
+  const authHeader = getRazorpayAuthHeader();
+  const accountNumber = getRazorpayXAccountNumber();
+  if (!authHeader || !accountNumber) {
+    return { success: false, error: "RazorpayX source account number is not configured." };
+  }
+
+  try {
+    const res = await fetch("https://api.razorpay.com/v1/payouts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+        "X-Payout-Idempotency": params.idempotencyKey.slice(0, 36),
+      },
+      body: JSON.stringify({
+        account_number: accountNumber,
+        fund_account_id: params.fundAccountId,
+        amount: Math.round(params.amountInPaise),
+        currency: "INR",
+        mode: "UPI",
+        purpose: "payout",
+        queue_if_low_balance: true,
+        reference_id: params.referenceId.slice(0, 40),
+        narration: params.narration.slice(0, 30),
+        notes: params.notes || {},
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.id) {
+      return {
+        success: false,
+        status: "FAILED",
+        error: data?.error?.description || "RazorpayX UPI payout initiation failed.",
+      };
+    }
+
+    const rzpStatus = String(data.status || "").toLowerCase();
+    const mappedStatus: "PENDING" | "SUCCESS" | "FAILED" =
+      rzpStatus === "processed"
+        ? "SUCCESS"
+        : rzpStatus === "rejected" || rzpStatus === "cancelled" || rzpStatus === "reversed"
+        ? "FAILED"
+        : "PENDING";
+
+    return {
+      success: mappedStatus !== "FAILED",
+      payoutId: data.id,
+      status: mappedStatus,
+      utr: data.utr || data.id,
+      error: mappedStatus === "FAILED" ? data.status_details?.description || "Payout rejected" : undefined,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      status: "FAILED",
+      error: (err as Error).message || "RazorpayX API request failed.",
+    };
+  }
+}
+
+export async function createRazorpayRefund(params: {
+  paymentId: string;
+  amountInPaise?: number;
+  notes?: Record<string, string>;
+}): Promise<{ success: boolean; refundId?: string; status?: string; error?: string }> {
+  const authHeader = getRazorpayAuthHeader();
+  if (!authHeader || !isRazorpayConfigured()) {
+    return { success: false, error: "Razorpay credentials not configured for automated refunds." };
+  }
+  if (!params.paymentId || !params.paymentId.startsWith("pay_")) {
+    return { success: false, error: "Valid Razorpay payment ID missing for refund." };
+  }
+
+  try {
+    const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(params.paymentId)}/refund`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
+      body: JSON.stringify({
+        ...(params.amountInPaise ? { amount: Math.round(params.amountInPaise) } : {}),
+        speed: "normal",
+        notes: params.notes || {},
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.id) {
+      return {
+        success: false,
+        error: data?.error?.description || "Razorpay refund initiation failed.",
+      };
+    }
+
+    return {
+      success: true,
+      refundId: data.id,
+      status: data.status || "processed",
+    };
+  } catch (err) {
+    return { success: false, error: (err as Error).message || "Razorpay refund API failed." };
+  }
+}

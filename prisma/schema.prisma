@@ -212,10 +212,13 @@ model Companion {
   photoVerified       Boolean     @default(false)
   ratingAverage       Float       @default(5.0)
   totalReviews        Int         @default(0)
-  isAvailable         Boolean     @default(true)
-  upiId               String?
-  bankAccountNumber   String?
-  bankIfsc            String?
+  isAvailable           Boolean     @default(true)
+  upiId                 String?
+  upiVerified           Boolean     @default(false)
+  razorpayContactId     String?
+  razorpayFundAccountId String?
+  bankAccountNumber     String?
+  bankIfsc              String?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -296,6 +299,8 @@ model Booking {
   companionFee            Decimal         @db.Decimal(10, 2) // e.g. 499.00
   platformFee             Decimal         @db.Decimal(10, 2) // e.g. 175.42
   gstAmount               Decimal         @db.Decimal(10, 2) // e.g. 31.58
+  razorpayOrderId         String?
+  razorpayPaymentId       String?
   escrowStatus            EscrowStatus    @default(HELD_IN_ESCROW)
   status                  BookingStatus   @default(PENDING_ACCEPTANCE)
   verificationPin         String          @db.VarChar(6) // 4-digit code e.g. "8429"
@@ -319,6 +324,7 @@ model Booking {
   @@index([companionId])
   @@index([status])
   @@index([escrowStatus])
+  @@index([razorpayPaymentId])
 }
 
 model ChatMessage {
@@ -350,6 +356,8 @@ model Transaction {
   netAmount             Decimal           @db.Decimal(10, 2)
   gateway               PaymentGateway
   gatewayTransactionId  String?
+  recipientUpiId        String?
+  failureReason         String?
   status                TransactionStatus @default(PENDING)
   createdAt             DateTime          @default(now())
 
@@ -357,6 +365,7 @@ model Transaction {
   @@index([bookingId])
   @@index([type])
   @@index([status])
+  @@index([gatewayTransactionId])
 }
 
 model HostApplication {
@@ -372,6 +381,7 @@ model HostApplication {
   availabilitySlots   String[]
   preferredVenues     String[]
   packTier            HostPackTier    @default(STARTER)
+  upiId               String?
   razorpayOrderId     String?
   razorpayPaymentId   String?
   aadhaarNumber       String?

@@ -205,6 +205,8 @@ export async function createBookingAction(input: CreateBookingInput) {
         companionFee: breakdown.companionFee, // 70% fixed Host Share
         platformFee: breakdown.platformFee,
         gstAmount: breakdown.gstAmount,
+        razorpayOrderId: orderId || null,
+        razorpayPaymentId: paymentId,
         verificationPin: startCode,
         status: 'PENDING_ACCEPTANCE',
         escrowStatus: 'HELD_IN_ESCROW',

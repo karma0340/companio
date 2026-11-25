@@ -84,6 +84,8 @@ interface PayoutItem {
   type: string;
   amount: number;
   utr: string;
+  recipientUpiId?: string;
+  failureReason?: string | null;
   status: string;
   gateway: string;
   dispatchedAt: string;
@@ -114,6 +116,8 @@ export default function CompanionDashboardPage() {
   const [profile, setProfile] = useState<HostProfileData | null>(null);
   const [bookings, setBookings] = useState<HostBookingItem[]>([]);
   const [payouts, setPayouts] = useState<PayoutItem[]>([]);
+  const [upiVerified, setUpiVerified] = useState(false);
+  const [razorpayXConfigured, setRazorpayXConfigured] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
 
   const [isAvailable, setIsAvailable] = useState(true);
@@ -193,6 +197,8 @@ export default function CompanionDashboardPage() {
       if (payoutsRes.ok) {
         const payoutsData = await payoutsRes.json();
         setPayouts(Array.isArray(payoutsData.payouts) ? payoutsData.payouts : []);
+        setUpiVerified(Boolean(payoutsData.upiVerified));
+        setRazorpayXConfigured(Boolean(payoutsData.razorpayXConfigured));
         if (typeof payoutsData.walletBalance === 'number') {
           setWalletBalance(payoutsData.walletBalance);
         }
@@ -711,9 +717,12 @@ export default function CompanionDashboardPage() {
                             {req.activityTitle} with {req.memberName}
                           </h3>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right space-y-1">
                           <span className="inline-block rounded-lg border-brutal-thin bg-lime px-2.5 py-1 text-xs font-black text-ink">
                             Your 70% Payout: INR {req.companionFee}
+                          </span>
+                          <span className="block text-[10px] font-bold text-ink/60">
+                            Gross INR {req.totalAmount} · 30% Platform INR {Math.max(0, Math.round((req.totalAmount - req.companionFee) * 100) / 100)}
                           </span>
                         </div>
                       </div>
@@ -885,11 +894,39 @@ export default function CompanionDashboardPage() {
               </div>
 
               <div className="rounded-2xl border-brutal-thin bg-cream p-3.5 text-xs font-semibold text-ink/75 flex items-center justify-between gap-2">
-                <span>Linked UPI ID:</span>
+                <div>
+                  <span>Linked UPI ID:</span>
+                  {upiVerified && (
+                    <span className="ml-2 inline-block rounded border border-emerald-400 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black uppercase text-emerald-700">
+                      Verified
+                    </span>
+                  )}
+                </div>
                 <span className="font-mono font-black text-ink">
                   {profile.upiId || 'Not configured yet'}
                 </span>
               </div>
+
+              {!profile.upiId && (
+                <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-3 flex items-center justify-between gap-2 text-xs">
+                  <span className="font-bold text-amber-900">
+                    Add your UPI ID to receive your 70% meetup payouts automatically.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSettingsModal(true)}
+                    className="shrink-0 rounded-lg border border-ink bg-sunny px-2.5 py-1 text-[11px] font-black text-ink hover:bg-lime cursor-pointer"
+                  >
+                    Add UPI
+                  </button>
+                </div>
+              )}
+
+              <p className="text-[11px] font-semibold text-ink/65">
+                {razorpayXConfigured
+                  ? 'RazorpayX Auto-Payout active: completed meetup earnings transfer directly to your UPI ID.'
+                  : '70% of each completed meetup credits to your Host Wallet; request instant UPI payouts anytime.'}
+              </p>
 
               {payouts.length === 0 ? (
                 <p className="text-xs font-semibold text-ink/55 py-2">
@@ -897,32 +934,50 @@ export default function CompanionDashboardPage() {
                 </p>
               ) : (
                 <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                  {payouts.map((tx) => (
-                    <div
-                      key={tx.id}
-                      className="rounded-xl border-brutal-thin bg-cream/60 p-3 flex items-center justify-between gap-2"
-                    >
-                      <div>
-                        <p className="text-xs font-black text-ink">
-                          {tx.type === 'HOST_PAYOUT' ? 'Meetup Payout (70%)' : 'UPI Cashout'}
-                        </p>
-                        <p className="text-[11px] font-semibold text-ink/60">
-                          {new Date(tx.dispatchedAt).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}{' '}
-                          • {tx.utr}
-                        </p>
-                      </div>
-                      <span
-                        className={`font-display text-sm font-black ${
-                          tx.type === 'HOST_PAYOUT' ? 'text-emerald-700' : 'text-ink'
-                        }`}
+                  {payouts.map((tx) => {
+                    const st = String(tx.status || 'SUCCESS').toUpperCase();
+                    const badgeClass =
+                      st === 'SUCCESS'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                        : st === 'PENDING'
+                        ? 'bg-amber-50 text-amber-800 border-amber-300'
+                        : 'bg-rose-50 text-rose-700 border-rose-300';
+                    return (
+                      <div
+                        key={tx.id}
+                        className="rounded-xl border-brutal-thin bg-cream/60 p-3 flex items-center justify-between gap-2"
                       >
-                        {tx.type === 'HOST_PAYOUT' ? '+' : '-'}INR {tx.amount}
-                      </span>
-                    </div>
-                  ))}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-xs font-black text-ink">
+                              {tx.type === 'HOST_PAYOUT' ? 'Meetup Payout (70%)' : 'UPI Cashout'}
+                            </p>
+                            <span className={`rounded border px-1.5 py-0.5 text-[9px] font-black uppercase ${badgeClass}`}>
+                              {st}
+                            </span>
+                          </div>
+                          <p className="text-[11px] font-semibold text-ink/60 truncate">
+                            {new Date(tx.dispatchedAt).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                            })}{' '}
+                            • {tx.utr}
+                            {tx.recipientUpiId && tx.type === 'WALLET_CASHOUT' ? ` • ${tx.recipientUpiId}` : ''}
+                          </p>
+                          {tx.failureReason && (
+                            <p className="text-[10px] font-bold text-rose-700 mt-0.5">{tx.failureReason}</p>
+                          )}
+                        </div>
+                        <span
+                          className={`font-display text-sm font-black shrink-0 ${
+                            tx.type === 'HOST_PAYOUT' ? 'text-emerald-700' : 'text-ink'
+                          }`}
+                        >
+                          {tx.type === 'HOST_PAYOUT' ? '+' : '-'}INR {tx.amount}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

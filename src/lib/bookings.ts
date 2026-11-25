@@ -1,5 +1,7 @@
 import { prisma } from "./prisma";
 import { calculateEscrowBreakdown } from "./escrow";
+import { createRazorpayRefund, isRazorpayConfigured, isRazorpayXConfigured, isValidUpiId } from "./razorpay";
+import { dispatchHostUpiPayout } from "./payouts";
 import { HostLevel } from "@prisma/client";
 
 export type BookingStatusType =
@@ -41,6 +43,7 @@ export interface BookingRecord {
   companionFee: number; // Fixed 70% Host Share
   platformFee: number;
   gstAmount: number;
+  razorpayPaymentId?: string | null;
   escrowStatus: EscrowStatusType;
   status: BookingStatusType;
   verificationPin: string;
@@ -107,6 +110,7 @@ function mapPrismaBooking(dbRecord: any): BookingRecord {
     companionFee: Number(dbRecord.companionFee),
     platformFee: Number(dbRecord.platformFee),
     gstAmount: Number(dbRecord.gstAmount),
+    razorpayPaymentId: dbRecord.razorpayPaymentId || null,
     escrowStatus: dbRecord.escrowStatus as EscrowStatusType,
     status: dbRecord.status as BookingStatusType,
     verificationPin: dbRecord.verificationPin,
@@ -176,6 +180,62 @@ export async function refundEscrowCoinsIfWalletPaid(params: {
     console.warn("[WALLET ESCROW COIN REFUND WARN]:", (err as Error).message);
     return false;
   }
+}
+
+export async function refundEscrowPaymentIfNeeded(params: {
+  bookingId: string;
+  memberId: string;
+  totalAmount: number;
+  bookingNumber: string;
+  razorpayPaymentId?: string | null;
+  reason: string;
+}): Promise<{ refunded: boolean; refundId?: string; via?: "WALLET" | "RAZORPAY" }> {
+  const walletRefunded = await refundEscrowCoinsIfWalletPaid(params);
+  if (walletRefunded) {
+    return { refunded: true, via: "WALLET" };
+  }
+
+  let rzpPaymentId = params.razorpayPaymentId || "";
+  if (!rzpPaymentId) {
+    const rzpDeposit = await prisma.transaction.findFirst({
+      where: {
+        bookingId: params.bookingId,
+        type: "ESCROW_DEPOSIT",
+        gateway: "RAZORPAY",
+        status: "SUCCESS",
+      },
+      select: { gatewayTransactionId: true },
+    });
+    rzpPaymentId = rzpDeposit?.gatewayTransactionId || "";
+  }
+
+  if (rzpPaymentId && rzpPaymentId.startsWith("pay_") && isRazorpayConfigured()) {
+    const refundRes = await createRazorpayRefund({
+      paymentId: rzpPaymentId,
+      amountInPaise: Math.round(params.totalAmount * 100),
+      notes: {
+        bookingId: params.bookingId,
+        bookingNumber: params.bookingNumber,
+        reason: params.reason,
+      },
+    });
+    if (refundRes.success) {
+      await prisma.transaction
+        .updateMany({
+          where: {
+            bookingId: params.bookingId,
+            type: "ESCROW_DEPOSIT",
+            gateway: "RAZORPAY",
+          },
+          data: { status: "REFUNDED" },
+        })
+        .catch(() => {});
+      return { refunded: true, refundId: refundRes.refundId, via: "RAZORPAY" };
+    }
+    console.warn("[RAZORPAY BOOKING REFUND WARN]:", refundRes.error);
+  }
+
+  return { refunded: false };
 }
 
 export interface CreateBookingInput {
@@ -357,6 +417,14 @@ export async function respondToBooking(
         escrowStatus: "REFUNDED_TO_MEMBER",
       },
     });
+    await refundEscrowPaymentIfNeeded({
+      bookingId: booking.id,
+      memberId: booking.memberId,
+      totalAmount: booking.totalAmount,
+      bookingNumber: booking.bookingNumber,
+      razorpayPaymentId: booking.razorpayPaymentId,
+      reason: "12h host response window expired",
+    });
     return {
       success: false,
       error: "12-hour response window expired. Escrow has been refunded to the member.",
@@ -382,11 +450,12 @@ export async function respondToBooking(
   });
 
   if (action === "DECLINE") {
-    await refundEscrowCoinsIfWalletPaid({
+    await refundEscrowPaymentIfNeeded({
       bookingId: booking.id,
       memberId: booking.memberId,
       totalAmount: booking.totalAmount,
       bookingNumber: booking.bookingNumber,
+      razorpayPaymentId: booking.razorpayPaymentId,
       reason: "Booking declined by host",
     });
   }
@@ -405,7 +474,7 @@ export async function checkAndExpireSlaBookings(): Promise<{ expiredCount: numbe
         status: "PENDING_ACCEPTANCE",
         hostAcceptanceDeadline: { lt: now },
       },
-      select: { id: true, memberId: true, totalAmount: true, bookingNumber: true },
+      select: { id: true, memberId: true, totalAmount: true, bookingNumber: true, razorpayPaymentId: true },
     });
 
     if (overdue.length > 0) {
@@ -418,11 +487,12 @@ export async function checkAndExpireSlaBookings(): Promise<{ expiredCount: numbe
       });
 
       for (const b of overdue) {
-        await refundEscrowCoinsIfWalletPaid({
+        await refundEscrowPaymentIfNeeded({
           bookingId: b.id,
           memberId: b.memberId,
           totalAmount: Number(b.totalAmount),
           bookingNumber: b.bookingNumber,
+          razorpayPaymentId: b.razorpayPaymentId,
           reason: "12h host acceptance SLA expired",
         });
       }
@@ -445,7 +515,7 @@ export interface PayoutRecord {
   amount: number;
   recipientUpiId: string;
   timestamp: string;
-  status: "SUCCESS";
+  status: "SUCCESS" | "PENDING" | "FAILED";
 }
 
 export interface SessionReviewRecord {
@@ -664,6 +734,24 @@ export async function completeSession(
     console.warn("[REFERRAL REWARD WARN]:", refErr);
   }
 
+  // Auto-dispatch 70% Host Share directly to Host UPI via RazorpayX when configured
+  let autoPayoutResult: Awaited<ReturnType<typeof dispatchHostUpiPayout>> | null = null;
+  if (
+    booking.escrowStatus !== "RELEASED_TO_HOST" &&
+    updated.companion?.userId &&
+    updated.companion?.upiId &&
+    isValidUpiId(updated.companion.upiId) &&
+    isRazorpayXConfigured()
+  ) {
+    autoPayoutResult = await dispatchHostUpiPayout({
+      userId: updated.companion.userId,
+      amountInr: hostPayoutAmount,
+      upiId: updated.companion.upiId,
+      bookingId: booking.id,
+      narration: `Meetzy #${booking.bookingNumber} 70pct`,
+    }).catch(() => null);
+  }
+
   const record = sanitizeBookingForViewer(mapPrismaBooking(updated), callerUserId);
   bookingsStore.set(booking.id, record);
 
@@ -671,13 +759,13 @@ export async function completeSession(
     success: true,
     booking: record,
     payout: {
-      transferId,
-      utr,
-      gateway: "WALLET",
+      transferId: autoPayoutResult?.payoutId || transferId,
+      utr: autoPayoutResult?.utr || utr,
+      gateway: autoPayoutResult?.gateway || "WALLET",
       amount: hostPayoutAmount,
-      recipientUpiId: recipientUpi,
+      recipientUpiId: updated.companion?.upiId || recipientUpi,
       timestamp: now.toISOString(),
-      status: "SUCCESS",
+      status: autoPayoutResult?.status === "FAILED" ? "SUCCESS" : (autoPayoutResult?.status || "SUCCESS"),
     },
   };
 }

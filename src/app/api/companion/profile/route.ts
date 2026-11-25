@@ -104,6 +104,10 @@ export async function PATCH(req: NextRequest) {
         );
       }
       updates.upiId = cleanUpi || null;
+      if (companion.upiId !== (cleanUpi || null)) {
+        updates.razorpayFundAccountId = null;
+        updates.upiVerified = false;
+      }
     }
     if (Array.isArray(body.spokenLanguages) && body.spokenLanguages.length > 0) {
       updates.spokenLanguages = body.spokenLanguages.map((s: unknown) => String(s).trim()).filter(Boolean);

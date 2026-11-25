@@ -106,6 +106,7 @@ function CompanionApplyForm() {
     activities: ["Coffee & Conversations", "Cafe Hopping"],
     availability: ["Weekdays (Mon-Fri)", "Weekends (Sat-Sun)"],
     preferredVenues: ["Artisan Coffee Shops", "Open Promenades & Parks"],
+    upiId: "",
     packTier: initialPack as HostPackTier,
     agreePublicOnly: true,
     agreePlatonic: true,
@@ -209,6 +210,9 @@ function CompanionApplyForm() {
         }
         if (hostProfile.preferredVenues && hostProfile.preferredVenues.length > 0) {
           next.preferredVenues = hostProfile.preferredVenues;
+        }
+        if (hostProfile.upiId && !prev.upiId) {
+          next.upiId = hostProfile.upiId;
         }
         prefilledDbRef.current.host = true;
       }
@@ -401,9 +405,13 @@ function CompanionApplyForm() {
       formData.bio.trim().length >= 15
   );
 
+  const cleanUpi = formData.upiId.trim();
+  const isUpiValid = /^[a-zA-Z0-9._-]{2,256}@[a-zA-Z0-9]{2,64}$/.test(cleanUpi);
+
   const isStep3Valid = Boolean(
     formData.availability.length > 0 &&
       formData.preferredVenues.length > 0 &&
+      isUpiValid &&
       formData.agreePublicOnly &&
       formData.agreePlatonic &&
       formData.agreeEscrowPin &&
@@ -470,6 +478,10 @@ function CompanionApplyForm() {
     }
 
     if (step === 3) {
+      if (!isUpiValid) {
+        setErrorMessage("Please enter a valid Payout UPI ID (e.g. yourname@okaxis) to receive your 70% earnings.");
+        return;
+      }
       if (!isStep3Valid) {
         setErrorMessage("Please select availability, preferred venues, and accept all 4 safety pledges.");
         return;
@@ -522,6 +534,7 @@ function CompanionApplyForm() {
                   .filter(Boolean),
                 availabilitySlots: formData.availability,
                 preferredVenues: formData.preferredVenues,
+                upiId: cleanUpi,
                 packTier: selectedPack.tier,
                 avatarImage: avatarBase64 || undefined,
                 razorpayOrderId: paymentResponse.razorpay_order_id || orderData.orderId,
@@ -728,7 +741,7 @@ function CompanionApplyForm() {
                 <ul className="text-xs font-medium space-y-2 text-ink-soft">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Your companion profile is now live on <strong>/explore</strong> with your uploaded photo, availability, and 70% payout guarantee.</span>
+                    <span>Your host profile is now live on <strong>/explore</strong> with your uploaded photo, availability, and 70% payout guarantee.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -772,7 +785,7 @@ function CompanionApplyForm() {
                 </div>
 
                 <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-ink">
-                  Become a Verified Companion
+                  Become a Verified Host
                 </h1>
                 <p className="mt-1 text-xs sm:text-sm font-medium text-ink/70">
                   Earn 70% fixed payout on every meetup (INR 399 - 1,299/hr). Strictly platonic, public venues only.
@@ -963,7 +976,7 @@ function CompanionApplyForm() {
                           className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-bold text-ink placeholder:text-ink/40 focus:outline-none"
                         />
                         <p className="mt-1 text-[11px] font-bold text-ink/60">
-                          Visible on your public companion profile card.
+                          Visible on your public host profile card.
                         </p>
                       </div>
 
@@ -1183,6 +1196,35 @@ function CompanionApplyForm() {
                       </div>
                     </div>
 
+                    {/* Payout UPI ID for Automated 70% Host Share */}
+                    <div className="border-2 border-ink bg-white p-4 space-y-2 shadow-brutal-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="block text-xs font-black uppercase text-ink">
+                          Your Payout UPI ID (Receive 70% Earnings)
+                        </label>
+                        <span className="text-[10px] font-black uppercase bg-sunny/60 border border-ink px-1.5 py-0.5 rounded">
+                          Required
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. yourname@okaxis, 9876543210@ybl"
+                        value={formData.upiId}
+                        onChange={(e) => setFormData({ ...formData, upiId: e.target.value.trim() })}
+                        className="w-full border-2 border-ink bg-paper px-3.5 py-2.5 text-xs font-mono font-bold text-ink placeholder:text-ink/40 focus:bg-white focus:outline-none"
+                      />
+                      {formData.upiId.trim().length > 0 && !isUpiValid ? (
+                        <p className="text-[11px] font-bold text-danger">
+                          Enter a valid UPI ID (e.g. name@okaxis or phone@ybl).
+                        </p>
+                      ) : (
+                        <p className="text-[11px] font-medium text-ink-muted">
+                          Used to credit your 70% meetup share (INR {hostHourlyNet70}/hr at your current rate). Kept private; never shown to members.
+                        </p>
+                      )}
+                    </div>
+
                     {/* Weekly Availability */}
                     <div>
                       <label className="block text-xs font-black uppercase text-ink mb-1.5">
@@ -1350,7 +1392,7 @@ export default function ApplyPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-paper flex items-center justify-center font-display font-black text-ink">
-          Loading companion application...
+          Loading host application...
         </div>
       }
     >
