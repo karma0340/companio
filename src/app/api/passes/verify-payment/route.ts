@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         });
         userId = user.id;
         userEmail = user.email;
-        userPhone = user.phone;
+        userPhone = user.phone || userPhone;
       } else {
         const cleanPhone = userPhone.replace(/[\s-]/g, "");
         const normalized = cleanPhone.startsWith("+91") ? cleanPhone : `+91${cleanPhone}`;
@@ -101,21 +101,36 @@ export async function POST(req: NextRequest) {
           },
         });
         userId = user.id;
-        userPhone = user.phone;
+        userPhone = user.phone || normalized;
       }
 
-      // 2. Update or create AccessPass record
-      await prisma.accessPass.create({
-        data: {
-          userId: user.id,
-          tier: tier as any,
-          pricePaid: tierOption.price,
-          razorpayOrderId: orderId,
-          razorpayPaymentId: paymentId,
-          status: "ACTIVE",
-          validUntil: expiryDate,
-        },
-      });
+      // 2. Update pending AccessPass or create active record
+      const existingPass = orderId
+        ? await prisma.accessPass.findFirst({ where: { razorpayOrderId: orderId } })
+        : null;
+      if (existingPass) {
+        await prisma.accessPass.update({
+          where: { id: existingPass.id },
+          data: {
+            userId: user.id,
+            razorpayPaymentId: paymentId,
+            status: "ACTIVE",
+            validUntil: expiryDate,
+          },
+        });
+      } else {
+        await prisma.accessPass.create({
+          data: {
+            userId: user.id,
+            tier: tier as any,
+            pricePaid: tierOption.price,
+            razorpayOrderId: orderId,
+            razorpayPaymentId: paymentId,
+            status: "ACTIVE",
+            validUntil: expiryDate,
+          },
+        });
+      }
 
       // 3. Record financial transaction
       await prisma.transaction.create({

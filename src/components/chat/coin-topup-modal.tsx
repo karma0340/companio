@@ -61,9 +61,14 @@ export function CoinTopupModal({
         throw new Error(orderData.error || 'Failed to initiate coin order.');
       }
 
+      const checkoutKey = orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+      if (!checkoutKey) {
+        throw new Error('Payment gateway key is not configured.');
+      }
+
       // 2. Open Razorpay Checkout
       await openRazorpayCheckout({
-        key: orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+        key: checkoutKey,
         amount: orderData.amount,
         currency: orderData.currency || 'INR',
         name: 'Meetzy Club Coins',

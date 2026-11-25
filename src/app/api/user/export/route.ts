@@ -59,7 +59,7 @@ export async function GET() {
       payments: user.transactions,
     };
 
-    const fileName = `meetzy-club-data-${user.phone.replace(/\D/g, '') || user.id}.json`;
+    const fileName = `meetzy-club-data-${(user.phone || '').replace(/\D/g, '') || user.id}.json`;
 
     return new NextResponse(JSON.stringify(exportPayload, null, 2), {
       status: 200,

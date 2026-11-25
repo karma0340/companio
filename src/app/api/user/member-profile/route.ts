@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
     try {
       await setSessionCookie({
         userId: updatedUser.id,
-        phone: updatedUser.phone,
+        phone: updatedUser.phone || session.phone || "",
         email: updatedUser.email || session.email || null,
         name: updatedUser.name || fullName,
         role: (session.role as any) || "MEMBER",
@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
       message: "Profile updated successfully!",
       profile: {
         id: updatedUser.id,
-        phone: updatedUser.phone,
+        phone: updatedUser.phone || "",
         fullName: updatedUser.name,
         gender: updatedUser.gender,
         city: updatedUser.city,

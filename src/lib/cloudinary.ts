@@ -1,21 +1,21 @@
 import { v2 as cloudinary } from 'cloudinary';
 
-const isCloudinaryConfigured = Boolean(
-  process.env.CLOUDINARY_CLOUD_NAME &&
-  process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_SECRET
-);
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+const apiKey = (process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_CLOUD_API_KEY)?.trim();
+const apiSecret = (process.env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_CLOUD_API_SECRET)?.trim();
+
+const isCloudinaryConfigured = Boolean(cloudName && apiKey && apiSecret);
 
 if (isCloudinaryConfigured) {
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
     secure: true,
   });
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number = 4000): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
@@ -57,7 +57,7 @@ export async function uploadToCloudinary(
         folder,
         resource_type: 'auto',
       }),
-      4000
+      15000
     );
 
     return {
@@ -106,7 +106,7 @@ export async function uploadHostAvatar(
           { quality: 'auto', fetch_format: 'auto' },
         ],
       }),
-      4000
+      15000
     );
 
     const blurredAvatarUrl = cloudinary.url(result.public_id, {

@@ -72,10 +72,25 @@ export async function POST(req: NextRequest) {
 
     // 3. Razorpay Signature Verification
     if (action === "verify") {
-      if (isRazorpayConfigured()) {
-        const isValid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
-        if (!isValid) {
-          return NextResponse.json({ success: false, error: "Payment signature verification failed." }, { status: 400 });
+      const verification = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+      if (!verification.isValid) {
+        return NextResponse.json(
+          { success: false, error: verification.reason || "Payment signature verification failed." },
+          { status: 400 }
+        );
+      }
+
+      if (razorpayPaymentId) {
+        const existingTx = await prisma.coinTransaction.findFirst({
+          where: { referenceId: razorpayPaymentId },
+        });
+        if (existingTx) {
+          const updatedWallet = await getWalletDetails(userId);
+          return NextResponse.json({
+            success: true,
+            wallet: updatedWallet,
+            bonus,
+          });
         }
       }
 

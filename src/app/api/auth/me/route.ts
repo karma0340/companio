@@ -60,7 +60,7 @@ export async function GET() {
 
         userDetails = {
           id: dbUser.id,
-          phone: dbUser.phone,
+          phone: dbUser.phone || "",
           email: dbUser.email,
           role: dbUser.role,
           isUnlocked: isUserUnlocked,
@@ -73,7 +73,7 @@ export async function GET() {
           creditBalance: Number(dbUser.creditBalance ?? 100),
           referralCode: dbUser.referralCode,
           name: dbUser.name || "Member",
-          avatarUrl: dbUser.companion?.avatarUrl || null,
+          avatarUrl: dbUser.companion?.avatarUrl || dbUser.avatarUrl || null,
         };
 
         if (dbUser.companion) {

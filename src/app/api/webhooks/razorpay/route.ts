@@ -69,7 +69,9 @@ export async function POST(req: NextRequest) {
 
               console.log(`[RAZORPAY WEBHOOK] Successfully credited ${totalCoins} coins to user ${userId}`);
             }
-          } else {
+          } else if (notes.type === "HOST_REGISTRATION" || notes.escrowType === "meetup_70_30") {
+            console.log(`[RAZORPAY WEBHOOK] Verified ${notes.type || notes.escrowType} payment ${paymentId} for user ${userId}`);
+          } else if (notes.tier) {
             const tier = (notes.tier as PassTier) || "ONE_MONTH";
             const tierOption = PASS_TIER_OPTIONS.find((p) => p.tier === tier) || PASS_TIER_OPTIONS[0];
             const expiryDate = tierOption.durationDays
@@ -85,18 +87,20 @@ export async function POST(req: NextRequest) {
               },
             });
 
-            const existingPass = orderId
-              ? await prisma.accessPass.findFirst({
-                  where: { razorpayOrderId: orderId },
-                })
-              : null;
+            const existingPass =
+              (paymentId
+                ? await prisma.accessPass.findFirst({ where: { razorpayPaymentId: paymentId } })
+                : null) ||
+              (orderId
+                ? await prisma.accessPass.findFirst({ where: { razorpayOrderId: orderId } })
+                : null);
 
             if (existingPass) {
               await prisma.accessPass.update({
                 where: { id: existingPass.id },
                 data: {
                   status: "ACTIVE",
-                  razorpayPaymentId: paymentId,
+                  razorpayPaymentId: paymentId || existingPass.razorpayPaymentId,
                   validUntil: expiryDate,
                 },
               });

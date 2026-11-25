@@ -285,8 +285,13 @@ export default function BookPage({ params }: BookPageProps) {
       const orderAmountPaise = Number(orderData.amount || orderData.amountPaise) || Math.round(price.totalPayable * 100);
       const rzpOrderId = String(orderData.orderId || '');
 
+      const checkoutKey = orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+      if (!checkoutKey) {
+        throw new Error('Payment gateway key is not configured.');
+      }
+
       await openRazorpayCheckout({
-        key: orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_U1vu1rlfL1qiHG',
+        key: checkoutKey,
         amount: orderAmountPaise,
         currency: orderData.currency || 'INR',
         name: 'Meetzy Club',

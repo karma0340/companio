@@ -35,10 +35,13 @@ export interface SubmitHostApplicationInput {
 export async function submitHostApplicationAction(input: SubmitHostApplicationInput) {
   try {
     const session = await getSession();
-    if (!session?.userId || !session?.phone) {
+    const cleanedInputPhone = String(input.phone || '').replace(/\D/g, '').slice(-10);
+    const resolvedPhone =
+      session?.phone || (cleanedInputPhone.length === 10 ? `+91${cleanedInputPhone}` : '');
+    if (!session?.userId || !resolvedPhone) {
       return {
         success: false,
-        error: 'Please sign in and verify your mobile number via SMS OTP before applying.',
+        error: 'Please sign in and provide a valid 10-digit mobile number before applying.',
       };
     }
 
@@ -145,6 +148,7 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
       where: { id: existingUser.id },
       data: {
         name: preservedMemberName,
+        ...(!existingUser.phone && resolvedPhone ? { phone: resolvedPhone } : {}),
         role: 'COMPANION',
         isKycVerified: true,
         onboardingCompleted: true,
@@ -177,7 +181,7 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
     // Save HostApplication record
     const application = await prisma.hostApplication.create({
       data: {
-        phone: existingUser.phone,
+        phone: existingUser.phone || resolvedPhone,
         fullName: input.fullName.trim(),
         city: cityRecord.name,
         locality: input.locality?.trim() || null,
@@ -284,7 +288,7 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
 
     await setSessionCookie({
       userId: updatedUser.id,
-      phone: updatedUser.phone,
+      phone: updatedUser.phone || session.phone || "",
       email: updatedUser.email || null,
       name: updatedUser.name || cleanDisplayName,
       role: 'COMPANION',

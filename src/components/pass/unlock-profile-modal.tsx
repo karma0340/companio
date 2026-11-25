@@ -153,7 +153,10 @@ export function UnlockProfileModal({
       const orderObj = orderData.order || orderData;
       const orderAmount = Number(orderData.amount || orderObj?.amount) || Math.round(currentOption.price * 100);
       const orderId = String(orderData.orderId || orderObj?.orderId || '');
-      const keyId = String(orderData.keyId || orderObj?.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_U1vu1rlfL1qiHG');
+      const keyId = String(orderData.keyId || orderObj?.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '');
+      if (!keyId) {
+        throw new Error('Payment gateway key is not configured.');
+      }
 
       // 2. Launch Razorpay Checkout Modal
       await openRazorpayCheckout({
