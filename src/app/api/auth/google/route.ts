@@ -12,11 +12,12 @@ function sanitizeRedirectPath(rawNext: string | null): string {
 
 function getRedirectUri(req: NextRequest): string {
   const envUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
-  if (envUrl && !envUrl.includes("localhost")) {
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
     return `${envUrl.replace(/\/$/, "")}/api/auth/google/callback`;
   }
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3000";
-  const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  const isLocal = host.includes("localhost") || host.startsWith("127.0.0.1");
+  const proto = req.headers.get("x-forwarded-proto") || (isLocal ? "http" : "https");
   return `${proto}://${host}/api/auth/google/callback`;
 }
 
