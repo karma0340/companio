@@ -45,7 +45,7 @@ export function MessageHostModal({
       .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
       .then(({ ok, data }) => {
         if (!active) return;
-        if (ok && data.success && data.redirectUrl) {
+        if (ok && data.success && data.unlocked !== false && data.redirectUrl) {
           setStatusState('accepted');
           setAcceptedUrl(data.redirectUrl);
         } else if (data.requiresAcceptance) {
