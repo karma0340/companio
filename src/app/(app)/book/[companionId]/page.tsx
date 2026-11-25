@@ -877,7 +877,7 @@ export default function BookPage({ params }: BookPageProps) {
                 <span>Protected by Meetzy Club: your payment is held until you meet.</span>
               </div>
               <p>
-                Declined, or withdrawn before it&apos;s accepted? The full amount is back in your Companio wallet at once. Not accepted within 12 hours (not counting 11 pm–8 am)? It&apos;s back within about an hour of that deadline. Use it for any meetup, or send it back to the card or UPI you paid with, minus a 12% processing fee. If your companion accepts and then doesn&apos;t turn up, tap &ldquo;No, it didn&apos;t happen&rdquo; on the meetup and our team checks it.
+                Cancelled before completion, declined, or expired after 12 hours? We deduct a 25% cancellation and gateway processing fee and refund 75% directly back to the card or UPI you paid with. If your host confirms and fails to turn up, tap &ldquo;No, it didn&apos;t happen&rdquo; on the meetup and our team checks it.
               </p>
               <p>
                 Booked for {duration} {duration === 1 ? 'hour' : 'hours'}. If you both want longer on the day, you can ask {companion.name} for extra time.

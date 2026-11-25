@@ -91,7 +91,7 @@ export function HomeClient({ initialCompanions, initialTotal }: HomeClientProps)
       id: 'faq-2',
       question: 'How do Escrow Payments protect my money?',
       answer:
-        'When you book a companion, your payment is held securely in our escrow vault. The companion is NOT paid until the meetup happens in person and you exchange the 4-digit start code. If the companion declines, cancels, or fails to show up, you receive an automated 100% refund immediately.',
+        'When you book a companion, your payment is held securely in our escrow vault. The companion is NOT paid until the meetup happens in person and you exchange the 4-digit start code. If cancelled or declined before start verification, 75% is refunded back automatically after a 25% cancellation and processing fee.',
     },
     {
       id: 'faq-3',

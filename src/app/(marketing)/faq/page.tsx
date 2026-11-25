@@ -60,7 +60,7 @@ export default function FAQPage() {
       category: 'payments',
       question: 'How does the Escrow Payment Vault work?',
       answer:
-        'When you request a meetup, your payment is placed safely into an escrow vault. The companion does not receive the funds until the meetup is mutually completed via the 4-digit code. If the companion declines, cancels, or fails to attend, 100% of your funds are returned immediately.',
+        'When you request a meetup, your payment is held safely in escrow. The host does not receive their 70% share until you meet in person and verify the 4-digit start code. If the meetup is cancelled, declined, or expires before start verification, 75% is refunded back after a 25% cancellation and gateway processing fee.',
     },
     {
       id: 'p-2',

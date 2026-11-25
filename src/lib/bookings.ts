@@ -139,6 +139,7 @@ export async function refundEscrowCoinsIfWalletPaid(params: {
   totalAmount: number;
   bookingNumber: string;
   reason: string;
+  refundPercent?: number;
 }): Promise<boolean> {
   try {
     const walletDeposit = await prisma.transaction.findFirst({
@@ -164,7 +165,8 @@ export async function refundEscrowCoinsIfWalletPaid(params: {
 
     if (alreadyRefunded) return false;
 
-    const coinsToRefund = Math.round(Number(walletDeposit.amount || params.totalAmount));
+    const safePercent = Math.min(1, Math.max(0, params.refundPercent ?? 0.75));
+    const coinsToRefund = Math.round(Number(walletDeposit.amount || params.totalAmount) * safePercent);
     if (coinsToRefund <= 0) return false;
 
     const { creditCoins } = await import("@/lib/wallet");
@@ -172,7 +174,7 @@ export async function refundEscrowCoinsIfWalletPaid(params: {
       userId: params.memberId,
       amount: coinsToRefund,
       type: "MEETUP_REFUND",
-      description: `${params.reason} · #${params.bookingNumber} (+${coinsToRefund} Coins)`,
+      description: `${params.reason} · #${params.bookingNumber} (75% refund: +${coinsToRefund} Coins)`,
       referenceId: params.bookingId,
     });
     return true;
@@ -189,10 +191,55 @@ export async function refundEscrowPaymentIfNeeded(params: {
   bookingNumber: string;
   razorpayPaymentId?: string | null;
   reason: string;
-}): Promise<{ refunded: boolean; refundId?: string; via?: "WALLET" | "RAZORPAY" }> {
-  const walletRefunded = await refundEscrowCoinsIfWalletPaid(params);
+  refundPercent?: number;
+}): Promise<{
+  refunded: boolean;
+  refundAmount: number;
+  deductionAmount: number;
+  refundId?: string;
+  via?: "WALLET" | "RAZORPAY";
+}> {
+  const safePercent = Math.min(1, Math.max(0, params.refundPercent ?? 0.75));
+  const totalInr = Math.max(0, Number(params.totalAmount) || 0);
+  const refundAmount = Math.round(totalInr * safePercent * 100) / 100;
+  const deductionAmount = Math.round((totalInr - refundAmount) * 100) / 100;
+
+  // Record 25% CANCELLATION_PENALTY in DB idempotently when a deduction applies
+  if (deductionAmount > 0) {
+    try {
+      const existingPenalty = await prisma.transaction.findFirst({
+        where: {
+          bookingId: params.bookingId,
+          type: "CANCELLATION_PENALTY",
+        },
+        select: { id: true },
+      });
+      if (!existingPenalty) {
+        await prisma.transaction.create({
+          data: {
+            bookingId: params.bookingId,
+            userId: params.memberId,
+            type: "CANCELLATION_PENALTY",
+            amount: deductionAmount,
+            feeAmount: 0,
+            netAmount: deductionAmount,
+            gateway: "RAZORPAY",
+            gatewayTransactionId: `pen_${params.bookingNumber}`,
+            status: "SUCCESS",
+          },
+        });
+      }
+    } catch (penErr) {
+      console.warn("[CANCELLATION PENALTY RECORD WARN]:", (penErr as Error).message);
+    }
+  }
+
+  const walletRefunded = await refundEscrowCoinsIfWalletPaid({
+    ...params,
+    refundPercent: safePercent,
+  });
   if (walletRefunded) {
-    return { refunded: true, via: "WALLET" };
+    return { refunded: true, refundAmount, deductionAmount, via: "WALLET" };
   }
 
   let rzpPaymentId = params.razorpayPaymentId || "";
@@ -209,14 +256,16 @@ export async function refundEscrowPaymentIfNeeded(params: {
     rzpPaymentId = rzpDeposit?.gatewayTransactionId || "";
   }
 
-  if (rzpPaymentId && rzpPaymentId.startsWith("pay_") && isRazorpayConfigured()) {
+  if (rzpPaymentId && rzpPaymentId.startsWith("pay_") && isRazorpayConfigured() && refundAmount > 0) {
     const refundRes = await createRazorpayRefund({
       paymentId: rzpPaymentId,
-      amountInPaise: Math.round(params.totalAmount * 100),
+      amountInPaise: Math.round(refundAmount * 100),
       notes: {
         bookingId: params.bookingId,
         bookingNumber: params.bookingNumber,
         reason: params.reason,
+        refundPercent: String(Math.round(safePercent * 100)),
+        deductionAmount: String(deductionAmount),
       },
     });
     if (refundRes.success) {
@@ -227,15 +276,25 @@ export async function refundEscrowPaymentIfNeeded(params: {
             type: "ESCROW_DEPOSIT",
             gateway: "RAZORPAY",
           },
-          data: { status: "REFUNDED" },
+          data: {
+            status: "REFUNDED",
+            feeAmount: deductionAmount,
+            netAmount: refundAmount,
+          },
         })
         .catch(() => {});
-      return { refunded: true, refundId: refundRes.refundId, via: "RAZORPAY" };
+      return {
+        refunded: true,
+        refundAmount,
+        deductionAmount,
+        refundId: refundRes.refundId,
+        via: "RAZORPAY",
+      };
     }
     console.warn("[RAZORPAY BOOKING REFUND WARN]:", refundRes.error);
   }
 
-  return { refunded: false };
+  return { refunded: false, refundAmount, deductionAmount };
 }
 
 export interface CreateBookingInput {

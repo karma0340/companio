@@ -18,6 +18,8 @@ export interface BookingDisplayItem {
   meetingPoint: string;
   startCode: string;
   escrowAmount: number;
+  refundedAmount: number;
+  deductionAmount: number;
   status: string;
   rawStatus: 'pending_acceptance' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | string;
   paymentStatus: 'paid_escrow' | 'refunded' | 'released' | string;
@@ -128,6 +130,8 @@ export async function fetchLiveBookings(filter?: {
           meetingPoint: b.venueAddress || b.venueName || 'Public Venue',
           startCode: b.verificationPin || '',
           escrowAmount: Number(b.totalAmount || 0),
+          refundedAmount: Math.round(Number(b.totalAmount || 0) * 0.75 * 100) / 100,
+          deductionAmount: Math.round(Number(b.totalAmount || 0) * 0.25 * 100) / 100,
           status: displayStatus,
           rawStatus,
           paymentStatus:

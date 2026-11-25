@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { refundEscrowCoinsIfWalletPaid } from "@/lib/bookings";
+import { refundEscrowPaymentIfNeeded } from "@/lib/bookings";
 
 export const dynamic = "force-dynamic";
 
@@ -130,17 +130,19 @@ export async function PATCH(req: NextRequest) {
         },
       });
 
-      await refundEscrowCoinsIfWalletPaid({
+      await refundEscrowPaymentIfNeeded({
         bookingId: booking.id,
         memberId: booking.memberId,
         totalAmount: Number(booking.totalAmount),
         bookingNumber: booking.bookingNumber,
+        razorpayPaymentId: booking.razorpayPaymentId,
         reason: "Booking declined by host",
+        refundPercent: 0.75,
       });
 
       return NextResponse.json({
         success: true,
-        message: "Meetup request declined and escrow refunded to the member.",
+        message: "Meetup request declined and 75% escrow refund initiated to the member (25% deduction applied).",
       });
     }
   } catch (error) {

@@ -73,7 +73,7 @@ export function SafetyBento() {
 
           <div className="mt-4 flex items-center gap-2 rounded-lg border-brutal-sm bg-paper p-2 text-xs font-bold text-ink">
             <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-            <span className="text-[11px]">Instant 100% refund if companion cancels.</span>
+            <span className="text-[11px]">75% escrow refund (25% fee) before start PIN.</span>
           </div>
         </div>
       </div>

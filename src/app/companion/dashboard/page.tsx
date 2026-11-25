@@ -1073,11 +1073,23 @@ export default function CompanionDashboardPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1.5">
-                Withdrawal Amount (INR)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-ink/70">
+                  Withdrawal Amount (INR)
+                </label>
+                {walletBalance >= 100 && (
+                  <button
+                    type="button"
+                    onClick={() => setPayoutAmount(walletBalance.toFixed(2))}
+                    className="text-[11px] font-black uppercase text-ink underline hover:text-ink/70 cursor-pointer"
+                  >
+                    Use Max (INR {walletBalance.toFixed(2)})
+                  </button>
+                )}
+              </div>
               <input
                 type="number"
+                step="0.01"
                 min={100}
                 max={walletBalance}
                 value={payoutAmount}

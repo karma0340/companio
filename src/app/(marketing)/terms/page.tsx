@@ -134,13 +134,13 @@ export default function TermsPage() {
                 </div>
                 <ul className="list-disc pl-5 space-y-1 text-ink-soft">
                   <li>
-                    <strong className="text-ink">Declined or Withdrawn Requests:</strong> If a companion declines your meetup request, or if you cancel your booking before completion, 100% of your meetup payment is refunded (credited instantly back to your Wallet Coins for wallet bookings, or initiated for card/UPI payments).
+                    <strong className="text-ink">Declined or Cancelled Requests:</strong> If a host declines your meetup request, or if you cancel your booking before start PIN verification, a 25% cancellation and gateway processing fee is deducted and 75% of your meetup payment is refunded back to your original payment method.
                   </li>
                   <li>
-                    <strong className="text-ink">12-Hour Companion Acceptance SLA:</strong> If a companion does not accept the request within 12 hours, the reservation auto-expires and 100% of the escrow amount is marked for automatic refund.
+                    <strong className="text-ink">12-Hour Host Acceptance SLA:</strong> If a host does not accept the request within 12 hours, the reservation auto-expires and 75% of the escrow amount is marked for automatic refund after the 25% processing deduction.
                   </li>
                   <li>
-                    <strong className="text-ink">No-Show Protection:</strong> If a companion confirms a meetup but fails to arrive at the agreed public venue without PIN verification, no escrow is released and our safety team issues a full refund.
+                    <strong className="text-ink">No-Show Protection:</strong> If a companion confirms a meetup but fails to arrive at the agreed public venue without PIN verification, no escrow is released to the host and our safety team reviews your dispute.
                   </li>
                 </ul>
               </div>

@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
-  title: "100% Escrow Refund Policy & Cancellation Rules",
+  title: "Escrow Refund Policy (75% Refund / 25% Cancellation Fee)",
   description:
-    "Zero-risk meetups. Instant automated refunds if your host declines, cancels, or fails to attend. Transparent consumer protection.",
+    "Transparent escrow protection: if a booking is cancelled, declined, or expires before start verification, 75% is refunded automatically after a 25% processing and cancellation fee.",
 };
 
 export default function RefundsPage() {
@@ -36,35 +36,28 @@ export default function RefundsPage() {
 
           <div className="rounded-3xl border-brutal bg-white p-8 sm:p-12 shadow-brutal-lg space-y-6">
             <h2 className="font-display text-2xl sm:text-3xl font-black text-ink">
-              When do you receive an automated 100% refund?
+              How do 75% Escrow Refunds &amp; 25% Deductions work?
             </h2>
 
             <div className="space-y-4 font-body text-sm sm:text-base text-ink-soft leading-relaxed">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                 <p>
-                  <strong>Host Declines Request:</strong> If the host is unavailable and declines your request, 100% of your funds are credited back instantly.
+                  <strong>Member Cancellation:</strong> If you cancel a pending or confirmed meetup before PIN verification, a 25% cancellation and gateway processing fee is deducted and <strong>75% is refunded</strong> directly to your original payment method.
                 </p>
               </div>
 
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                 <p>
-                  <strong>Host Fails to Respond (12-Hour SLA):</strong> Requests expire automatically after 12 hours if not accepted, triggering an automatic 100% escrow refund.
+                  <strong>Host Declines or Fails to Respond (12-Hour SLA):</strong> If the host declines or the reservation expires after 12 hours, a 25% processing fee applies and <strong>75% is released back</strong> automatically.
                 </p>
               </div>
 
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                 <p>
-                  <strong>Host No-Show:</strong> If the companion fails to meet you at the public venue or start code is never exchanged, 100% of the payment is returned to you.
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                <p>
-                  <strong>Advance Cancellation by Member:</strong> You can cancel freely with a 100% refund up to 4 hours before the scheduled start time.
+                  <strong>No PIN Exchange, Zero Host Release:</strong> A host never receives their 70% share unless you meet in person and verify the 4-digit start PIN.
                 </p>
               </div>
             </div>

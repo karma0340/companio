@@ -36,7 +36,7 @@ export async function POST(
       message:
         action === "ACCEPT"
           ? "Booking accepted! Chat and Session Room are now active."
-          : "Booking declined. Escrow payment has been automatically refunded to the member.",
+          : "Booking declined. 75% escrow refund has been initiated to the member (25% deduction applied).",
       booking: result.booking,
     });
   } catch (error) {

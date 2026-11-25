@@ -435,9 +435,12 @@ export default function MemberBookingsPage() {
                       </p>
                     </div>
 
-                    <div className="text-right">
-                      <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-300">
-                        100% Refunded ({formatRupees(b.escrowAmount)})
+                    <div className="text-right space-y-1">
+                      <span className="inline-block text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-300">
+                        75% Refunded ({formatRupees(b.refundedAmount || Math.round(b.escrowAmount * 0.75 * 100) / 100)})
+                      </span>
+                      <span className="block text-[10px] font-bold text-ink-muted">
+                        25% fee deducted ({formatRupees(b.deductionAmount || Math.round(b.escrowAmount * 0.25 * 100) / 100)})
                       </span>
                     </div>
                   </div>
@@ -459,13 +462,23 @@ export default function MemberBookingsPage() {
                   Are you sure you want to cancel your meetup with <strong>{cancelModalBooking.companion.name}</strong> on {cancelModalBooking.date}?
                 </p>
 
-                <div className="rounded-xl border-brutal-sm bg-lime-soft p-3 text-xs font-bold text-ink space-y-1">
+                <div className="rounded-xl border-brutal-sm bg-lime-soft p-3.5 text-xs font-bold text-ink space-y-1.5">
                   <span className="flex items-center gap-1.5 font-display text-xs font-black">
                     <CheckCircle2 className="h-4 w-4 text-ink stroke-[2.25]" />
-                    <span>100% Full Escrow Refund:</span>
+                    <span>75% Escrow Refund (25% Cancellation Fee Deducted):</span>
                   </span>
-                  <p className="font-mono text-sm font-black text-ink">
-                    {formatRupees(cancelModalBooking.escrowAmount)} will be released back to you immediately.
+                  <div className="space-y-0.5 text-[11px] font-bold text-ink-soft">
+                    <div className="flex justify-between">
+                      <span>Booking Paid:</span>
+                      <span className="font-mono text-ink">{formatRupees(cancelModalBooking.escrowAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-danger">
+                      <span>25% Cancellation Deduction:</span>
+                      <span className="font-mono">-{formatRupees(Math.round(cancelModalBooking.escrowAmount * 0.25 * 100) / 100)}</span>
+                    </div>
+                  </div>
+                  <p className="font-mono text-sm font-black text-ink pt-1 border-t border-ink/15">
+                    {formatRupees(Math.round(cancelModalBooking.escrowAmount * 0.75 * 100) / 100)} (75%) will be refunded to your original payment method.
                   </p>
                 </div>
 

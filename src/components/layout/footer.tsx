@@ -156,7 +156,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/refunds" className="hover:text-lavender hover:underline">
-                  Refund Policy (100% Escrow)
+                  Refund Policy (75% Escrow)
                 </Link>
               </li>
             </ul>

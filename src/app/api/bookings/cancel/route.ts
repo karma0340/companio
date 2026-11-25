@@ -59,18 +59,23 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await refundEscrowPaymentIfNeeded({
+    const refundRes = await refundEscrowPaymentIfNeeded({
       bookingId: booking.id,
       memberId: booking.memberId,
       totalAmount: Number(booking.totalAmount),
       bookingNumber: booking.bookingNumber,
       razorpayPaymentId: booking.razorpayPaymentId,
       reason: "Meetup cancelled by member",
+      refundPercent: 0.75,
     });
 
     return NextResponse.json({
       success: true,
-      message: `Meetup #${booking.bookingNumber} has been cancelled successfully. 100% full refund of ₹${Number(booking.totalAmount).toLocaleString("en-IN")} has been processed.`,
+      refundAmount: refundRes.refundAmount,
+      deductionAmount: refundRes.deductionAmount,
+      refundPercent: 75,
+      deductionPercent: 25,
+      message: `Meetup #${booking.bookingNumber} cancelled. 75% refund (₹${refundRes.refundAmount.toLocaleString("en-IN")}) processed after 25% cancellation fee (₹${refundRes.deductionAmount.toLocaleString("en-IN")}).`,
       bookingId: booking.id,
     });
   } catch (error) {
