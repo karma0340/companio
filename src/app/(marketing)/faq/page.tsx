@@ -32,14 +32,14 @@ export default function FAQPage() {
       category: 'general',
       question: 'Who can use Meetzy Club?',
       answer:
-        'Anyone aged 18 or older who holds a valid Indian government-issued photo ID (Aadhaar, Passport, or Voter ID) and agrees to our community standards and public-place meetup rules.',
+        'Anyone aged 18 or older with a verified Indian mobile number who agrees to our strictly platonic community standards and public-place meetup rules.',
     },
     {
       id: 's-1',
       category: 'safety',
       question: 'How are hosts and members verified?',
       answer:
-        'Every single host submits a government ID and completes a live selfie match. Our human safety team cross-references phone numbers and identity documents before any profile goes live on the platform.',
+        'Every host and member verifies their Indian mobile number via live SMS OTP. Hosts submit a clear public headshot photo, choose preferred public venues, and agree to strict safety pledges—no Aadhaar or biometric scans are collected.',
     },
     {
       id: 's-2',
@@ -72,9 +72,9 @@ export default function FAQPage() {
     {
       id: 'p-3',
       category: 'payments',
-      question: 'What is the Meetzy Club Connection Fee and GST?',
+      question: 'How does pricing & the 70-30 split work?',
       answer:
-        'Meetzy Club charges an 18% connection fee on the host subtotal to cover ID verification, 24/7 trust desk support, and escrow banking infrastructure. Indian statutory GST (18%) is applied only to this connection fee, not to the host earnings.',
+        'Members pay the companion rate shown upfront with escrow protection and taxes included. On every completed session, the Host receives a fixed 70% payout directly to their wallet, while 30% covers statutory GST, Razorpay processing fees, 24/7 SOS operations, and platform revenue.',
     },
     {
       id: 'h-1',

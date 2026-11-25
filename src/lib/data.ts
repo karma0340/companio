@@ -1,6 +1,64 @@
-import { CompanionSummary, CitySummary, ActivitySummary, PassTierOption } from "@/types";
+import { CompanionSummary, CitySummary, ActivitySummary, PassTierOption, HostPackOption } from "@/types";
 import { ActivityCategory } from "./types";
 import { prisma } from "./prisma";
+
+export const HOST_PACK_OPTIONS: HostPackOption[] = [
+  {
+    tier: "STARTER",
+    name: "Starter Host Pack",
+    price: 199,
+    durationDays: 30,
+    durationLabel: "1 Month",
+    tagline: "30 days active listing · Fixed 70% meetup earnings",
+    hostSharePercent: 70,
+    platformSharePercent: 30,
+    promoCoins: 50,
+    maxMonthlyBookings: 5,
+    features: [
+      "Listed in /explore directory for 30 days",
+      "Fixed 70% payout on every completed meetup (30% covers GST, Razorpay & safety ops)",
+      "Up to 5 verified meetup bookings per month",
+      "+50 Bonus Chat Coins included",
+    ],
+  },
+  {
+    tier: "PRO",
+    name: "Pro Host Pack",
+    price: 499,
+    durationDays: 90,
+    durationLabel: "3 Months",
+    tagline: "Most Popular · 90 days + Priority boost · Fixed 70% earnings",
+    hostSharePercent: 70,
+    platformSharePercent: 30,
+    promoCoins: 150,
+    maxMonthlyBookings: null,
+    isPopular: true,
+    features: [
+      "90 days active listing with Verified Host badge",
+      "Fixed 70% payout on every completed meetup (30% covers GST, Razorpay & safety ops)",
+      "Unlimited meetup bookings & priority city search placement",
+      "+150 Bonus Chat Coins included",
+    ],
+  },
+  {
+    tier: "ELITE",
+    name: "Elite Host Pack",
+    price: 999,
+    durationDays: 365,
+    durationLabel: "12 Months",
+    tagline: "Best Value · 365 days spotlight · Fixed 70% earnings",
+    hostSharePercent: 70,
+    platformSharePercent: 30,
+    promoCoins: 400,
+    maxMonthlyBookings: null,
+    features: [
+      "Full 1-year active listing with Top Featured spotlight",
+      "Fixed 70% payout on every completed meetup (30% covers GST, Razorpay & safety ops)",
+      "Unlimited meetup bookings & instant UPI cashouts",
+      "+400 Bonus Chat Coins included",
+    ],
+  },
+];
 
 export const PASS_TIER_OPTIONS: PassTierOption[] = [
   {
@@ -264,13 +322,19 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
         name: c.displayName,
         displayName: c.displayName,
         maskedName: c.maskedName,
+        age: c.age || 24,
+        gender: (c.gender || 'female') as 'female' | 'male' | 'non-binary',
         city: c.city.name,
         citySlug: c.city.slug,
+        locality: c.locality || c.city.name,
         hourlyRate: Number(c.hourlyRate),
         ratingAverage: c.ratingAverage,
         totalReviews: c.totalReviews,
+        completedMeetups: c.completedMeetups || 0,
         spokenLanguages: c.spokenLanguages,
         acceptedActivities: c.acceptedActivities,
+        availabilitySlots: c.availabilitySlots || [],
+        preferredVenues: c.preferredVenues || [],
         avatarUrl: c.avatarUrl,
         blurredAvatarUrl: c.blurredAvatarUrl,
         bio: c.bio,
@@ -381,10 +445,10 @@ export async function getCompanionById(id: string) {
         name: c.displayName,
         displayName: c.displayName,
         maskedName: c.maskedName,
-        age: 24,
-        gender: 'female' as const,
+        age: c.age || 24,
+        gender: (c.gender || 'female') as 'female' | 'male' | 'non-binary',
         city: c.city.slug,
-        area: `${c.city.name} Central`,
+        area: c.locality || `${c.city.name} Central`,
         tagline: c.shortBio,
         about: c.bio,
         avatarUrl: c.avatarUrl,
@@ -398,17 +462,20 @@ export async function getCompanionById(id: string) {
         ratingAverage: c.ratingAverage,
         reviewCount: c.totalReviews,
         totalReviews: c.totalReviews,
-        meetupsCount: c.totalReviews,
+        meetupsCount: c.completedMeetups || c.totalReviews,
         activities: mapToActivityCategories(c.acceptedActivities),
         acceptedActivities: c.acceptedActivities,
+        preferredVenues: c.preferredVenues || [],
         isFreeToday: c.isAvailable,
         isAvailable: c.isAvailable,
         acceptsWomenOnly: false,
-        memberSince: '2026',
-        availability: [
-          { days: 'Mon — Fri', hours: '18:00 – 21:00' },
-          { days: 'Sat — Sun', hours: '11:00 – 20:00' },
-        ],
+        memberSince: new Date(c.createdAt).getFullYear().toString() || '2026',
+        availability: c.availabilitySlots && c.availabilitySlots.length > 0
+          ? c.availabilitySlots.map((slot) => ({ days: slot, hours: 'Public Venues Only' }))
+          : [
+              { days: 'Mon — Fri', hours: '18:00 – 21:00' },
+              { days: 'Sat — Sun', hours: '11:00 – 20:00' },
+            ],
         reviews: c.reviewsReceived.map((r) => ({
           id: r.id,
           authorName: r.member?.name || 'Verified Member',

@@ -31,24 +31,14 @@ export async function POST(req: NextRequest) {
 
     const isFirebaseVerified = Boolean(body.firebaseVerified);
 
-    // Verify OTP code if not already verified through Firebase Phone Auth
+    // Strictly verify issued OTP code against store (no demo/master bypasses)
     if (!isFirebaseVerified) {
-      const isMasterCode = code === "123456" || code === "000000";
-      const isSandboxMode =
-        !process.env.SMS_API_KEY &&
-        !process.env.FAST2SMS_API_KEY &&
-        !process.env.TWILIO_AUTH_TOKEN &&
-        !process.env.TWOFACTOR_API_KEY;
-
-      if (!isMasterCode) {
-        const verification = verifyOtp(identifier, code);
-        // If not in live SMS provider production mode with external gateway, allow 6-digit sandbox verification
-        if (!verification.success && !isSandboxMode) {
-          return NextResponse.json(
-            { success: false, error: verification.error },
-            { status: 400 }
-          );
-        }
+      const verification = verifyOtp(identifier, code);
+      if (!verification.success) {
+        return NextResponse.json(
+          { success: false, error: verification.error },
+          { status: 400 }
+        );
       }
     }
 
@@ -213,6 +203,8 @@ export async function POST(req: NextRequest) {
       email: isEmail ? identifier : null,
       name: dbUser?.name || name || "Member",
       role: effectiveRole as any,
+      activeRole: effectiveRole === "COMPANION" ? "host" : "member",
+      avatarUrl: dbUser?.companion?.avatarUrl || null,
       isUnlocked,
       activePassTier,
       passExpiresAt: passExpiresAt ? passExpiresAt.toISOString() : null,
@@ -226,12 +218,14 @@ export async function POST(req: NextRequest) {
         phone: identifier,
         email: isEmail ? identifier : undefined,
         name: dbUser?.name || name || "Member",
+        avatarUrl: dbUser?.companion?.avatarUrl || null,
         role: effectiveRole,
         activeRole: effectiveRole === 'COMPANION' ? 'host' : 'member',
         isUnlocked,
         activePassTier,
         passExpiresAt,
         walletBalance,
+        coinBalance: dbUser?.coinBalance ?? 100,
       },
       hostProfile,
       memberProfile,

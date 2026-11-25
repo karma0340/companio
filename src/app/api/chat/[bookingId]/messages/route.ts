@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getChatMessagesForBooking, addChatMessage } from "@/lib/chat-store";
-import { getBookingById } from "@/lib/bookings";
+import { getBookingById, sanitizeBookingForViewer } from "@/lib/bookings";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
@@ -9,9 +9,22 @@ export async function GET(
   { params }: { params: { bookingId: string } }
 ) {
   try {
+    const session = await getSession();
     const bookingId = params.bookingId;
     const messages = await getChatMessagesForBooking(bookingId);
     const booking = await getBookingById(bookingId);
+
+    if (
+      booking &&
+      session?.userId &&
+      booking.memberId !== session.userId &&
+      booking.companionUserId !== session.userId
+    ) {
+      return NextResponse.json(
+        { success: false, error: "You are not authorized to view this conversation." },
+        { status: 403 }
+      );
+    }
 
     let unlockInfo = null;
     if (booking) {
@@ -53,7 +66,7 @@ export async function GET(
       bookingId,
       count: messages.length,
       messages,
-      booking,
+      booking: booking ? sanitizeBookingForViewer(booking, session?.userId) : null,
       unlock: unlockInfo,
     });
   } catch (error) {

@@ -7,28 +7,7 @@ import { ChatTier, ChatUnlockStatus, CoinTransactionType } from "@prisma/client"
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    let userId = session?.userId;
-
-    if (userId) {
-      const userExists = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-      if (!userExists) {
-        userId = undefined;
-      }
-    }
-
-    if (!userId) {
-      // Dev fallback to latest user
-      const firstUser = await prisma.user.findFirst({
-        orderBy: { createdAt: "desc" },
-        select: { id: true },
-      });
-      if (firstUser) {
-        userId = firstUser.id;
-      }
-    }
+    const userId = session?.userId;
 
     if (!userId) {
       return NextResponse.json({ success: false, error: "Please sign in to message hosts." }, { status: 401 });

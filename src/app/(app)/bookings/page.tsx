@@ -32,7 +32,9 @@ export default function MemberBookingsPage() {
   const toast = useToast();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'active' | 'completed' | 'cancelled'>('active');
-  const [showSosModal, setShowSosModal] = useState(false);
+  const [sosBooking, setSosBooking] = useState<BookingDisplayItem | null>(null);
+  const [sosDispatching, setSosDispatching] = useState(false);
+  const [sosAlertRef, setSosAlertRef] = useState<string | null>(null);
   const [cancelModalBooking, setCancelModalBooking] = useState<BookingDisplayItem | null>(null);
   const [reviewModalBooking, setReviewModalBooking] = useState<BookingDisplayItem | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -324,7 +326,10 @@ export default function MemberBookingsPage() {
                         )}
 
                         <button
-                          onClick={() => setShowSosModal(true)}
+                          onClick={() => {
+                            setSosAlertRef(null);
+                            setSosBooking(booking);
+                          }}
                           className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-danger px-4 py-2 font-display text-xs font-black text-white shadow-brutal-sm hover:bg-red-600 btn-press cursor-pointer"
                         >
                           <ShieldAlert className="h-4 w-4" />
@@ -562,7 +567,7 @@ export default function MemberBookingsPage() {
           )}
 
           {/* SOS Modal Dialog */}
-          {showSosModal && (
+          {sosBooking && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
               <div className="w-full max-w-md rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal-lg space-y-4 animate-in fade-in">
                 <div className="flex items-center gap-2 text-danger font-display text-lg font-black">
@@ -570,31 +575,72 @@ export default function MemberBookingsPage() {
                   <span>Immediate Safety Escalation</span>
                 </div>
                 <p className="font-body text-xs sm:text-sm text-ink-soft leading-relaxed">
-                  If you feel unsafe or in danger, please exit the venue immediately and call emergency services.
+                  {sosAlertRef
+                    ? `Emergency Alert #${sosAlertRef} has been logged with our 24/7 Trust & Safety Command for meetup at ${sosBooking.meetingPoint}.`
+                    : `If you feel unsafe during your meetup with ${sosBooking.companion.name}, log an urgent GPS SOS alert with our 24/7 Safety Desk or call Police 112 immediately.`}
                 </p>
 
-                <div className="space-y-2 pt-2">
+                <div className="space-y-2.5 pt-2">
+                  <button
+                    type="button"
+                    disabled={sosDispatching}
+                    onClick={() => {
+                      setSosDispatching(true);
+                      const send = async (lat?: number, lng?: number) => {
+                        try {
+                          const res = await fetch(`/api/session/${sosBooking.id}/sos`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ latitude: lat, longitude: lng }),
+                          });
+                          const data = await res.json();
+                          if (res.ok && data.success) {
+                            setSosAlertRef(data.alertId || 'SOS-ACTIVE');
+                            toast.success('GPS SOS logged with Safety Command!', 'SOS Alert Active');
+                          } else {
+                            toast.error(data.error || 'Could not dispatch SOS. Please call 112.', 'Error');
+                          }
+                        } catch {
+                          toast.error('Network error. Dial 112 immediately.', 'Dial 112');
+                        } finally {
+                          setSosDispatching(false);
+                        }
+                      };
+                      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => send(pos.coords.latitude, pos.coords.longitude),
+                          () => send(undefined, undefined),
+                          { timeout: 5000, enableHighAccuracy: true }
+                        );
+                      } else {
+                        send(undefined, undefined);
+                      }
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-brutal bg-sunny p-3.5 font-display text-xs sm:text-sm font-black text-ink shadow-brutal-sm btn-press cursor-pointer disabled:opacity-50"
+                  >
+                    <span>
+                      {sosDispatching
+                        ? 'Transmitting GPS Coordinates...'
+                        : sosAlertRef
+                        ? `Alert Logged (#${sosAlertRef})`
+                        : 'Log Live GPS SOS with 24/7 Safety Desk'}
+                    </span>
+                  </button>
+
                   <a
                     href="tel:112"
                     className="flex w-full items-center justify-center gap-2 rounded-xl border-brutal bg-danger p-3.5 font-display text-sm font-black text-white shadow-brutal btn-press"
                   >
-                    <span>Dial Police Emergency 112 →</span>
-                  </a>
-
-                  <a
-                    href="mailto:safety@meetzy.club?subject=URGENT%20SAFETY%20INCIDENT"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border-brutal bg-sunny p-3 font-display text-xs font-black text-ink shadow-brutal-sm btn-press"
-                  >
-                    <span>Alert 24/7 Meetzy Club Safety Desk</span>
+                    <span>Dial Police Emergency 112 &rarr;</span>
                   </a>
                 </div>
 
                 <div className="pt-2 text-center">
                   <button
-                    onClick={() => setShowSosModal(false)}
-                    className="text-xs font-extrabold text-ink-muted hover:underline"
+                    onClick={() => setSosBooking(null)}
+                    className="text-xs font-extrabold text-ink-muted hover:underline cursor-pointer"
                   >
-                    Close & Dismiss
+                    Close &amp; Dismiss
                   </button>
                 </div>
               </div>

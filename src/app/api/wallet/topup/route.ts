@@ -8,31 +8,18 @@ import { CoinTransactionType } from "@prisma/client";
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    let userId = session?.userId;
-
-    if (userId) {
-      const userExists = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-      if (!userExists) {
-        userId = undefined;
-      }
-    }
+    const userId = session?.userId;
 
     if (!userId) {
-      // Dev fallback to latest user if session is missing
-      const firstUser = await prisma.user.findFirst({
-        orderBy: { createdAt: "desc" },
-        select: { id: true },
-      });
-      if (firstUser) {
-        userId = firstUser.id;
-      }
+      return NextResponse.json({ success: false, error: "Please sign in to top up coins." }, { status: 401 });
     }
 
-    if (!userId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!userExists) {
+      return NextResponse.json({ success: false, error: "Account not found. Please sign in again." }, { status: 401 });
     }
 
     const body = await req.json();

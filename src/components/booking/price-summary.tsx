@@ -94,19 +94,14 @@ export function PriceSummary({ companion }: PriceSummaryProps) {
         <div className="space-y-2.5 rounded-xl border-brutal-sm bg-paper/50 p-4 font-body text-xs text-ink-soft">
           <div className="flex items-center justify-between font-medium">
             <span>
-              {formatRupees(companion.hourlyRate)} &times; {hours} {hours === 1 ? 'hour' : 'hours'}
+              Meetup Rate ({formatRupees(companion.hourlyRate)} &times; {hours} {hours === 1 ? 'hr' : 'hrs'})
             </span>
             <span className="font-bold text-ink font-mono">{formatRupees(price.hostSubtotal)}</span>
           </div>
 
           <div className="flex items-center justify-between font-medium">
-            <span>Meetzy Club Protection &amp; Escrow Fee</span>
-            <span className="font-bold text-ink font-mono">{formatRupees(price.connectionFee)}</span>
-          </div>
-
-          <div className="flex items-center justify-between font-medium">
-            <span>Statutory GST (18%)</span>
-            <span className="font-bold text-ink font-mono">{formatRupees(price.gst)}</span>
+            <span>Taxes, Razorpay &amp; Escrow Protection</span>
+            <span className="font-bold text-emerald-700 text-[11px] uppercase">Included</span>
           </div>
 
           <div className="border-t-brutal-sm pt-2.5 flex items-baseline justify-between font-display text-base font-black text-ink">

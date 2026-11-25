@@ -220,6 +220,11 @@ export default function BookPage({ params }: BookPageProps) {
   };
 
   const handleFinalBookingAndPayment = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please verify your mobile number via SMS OTP before booking.', 'Sign In Required');
+      router.push(`/login?intent=member&next=${encodeURIComponent(`/book/${companionId}`)}`);
+      return;
+    }
     if (!memberName.trim() || memberName.trim().length < 2) {
       toast.error('Please provide your name so your companion knows who they are meeting.', 'Name Required');
       return;
@@ -283,6 +288,7 @@ export default function BookPage({ params }: BookPageProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          companionId: companion.id,
           hourlyRate: companion.hourlyRate,
           durationHours: duration,
         }),

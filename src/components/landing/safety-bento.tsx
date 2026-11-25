@@ -35,10 +35,10 @@ export function SafetyBento() {
             </div>
 
             <h3 className="font-display text-lg font-black text-ink leading-tight">
-              ID + Live Selfie Checked
+              OTP + Photo Verified
             </h3>
             <p className="font-body text-xs text-ink-soft mt-1 leading-relaxed">
-              Every host submits government ID (Aadhaar/Passport) and a live facial video selfie. No anonymous accounts, no catfish.
+              Every host verifies their real Indian mobile number via Fast2SMS OTP and uploads a clear headshot—no anonymous profiles, no Aadhaar storage needed.
             </p>
           </div>
 

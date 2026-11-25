@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyHandshakePin } from "@/lib/bookings";
+import { getSession } from "@/lib/session";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session?.userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const pin = String(body.code || body.pin || "").trim();
 
@@ -16,7 +22,7 @@ export async function POST(
       );
     }
 
-    const result = await verifyHandshakePin(params.id, pin);
+    const result = await verifyHandshakePin(params.id, pin, session.userId);
 
     if (!result.success) {
       return NextResponse.json(
@@ -27,7 +33,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: "4-Digit start code verified successfully! Session clock is now active.",
+      message: "4-Digit start code verified! Session timer is now active.",
       booking: result.booking,
     });
   } catch (error) {

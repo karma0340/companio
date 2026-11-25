@@ -135,13 +135,17 @@ export async function POST(req: NextRequest) {
       if (!userId) userId = `user_${Date.now()}`;
     }
 
-    // 4. Update session cookie to reflect unlocked state immediately
+    // 4. Update session cookie to reflect unlocked state immediately while preserving host role/avatar
+    const preservedRole =
+      (session?.role === "COMPANION" ? "COMPANION" : "MEMBER") as "MEMBER" | "COMPANION";
     const token = await setSessionCookie({
       userId: userId!,
       phone: userPhone,
       email: userEmail,
       name: guestName || session?.name || "Member",
-      role: "MEMBER",
+      role: preservedRole,
+      activeRole: preservedRole === "COMPANION" ? "host" : "member",
+      avatarUrl: session?.avatarUrl || null,
       isUnlocked: true,
       activePassTier: tier,
       passExpiresAt: expiryDate ? expiryDate.toISOString() : null,

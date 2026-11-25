@@ -29,7 +29,7 @@ interface ProfileCheckResult {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get('next') || '/explore';
+  const nextUrl = searchParams.get('next') || searchParams.get('redirect') || '/explore';
   const urlIntent = searchParams.get('intent') === 'host' ? 'host' : 'member';
   const toast = useToast();
   const { isAuthenticated, user, memberProfile, hostProfile, refreshSession, logout } = useAuth();
@@ -40,7 +40,6 @@ function LoginContent() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   // Production-level OTP input state & 60s cooldown timer
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
@@ -73,13 +72,10 @@ function LoginContent() {
     setIntent(urlIntent);
   }, [searchParams, urlIntent]);
 
-  // 2. 60-Second Cooldown Timer for Resend SMS & Auto-generate fresh random 6-digit code
+  // 2. 60-Second Cooldown Timer for Resend SMS
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (step === 'code') {
-      if (!devOtp) {
-        setDevOtp(Math.floor(100000 + Math.random() * 900000).toString());
-      }
       setResendCooldown(60);
       setCanResend(false);
       interval = setInterval(() => {
@@ -96,7 +92,7 @@ function LoginContent() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [step, devOtp]);
+  }, [step]);
 
   // 3. Debounced phone lookup for real-time role and account recognition
   useEffect(() => {
@@ -173,31 +169,23 @@ function LoginContent() {
       });
       const data = await res.json();
 
-      const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
       if (!res.ok || !data.success) {
-        // Graceful fallback to fresh random 6-digit code if SMS provider fails or is unconfigured
-        setStep('code');
-        setOtpDigits(['', '', '', '', '', '']);
-        setCode('');
-        setDevOtp(randomOtp);
-        toast.success(`Verification code: ${randomOtp}`, 'Sign In Code');
-      } else {
-        setStep('code');
-        setOtpDigits(['', '', '', '', '', '']);
-        setCode('');
-        const resolvedCode = data.sandboxCode || randomOtp;
-        setDevOtp(resolvedCode);
-        toast.success(`Verification code: ${resolvedCode}`, 'Sign In Code');
+        const msg = data.error || 'Unable to send SMS verification code. Please try again.';
+        setError(msg);
+        toast.error(msg, 'SMS Delivery Failed');
+        return;
       }
-    } catch {
-      // In case of network or API error, gracefully open code step with fresh random 6-digit code
-      const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
       setStep('code');
       setOtpDigits(['', '', '', '', '', '']);
       setCode('');
-      setDevOtp(randomOtp);
-      toast.success(`Verification code: ${randomOtp}`, 'Sign In Code');
+      setResendCooldown(60);
+      setCanResend(false);
+      toast.success(`6-digit OTP sent via SMS to +91 ${validation.formatted}`, 'SMS Dispatched');
+    } catch {
+      const msg = 'Network error while dispatching SMS code. Please check your connection and try again.';
+      setError(msg);
+      toast.error(msg, 'Connection Error');
     } finally {
       setLoading(false);
     }
@@ -640,7 +628,6 @@ function LoginContent() {
                     setStep('input');
                     setOtpDigits(['', '', '', '', '', '']);
                     setCode('');
-                    setDevOtp(null);
                     setError(null);
                   }}
                   className="font-display text-xs font-black text-lavender hover:underline cursor-pointer"
@@ -649,27 +636,8 @@ function LoginContent() {
                 </button>
               </div>
 
-              {/* Always provide 1-Tap Auto Fill for instant verification */}
-              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-xs text-emerald-900 font-bold animate-in fade-in">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span className="truncate">
-                    Verification Code: <strong className="font-mono text-sm">{devOtp || '123456'}</strong>
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const targetCode = devOtp || '123456';
-                    const digits = targetCode.split('');
-                    setOtpDigits(digits);
-                    setCode(targetCode);
-                    executeVerify(targetCode);
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-black uppercase shadow-sm hover:bg-emerald-700 transition cursor-pointer shrink-0"
-                >
-                  1-Tap Auto Fill →
-                </button>
+              <div className="rounded-xl border border-ink/20 bg-paper/60 px-3 py-2 text-[11px] font-bold text-ink-soft">
+                Enter the 6-digit OTP sent via SMS to your mobile number. Valid for 5 minutes.
               </div>
 
               <div className="space-y-2">

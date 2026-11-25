@@ -52,9 +52,9 @@ export default function AboutPage() {
               <div className="flex h-12 w-12 items-center justify-center border-2 border-ink bg-lavender mb-4">
                 <Users className="h-6 w-6 text-ink" />
               </div>
-              <h3 className="text-lg font-black uppercase text-ink">Aadhaar Verified</h3>
+              <h3 className="text-lg font-black uppercase text-ink">OTP Verified &amp; Private</h3>
               <p className="mt-2 text-xs font-bold text-ink/70 leading-relaxed">
-                Every companion host undergoes government ID verification, selfie liveliness checks, and phone number validation before their profile is published.
+                Every host and member completes live SMS OTP mobile verification and photo review before connecting, with zero Aadhaar or biometric storage required.
               </p>
             </div>
           </div>

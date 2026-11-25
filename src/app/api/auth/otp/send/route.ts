@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateAndStoreOtp } from "@/lib/otp-store";
+import { checkOtpCooldown, clearOtp, generateAndStoreOtp } from "@/lib/otp-store";
 import { sendSmsOtp } from "@/lib/sms";
 import { sendEmailOtp } from "@/lib/email";
 import { validateIndianMobileNumber } from "@/lib/phone";
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     if (!rawInput) {
       return NextResponse.json(
-        { success: false, error: "Please provide an email address or mobile number." },
+        { success: false, error: "Please provide a valid 10-digit Indian mobile number." },
         { status: 400 }
       );
     }
@@ -32,50 +32,60 @@ export async function POST(req: NextRequest) {
       const phoneValidation = validateIndianMobileNumber(rawInput);
       if (!phoneValidation.isValid) {
         return NextResponse.json(
-          { success: false, error: phoneValidation.error || "Please enter a valid 10-digit Indian mobile number." },
+          {
+            success: false,
+            error: phoneValidation.error || "Please enter a valid 10-digit Indian mobile number.",
+          },
           { status: 400 }
         );
       }
       identifier = phoneValidation.e164;
+
+      const cooldown = checkOtpCooldown(identifier);
+      if (!cooldown.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Please wait ${cooldown.waitSeconds} seconds before requesting another SMS code.`,
+            retryAfterSeconds: cooldown.waitSeconds,
+          },
+          { status: 429 }
+        );
+      }
     }
 
     const code = generateAndStoreOtp(identifier);
-    let result = null;
+    const result = isEmail ? await sendEmailOtp(identifier, code) : await sendSmsOtp(identifier, code);
 
-    if (isEmail) {
-      result = await sendEmailOtp(identifier, code);
-    } else {
-      result = await sendSmsOtp(identifier, code);
+    if (!result || !result.success) {
+      clearOtp(identifier);
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            result?.error ||
+            "Unable to deliver SMS verification code right now. Please try again in a moment.",
+          provider: result?.provider || "FAST2SMS",
+        },
+        { status: 502 }
+      );
     }
 
-    if (result && !result.success) {
-      console.warn(`[SMS DISPATCH NOTICE]: Provider returned: ${result.error}. Providing verification code.`);
-      return NextResponse.json({
-        success: true,
-        message: `Sign-in verification code is ${code}`,
-        identifier,
-        isEmail,
-        provider: "INSTANT_VERIFICATION",
-        sandboxCode: code,
-      });
-    }
-
-    console.log(`[AUTH OTP DISPATCH] Target: ${identifier} | Code: ${code} | Provider: ${result?.provider}`);
+    console.log(`[AUTH OTP SENT] Target: ${identifier} | Provider: ${result.provider}`);
 
     return NextResponse.json({
       success: true,
       message: isEmail
-        ? `Sign-in code dispatched to ${identifier}`
-        : `Sign-in code dispatched via SMS to ${identifier}`,
+        ? `Verification code sent to ${identifier}.`
+        : `6-digit verification code sent via SMS to ${identifier}.`,
       identifier,
       isEmail,
-      provider: result?.provider || (isEmail ? "EMAIL_DISPATCH" : "SMS_DISPATCH"),
-      sandboxCode: code,
+      provider: result.provider,
     });
   } catch (error) {
     console.error("[AUTH OTP SEND ERROR]:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to dispatch sign-in code. Please try again." },
+      { success: false, error: "Failed to dispatch verification code. Please try again." },
       { status: 500 }
     );
   }

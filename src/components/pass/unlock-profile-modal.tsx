@@ -456,14 +456,9 @@ export function UnlockProfileModal({
 
             {otpSent && (
               <div className="space-y-2 pt-1 animate-in fade-in">
-                {/* 1-Tap Auto Fill Helper Banner */}
-                <div
-                  onClick={() => setOtpCode('123456')}
-                  className="flex items-center justify-between rounded-xl border border-emerald-600/30 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-800 font-bold cursor-pointer hover:bg-emerald-100 transition"
-                >
-                  <span>1-Tap Demo Code (123456)</span>
-                  <span className="underline text-[10px] uppercase font-black">Fill Code</span>
-                </div>
+                <p className="text-[11px] font-bold text-ink-soft">
+                  Enter the 6-digit OTP sent via SMS to +91 {phone.replace(/\D/g, '').slice(-10)}.
+                </p>
 
                 <input
                   type="text"

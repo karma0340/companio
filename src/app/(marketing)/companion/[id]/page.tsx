@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: CompanionProfilePageProps): P
 
   return {
     title: `${companion.name}, ${companion.age} — Verified Companion in ${companion.area} (₹${companion.hourlyRate}/hr) | Meetzy Club`,
-    description: `Book an ID-verified meetup with ${companion.name} in ${companion.area}. "${companion.tagline}" 100% platonic & escrow protected on Meetzy Club.`,
+    description: `Book a verified meetup with ${companion.name} in ${companion.area}. "${companion.tagline}" 100% platonic & escrow protected on Meetzy Club.`,
   };
 }
 
@@ -123,18 +123,14 @@ export default async function CompanionProfilePage({ params }: CompanionProfileP
 
                     {/* Verification Badges */}
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {companion.verifiedId && (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border-brutal-sm bg-lime px-2.5 py-1 text-xs font-black uppercase text-ink shadow-brutal-sm">
-                          <ShieldCheck className="h-4 w-4" />
-                          ID Verified
-                        </span>
-                      )}
-                      {companion.verifiedPhoto && (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border-brutal-sm bg-sunny px-2.5 py-1 text-xs font-black uppercase text-ink shadow-brutal-sm">
-                          <Camera className="h-4 w-4" />
-                          Live Selfie Match
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border-brutal-sm bg-lime px-2.5 py-1 text-xs font-black uppercase text-ink shadow-brutal-sm">
+                        <ShieldCheck className="h-4 w-4" />
+                        Mobile OTP Verified
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border-brutal-sm bg-sunny px-2.5 py-1 text-xs font-black uppercase text-ink shadow-brutal-sm">
+                        <Camera className="h-4 w-4" />
+                        Photo Reviewed
+                      </span>
                       <span className="inline-flex items-center gap-1.5 rounded-lg border-brutal-sm bg-pink-soft px-2.5 py-1 text-xs font-black uppercase text-ink">
                         <HeartHandshake className="h-4 w-4" />
                         100% Platonic
@@ -227,6 +223,25 @@ export default async function CompanionProfilePage({ params }: CompanionProfileP
                     </div>
                   ))}
                 </div>
+
+                {companion.preferredVenues && companion.preferredVenues.length > 0 && (
+                  <div className="pt-3 border-t-brutal-sm space-y-2">
+                    <p className="font-display text-xs font-black uppercase tracking-wider text-ink-muted">
+                      Preferred Public Venues
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {companion.preferredVenues.map((venue) => (
+                        <span
+                          key={venue}
+                          className="inline-flex items-center gap-1 rounded-lg border-brutal-sm bg-sunny/60 px-2.5 py-1 text-xs font-bold text-ink"
+                        >
+                          <MapPin className="h-3 w-3 text-ink" />
+                          {venue}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Reviews Section */}

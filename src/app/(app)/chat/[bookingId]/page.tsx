@@ -327,9 +327,11 @@ export default function ChatRoomPage() {
               >
                 {isConnected ? "Live Chat" : "Polling"}
               </span>
-              <span className="border-2 border-ink bg-white px-2.5 py-0.5 text-xs font-black font-mono">
-                PIN: {booking?.verificationPin || "7492"}
-              </span>
+              {booking?.verificationPin && (
+                <span className="border-2 border-ink bg-white px-2.5 py-0.5 text-xs font-black font-mono">
+                  PIN: {booking.verificationPin}
+                </span>
+              )}
             </div>
           </div>
 

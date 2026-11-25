@@ -102,6 +102,21 @@ function DashboardContent() {
 
   // Active pass details
   const [passData, setPassData] = useState<any>(null);
+  const [notifications, setNotifications] = useState<
+    Array<{ id: string; title: string; message: string; time: string; isUnread?: boolean }>
+  >([]);
+  const [savedCompanions, setSavedCompanions] = useState<
+    Array<{
+      id: string;
+      displayName: string;
+      city: string;
+      locality: string;
+      hourlyRate: number;
+      ratingAverage: number;
+      avatarUrl: string | null;
+      isAvailable: boolean;
+    }>
+  >([]);
 
   useEffect(() => {
     if (user || memberProfile) {
@@ -115,13 +130,32 @@ function DashboardContent() {
   useEffect(() => {
     async function loadData() {
       try {
-        const passRes = await fetch('/api/passes/active');
+        const [passRes, notifRes, bookmarkRes] = await Promise.all([
+          fetch('/api/passes/active', { cache: 'no-store' }),
+          fetch('/api/notifications', { cache: 'no-store' }),
+          fetch('/api/companions/bookmarks', { cache: 'no-store' }),
+        ]);
+
         const passJson = await passRes.json();
         if (passJson.activePass) {
           setPassData(passJson.activePass);
         }
+
+        if (notifRes.ok) {
+          const notifJson = await notifRes.json();
+          if (Array.isArray(notifJson.notifications)) {
+            setNotifications(notifJson.notifications);
+          }
+        }
+
+        if (bookmarkRes.ok) {
+          const bookmarkJson = await bookmarkRes.json();
+          if (Array.isArray(bookmarkJson.companions)) {
+            setSavedCompanions(bookmarkJson.companions);
+          }
+        }
       } catch (err) {
-        console.warn('Failed to fetch pass:', err);
+        console.warn('Failed to fetch dashboard metadata:', err);
       }
 
       if (user?.id || user?.phone) {
@@ -255,28 +289,50 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Companion Host Application Needs Update Callout Banner */}
-        <div className="rounded-2xl border-2 border-ink bg-rose-50 p-4 sm:p-5 shadow-brutal-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-rose-700" />
-              <h2 className="font-display text-sm font-black text-rose-900 uppercase">
-                Your companion application needs one update
-              </h2>
+        {/* Host Onboarding or Studio Switch Banner */}
+        {hostProfile ? (
+          <div className="rounded-2xl border-2 border-ink bg-[#D4F7A5]/70 p-4 sm:p-5 shadow-brutal-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-ink" />
+                <h2 className="font-display text-sm font-black text-ink uppercase">
+                  Host Studio Active ({hostProfile.displayName})
+                </h2>
+              </div>
+              <p className="text-xs font-bold text-ink-soft">
+                Manage your incoming meetup requests, 4-digit Start PIN verification, and 70% UPI cashouts from your Host Studio.
+              </p>
             </div>
-            <p className="text-xs font-bold text-rose-800">
-              Please upload a genuine photograph of yourself instead of a movie poster or meme. Everything else is saved and your fee is already paid.
-            </p>
+            <Link
+              href="/companion/dashboard"
+              className="inline-flex items-center gap-1 rounded-xl border-2 border-ink bg-ink text-white px-4 py-2 font-display text-xs font-black shadow-brutal-xs hover:bg-ink/90 transition cursor-pointer shrink-0"
+            >
+              <span>Open Host Studio</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-
-          <Link
-            href="/become-a-companion/apply"
-            className="inline-flex items-center gap-1 rounded-xl border-2 border-ink bg-rose-600 text-white px-4 py-2 font-display text-xs font-black shadow-brutal-xs hover:bg-rose-700 transition cursor-pointer shrink-0"
-          >
-            <span>Fix it now</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
+        ) : (
+          <div className="rounded-2xl border-2 border-ink bg-sunny/60 p-4 sm:p-5 shadow-brutal-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-ink" />
+                <h2 className="font-display text-sm font-black text-ink uppercase">
+                  Earn 70% Per Meetup as a Verified Host
+                </h2>
+              </div>
+              <p className="text-xs font-bold text-ink-soft">
+                Use your same verified mobile number to host platonic coffee or city walks. Zero Aadhaar upload required.
+              </p>
+            </div>
+            <Link
+              href="/become-a-companion/apply"
+              className="inline-flex items-center gap-1 rounded-xl border-2 border-ink bg-ink text-white px-4 py-2 font-display text-xs font-black shadow-brutal-xs hover:bg-ink/90 transition cursor-pointer shrink-0"
+            >
+              <span>Become a Host</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        )}
 
         {/* 7 Tab Navigation Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none border-b-2 border-ink/20">
@@ -285,10 +341,10 @@ function DashboardContent() {
               { id: 'overview' as const, label: 'Overview', icon: Sparkles },
               { id: 'bookings' as const, label: 'Bookings', icon: Calendar, badge: bookings.length > 0 ? bookings.length : undefined },
               { id: 'messages' as const, label: 'Messages', icon: MessageSquare },
-              { id: 'saved' as const, label: 'Saved', icon: Bookmark },
-              { id: 'notifications' as const, label: 'Notifications', icon: Bell, badge: '2' },
+              { id: 'saved' as const, label: 'Saved', icon: Bookmark, badge: savedCompanions.length > 0 ? savedCompanions.length : undefined },
+              { id: 'notifications' as const, label: 'Notifications', icon: Bell, badge: notifications.filter((n) => n.isUnread).length || undefined },
               { id: 'support' as const, label: 'Support', icon: HelpCircle },
-              { id: 'account' as const, label: 'Account', icon: User, alert: true },
+              { id: 'account' as const, label: 'Account', icon: User },
             ] as Array<{
               id: DashboardTab;
               label: string;
@@ -510,8 +566,7 @@ function DashboardContent() {
         {/* TAB 3: MESSAGES */}
         {activeTab === 'messages' && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Coin Balance Bar */}
-            <div className="rounded-2xl border-2 border-ink bg-[#D4F7A5] p-4 flex items-center justify-between">
+            <div className="rounded-2xl border-2 border-ink bg-[#D4F7A5] p-4 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Coins className="h-5 w-5 text-ink" />
                 <div>
@@ -519,55 +574,148 @@ function DashboardContent() {
                     {user?.coinBalance ?? 100} Coins Available
                   </div>
                   <div className="text-xs font-bold text-ink-soft">
-                    Coins power direct in-app messaging. 1 Coin = ₹1.
+                    Shielded in-app chat opens automatically once your meetup booking is accepted.
                   </div>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsCoinTopupOpen(true)}
-                className="rounded-xl border-2 border-ink bg-white px-3.5 py-1.5 font-display text-xs font-black shadow-brutal-xs hover:bg-paper transition cursor-pointer"
-              >
-                + Recharge Coins
-              </button>
-            </div>
-
-            <div className="rounded-2xl border-2 border-ink bg-white p-8 text-center space-y-3">
-              <MessageSquare className="h-8 w-8 text-ink-muted mx-auto" />
-              <h3 className="font-display text-base font-black text-ink">
-                Shielded In-App Conversations
-              </h3>
-              <p className="text-xs text-ink-muted max-w-sm mx-auto">
-                Once a companion accepts your booking, a private shielded chat room opens up.
-              </p>
-              <div className="pt-2">
-                <Link href="/explore">
-                  <Button variant="primary" size="sm">
-                    Browse Companions →
-                  </Button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/chat"
+                  className="rounded-xl border-2 border-ink bg-ink text-white px-3.5 py-1.5 font-display text-xs font-black shadow-brutal-xs hover:bg-black transition"
+                >
+                  Open Inbox
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => setIsCoinTopupOpen(true)}
+                  className="rounded-xl border-2 border-ink bg-white px-3.5 py-1.5 font-display text-xs font-black shadow-brutal-xs hover:bg-paper transition cursor-pointer"
+                >
+                  + Recharge Coins
+                </button>
               </div>
             </div>
+
+            {bookings.filter((b) => b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS' || b.status === 'COMPLETED').length === 0 ? (
+              <div className="rounded-2xl border-2 border-ink bg-white p-8 text-center space-y-3">
+                <MessageSquare className="h-8 w-8 text-ink-muted mx-auto" />
+                <h3 className="font-display text-base font-black text-ink">
+                  Shielded In-App Conversations
+                </h3>
+                <p className="text-xs text-ink-muted max-w-sm mx-auto">
+                  Once a host accepts your booking, your private shielded chat room appears here.
+                </p>
+                <div className="pt-2">
+                  <Link href="/explore">
+                    <Button variant="primary" size="sm">
+                      Browse Companions →
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {bookings
+                  .filter((b) => b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS' || b.status === 'COMPLETED')
+                  .map((b) => (
+                    <div
+                      key={b.id}
+                      className="rounded-2xl border-2 border-ink bg-white p-4 flex items-center justify-between gap-4 shadow-brutal-xs"
+                    >
+                      <div>
+                        <p className="font-display text-sm font-black text-ink">
+                          {b.companion?.name || 'Verified Host'} — {b.activity}
+                        </p>
+                        <p className="text-xs font-semibold text-ink-muted">
+                          {b.meetingPoint} • {b.date} ({b.status})
+                        </p>
+                      </div>
+                      <Link href={`/chat/${b.id}`}>
+                        <Button variant="primary" size="sm">
+                          Open Chat
+                        </Button>
+                      </Link>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* TAB 4: SAVED */}
         {activeTab === 'saved' && (
-          <div className="rounded-2xl border-2 border-ink bg-white p-10 text-center space-y-3 animate-in fade-in">
-            <Bookmark className="h-8 w-8 text-ink-muted mx-auto" />
-            <h3 className="font-display text-base font-black text-ink">No saved companions</h3>
-            <p className="text-xs text-ink-muted max-w-sm mx-auto">
-              Tap the bookmark icon on any companion card while exploring to keep them handy here.
-            </p>
-            <div className="pt-2">
-              <Link href="/explore">
-                <Button variant="primary" size="sm">
-                  Explore Now →
-                </Button>
-              </Link>
+          savedCompanions.length === 0 ? (
+            <div className="rounded-2xl border-2 border-ink bg-white p-10 text-center space-y-3 animate-in fade-in">
+              <Bookmark className="h-8 w-8 text-ink-muted mx-auto" />
+              <h3 className="font-display text-base font-black text-ink">No saved companions</h3>
+              <p className="text-xs text-ink-muted max-w-sm mx-auto">
+                Tap the bookmark icon on any companion card while exploring to keep them handy here.
+              </p>
+              <div className="pt-2">
+                <Link href="/explore">
+                  <Button variant="primary" size="sm">
+                    Explore Now →
+                  </Button>
+                </Link>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in">
+              {savedCompanions.map((comp) => (
+                <div
+                  key={comp.id}
+                  className="rounded-2xl border-2 border-ink bg-white p-4 shadow-brutal-xs flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {comp.avatarUrl ? (
+                      <img
+                        src={comp.avatarUrl}
+                        alt={comp.displayName}
+                        className="h-14 w-14 rounded-xl border-2 border-ink object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="h-14 w-14 rounded-xl border-2 border-ink bg-sunny flex items-center justify-center font-display text-lg font-black shrink-0">
+                        {comp.displayName.charAt(0)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <h3 className="font-display text-base font-black text-ink truncate">
+                        {comp.displayName}
+                      </h3>
+                      <p className="text-xs font-semibold text-ink-soft truncate">
+                        {comp.locality || comp.city} • INR {comp.hourlyRate}/hr
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      href={`/companion/${comp.id}`}
+                      className="rounded-xl border-2 border-ink bg-lime px-3 py-1.5 font-display text-xs font-black text-ink hover:bg-lime/80"
+                    >
+                      View
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const res = await fetch('/api/companions/bookmarks', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ companionId: comp.id }),
+                        });
+                        if (res.ok) {
+                          setSavedCompanions((prev) => prev.filter((item) => item.id !== comp.id));
+                          toast.success('Removed from Saved companions.');
+                        }
+                      }}
+                      className="rounded-xl border-2 border-ink bg-cream px-2.5 py-1.5 text-xs font-black text-ink hover:bg-rose-50 cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
 
         {/* TAB 5: NOTIFICATIONS */}
@@ -575,29 +723,28 @@ function DashboardContent() {
           <div className="rounded-2xl border-2 border-ink bg-white p-6 shadow-brutal space-y-4 animate-in fade-in">
             <h2 className="font-display text-lg font-black text-ink">Notifications</h2>
 
-            <div className="divide-y divide-ink/10 text-xs">
-              <div className="py-3 flex items-start gap-3">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 mt-1 shrink-0" />
-                <div className="space-y-0.5">
-                  <div className="font-display font-black text-ink">Welcome to Meetzy Club!</div>
-                  <div className="text-ink-soft">
-                    You received 100 free welcome coins to message verified companion hosts.
+            {notifications.length === 0 ? (
+              <p className="text-xs font-bold text-ink-muted py-4">
+                You are all caught up. Booking updates and platform alerts appear here automatically.
+              </p>
+            ) : (
+              <div className="divide-y divide-ink/10 text-xs">
+                {notifications.map((item) => (
+                  <div key={item.id} className="py-3 flex items-start gap-3">
+                    <div
+                      className={`h-2 w-2 rounded-full mt-1 shrink-0 ${
+                        item.isUnread ? 'bg-emerald-500' : 'bg-ink/25'
+                      }`}
+                    />
+                    <div className="space-y-0.5">
+                      <div className="font-display font-black text-ink">{item.title}</div>
+                      <div className="text-ink-soft">{item.message}</div>
+                      <div className="text-[10px] font-mono text-ink-muted">{item.time}</div>
+                    </div>
                   </div>
-                  <div className="text-[10px] font-mono text-ink-muted">Today</div>
-                </div>
+                ))}
               </div>
-
-              <div className="py-3 flex items-start gap-3">
-                <div className="h-2 w-2 rounded-full bg-rose-500 mt-1 shrink-0" />
-                <div className="space-y-0.5">
-                  <div className="font-display font-black text-ink">Host Application Update Needed</div>
-                  <div className="text-ink-soft">
-                    Please upload a genuine photograph of yourself for host verification.
-                  </div>
-                  <div className="text-[10px] font-mono text-ink-muted">Yesterday</div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -752,37 +899,57 @@ function DashboardContent() {
                 <div>
                   <span className="text-[10px] font-black uppercase text-ink-muted block">Tier</span>
                   <span className="font-display font-black text-sm capitalize">
-                    {user?.activePassTier ? user.activePassTier.replace(/_/g, ' ') : '3 Month Pass'}
+                    {(passData?.tier || user?.activePassTier || 'Free Explorer').replace(/_/g, ' ').toLowerCase()}
                   </span>
-                  <div className="text-[10px] text-ink-soft">Active until 24 Dec 2026</div>
+                  <div className="text-[10px] text-ink-soft">
+                    {passData?.validUntil
+                      ? `Active until ${new Date(passData.validUntil).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}`
+                      : passData
+                      ? 'Lifetime Access'
+                      : 'Browse & Compare Open Profiles Free'}
+                  </div>
                 </div>
 
                 <div>
                   <span className="text-[10px] font-black uppercase text-ink-muted block">Paid</span>
-                  <span className="font-display font-black text-sm">₹499</span>
-                  <div className="text-[10px] text-ink-soft">One-time payment</div>
+                  <span className="font-display font-black text-sm">
+                    {passData?.pricePaid ? `INR ${passData.pricePaid}` : 'INR 0'}
+                  </span>
+                  <div className="text-[10px] text-ink-soft">
+                    {passData ? 'One-time payment' : 'No pass required to browse'}
+                  </div>
                 </div>
 
                 <div>
                   <span className="text-[10px] font-black uppercase text-ink-muted block">Invoice Number</span>
-                  <span className="font-mono font-bold text-xs">CMPN-2026-019839</span>
+                  <span className="font-mono font-bold text-xs">
+                    {passData?.id
+                      ? `CMPN-${new Date(passData.createdAt || Date.now()).getFullYear()}-${String(passData.id).slice(-6).toUpperCase()}`
+                      : 'N/A'}
+                  </span>
                 </div>
               </div>
 
               <p className="text-xs text-ink-soft pt-1">
-                The pass opens full profiles and messages. Each meetup is paid separately, shown before you pay.
+                Every companion profile on Explore is open to browse and compare for free. Each meetup booking is paid separately at the host&apos;s hourly rate.
               </p>
 
-              <div className="pt-2">
-                <Link
-                  href="/receipt/cmwuuqflo000iij08si4zdb03"
-                  className="inline-flex items-center gap-1.5 text-xs font-black text-ink underline hover:text-ink-soft"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span>Download receipt (opens in new tab)</span>
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
-              </div>
+              {passData?.id && (
+                <div className="pt-2">
+                  <Link
+                    href={`/receipt/${passData.id}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-black text-ink underline hover:text-ink-soft"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>Download receipt (opens in new tab)</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* 3. Invite a Friend Card */}
@@ -794,7 +961,7 @@ function DashboardContent() {
                 </h3>
               </div>
               <p className="text-xs font-bold text-ink-soft">
-                When a friend joins with your link and buys their first pass, we add 7 days to your pass and 7 to theirs.
+                When a friend joins with your link and completes their first booking or pass, both accounts receive bonus wallet coins.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
@@ -813,23 +980,43 @@ function DashboardContent() {
             </div>
 
             {/* 4. Host Application Status Card */}
-            <div className="rounded-3xl border-3 border-ink bg-rose-50 p-6 sm:p-8 shadow-brutal space-y-3">
-              <h3 className="font-display text-base font-black text-rose-900">
-                Your application needs an update
-              </h3>
-              <p className="text-xs font-bold text-rose-800">
-                Please upload a genuine photograph of yourself instead of a movie poster or meme.
-              </p>
-              <div>
-                <Link
-                  href="/become-a-companion"
-                  className="inline-flex items-center gap-1.5 rounded-xl border-2 border-ink bg-white px-4 py-2 font-display text-xs font-black text-rose-900 shadow-brutal-xs hover:bg-rose-100 transition cursor-pointer"
-                >
-                  <span>Re-submit application</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+            {hostProfile ? (
+              <div className="rounded-3xl border-3 border-ink bg-[#D4F7A5]/60 p-6 sm:p-8 shadow-brutal space-y-3">
+                <h3 className="font-display text-base font-black text-ink">
+                  Host Studio Active ({hostProfile.displayName})
+                </h3>
+                <p className="text-xs font-bold text-ink-soft">
+                  Your Host account is verified on the same phone number. You keep a fixed 70% payout per completed meetup.
+                </p>
+                <div>
+                  <Link
+                    href="/companion/dashboard"
+                    className="inline-flex items-center gap-1.5 rounded-xl border-2 border-ink bg-ink text-white px-4 py-2 font-display text-xs font-black shadow-brutal-xs hover:bg-black transition cursor-pointer"
+                  >
+                    <span>Go to Host Studio</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-3xl border-3 border-ink bg-white p-6 sm:p-8 shadow-brutal space-y-3">
+                <h3 className="font-display text-base font-black text-ink">
+                  Want to host meetups too?
+                </h3>
+                <p className="text-xs font-bold text-ink-soft">
+                  Register as a Verified Host with your existing phone number, pick a Starter/Pro/Elite Host Pack, and earn 70% fixed on every booking.
+                </p>
+                <div>
+                  <Link
+                    href="/become-a-companion/apply"
+                    className="inline-flex items-center gap-1.5 rounded-xl border-2 border-ink bg-lime px-4 py-2 font-display text-xs font-black text-ink shadow-brutal-xs hover:bg-lime/80 transition cursor-pointer"
+                  >
+                    <span>Become a Verified Host</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              </div>
+            )}
 
             {/* 5. Notifications and Privacy Preferences */}
             <div className="rounded-3xl border-3 border-ink bg-white p-6 sm:p-8 shadow-brutal space-y-5">

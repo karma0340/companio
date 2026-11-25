@@ -1,561 +1,1143 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Wallet,
-  Calendar,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  KeyRound,
-  ShieldCheck,
-  Star,
-  MapPin,
-  ArrowUpRight,
-  User,
-  Loader2,
-  Lock,
-  Sparkles,
-  AlertCircle,
-  Video,
-} from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useAppStore } from '@/lib/store/useAppStore';
+import {
+  CheckCircle2,
+  Clock,
+  MapPin,
+  Shield,
+  Sparkles,
+  IndianRupee,
+  Calendar,
+  ArrowRight,
+  KeyRound,
+  MessageCircle,
+  Settings,
+  Wallet,
+  Star,
+  Users,
+  Edit3,
+  Loader2,
+  Check,
+  X,
+  ExternalLink,
+  AlertCircle,
+} from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
-import { formatRupees } from '@/lib/utils';
-import { useAuth } from '@/context/auth-context';
 
-export default function HostDashboardPage() {
+interface HostProfileData {
+  id: string;
+  userId: string;
+  displayName: string;
+  age: number | null;
+  gender: string | null;
+  avatarUrl: string | null;
+  city: string;
+  locality: string;
+  travelRadiusKm: number;
+  bio: string;
+  hourlyRate: number;
+  spokenLanguages: string[];
+  acceptedActivities: string[];
+  availabilitySlots: string[];
+  preferredVenues: string[];
+  hostPackTier: string | null;
+  hostPackExpiresAt: string | null;
+  completedMeetups: number;
+  ratingAverage: number;
+  totalReviews: number;
+  isAvailable: boolean;
+  upiId: string | null;
+  walletBalance: number;
+}
+
+interface HostBookingItem {
+  id: string;
+  bookingNumber: string;
+  memberName: string;
+  activityTitle: string;
+  date: string;
+  startTime: string;
+  durationHours: number;
+  venueName: string;
+  venueAddress: string | null;
+  totalAmount: number;
+  companionFee: number;
+  status: string;
+  escrowStatus: string;
+  createdAt: string;
+}
+
+interface PayoutItem {
+  id: string;
+  type: string;
+  amount: number;
+  utr: string;
+  status: string;
+  gateway: string;
+  dispatchedAt: string;
+}
+
+const AVAILABILITY_OPTIONS = [
+  'Weekdays (Mon-Fri)',
+  'Weekends (Sat-Sun)',
+  'Evenings (5-9 PM)',
+  'Flexible / On Request',
+];
+
+const VENUE_OPTIONS = [
+  'Artisan Coffee Shops',
+  'Open Promenades & Parks',
+  'Malls & Shopping Centers',
+  'Cultural Spaces & Museums',
+];
+
+export default function CompanionDashboardPage() {
   const router = useRouter();
   const toast = useToast();
-  const { user, hostProfile, activeRole, isAuthenticated, isLoading, refreshSession } = useAuth();
+  const { isAuthenticated, isLoading: isLoadingAuth, refreshSession, activeRole, switchRole } =
+    useAppStore();
 
-  const [isAvailableToday, setIsAvailableToday] = useState(true);
-  const [enteredCode, setEnteredCode] = useState('');
-  const [codeVerified, setCodeVerified] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [hasProfile, setHasProfile] = useState(true);
+  const [profile, setProfile] = useState<HostProfileData | null>(null);
+  const [bookings, setBookings] = useState<HostBookingItem[]>([]);
+  const [payouts, setPayouts] = useState<PayoutItem[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
-  const [withdrawing, setWithdrawing] = useState(false);
-  const [loadingBookings, setLoadingBookings] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [simulatingApproval, setSimulatingApproval] = useState(false);
 
-  const isApproved = hostProfile?.verificationStatus === 'approved';
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [togglingAvailability, setTogglingAvailability] = useState(false);
 
-  // Sync state with hostProfile from Zustand
-  useEffect(() => {
-    if (hostProfile) {
-      setIsAvailableToday(hostProfile.isFreeToday ?? true);
-      setWalletBalance(hostProfile.walletBalance ?? 0);
-    }
-  }, [hostProfile]);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+  const [respondingBookingId, setRespondingBookingId] = useState<string | null>(null);
 
-  // Fetch live bookings for this host
-  useEffect(() => {
-    async function loadHostBookings() {
-      setLoadingBookings(true);
-      try {
-        const res = await fetch('/api/companion/bookings');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.bookings && data.bookings.length > 0) {
-            setPendingRequests(data.bookings);
-          } else {
-            // Starter preview requests for host
-            setPendingRequests([
-              {
-                id: 'req-preview-1',
-                memberName: 'Pooja Verma',
-                activity: 'Coffee & City Walk',
-                date: 'Today',
-                time: '05:30 PM IST',
-                duration: '2 Hours',
-                venue: 'Third Wave Coffee, Main Market',
-                payout: 1080,
-                status: 'pending',
-              },
-            ]);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load host bookings:', err);
-      } finally {
-        setLoadingBookings(false);
+  // Payout Modal State
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState('');
+  const [payoutUpi, setPayoutUpi] = useState('');
+  const [isRequestingPayout, setIsRequestingPayout] = useState(false);
+
+  // Profile Settings Modal State
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editLocality, setEditLocality] = useState('');
+  const [editHourlyRate, setEditHourlyRate] = useState('');
+  const [editUpiId, setEditUpiId] = useState('');
+  const [editLanguages, setEditLanguages] = useState('');
+  const [editAvailabilitySlots, setEditAvailabilitySlots] = useState<string[]>([]);
+  const [editPreferredVenues, setEditPreferredVenues] = useState<string[]>([]);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [profileRes, bookingsRes, payoutsRes] = await Promise.all([
+        fetch('/api/companion/profile', { cache: 'no-store' }),
+        fetch('/api/companion/bookings', { cache: 'no-store' }),
+        fetch('/api/wallet/payouts', { cache: 'no-store' }),
+      ]);
+
+      if (profileRes.status === 401) {
+        router.replace('/login?next=/companion/dashboard');
+        return;
       }
-    }
 
-    if (isAuthenticated) {
-      loadHostBookings();
+      const profileData = await profileRes.json();
+      if (!profileData.hasProfile || !profileData.profile) {
+        setHasProfile(false);
+        setLoading(false);
+        return;
+      }
+
+      setHasProfile(true);
+      const p: HostProfileData = profileData.profile;
+      setProfile(p);
+      setIsAvailable(p.isAvailable);
+      setWalletBalance(p.walletBalance ?? 0);
+      setPayoutUpi(p.upiId || '');
+
+      // Seed settings editor
+      setEditDisplayName(p.displayName || '');
+      setEditBio(p.bio || '');
+      setEditLocality(p.locality || '');
+      setEditHourlyRate(String(p.hourlyRate || 499));
+      setEditUpiId(p.upiId || '');
+      setEditLanguages((p.spokenLanguages || []).join(', '));
+      setEditAvailabilitySlots(p.availabilitySlots || []);
+      setEditPreferredVenues(p.preferredVenues || []);
+
+      if (bookingsRes.ok) {
+        const bookingsData = await bookingsRes.json();
+        setBookings(Array.isArray(bookingsData.bookings) ? bookingsData.bookings : []);
+      }
+
+      if (payoutsRes.ok) {
+        const payoutsData = await payoutsRes.json();
+        setPayouts(Array.isArray(payoutsData.payouts) ? payoutsData.payouts : []);
+        if (typeof payoutsData.walletBalance === 'number') {
+          setWalletBalance(payoutsData.walletBalance);
+        }
+        if (payoutsData.upiId && !p.upiId) {
+          setPayoutUpi(payoutsData.upiId);
+          setEditUpiId(payoutsData.upiId);
+        }
+      }
+
+      if (activeRole !== 'host') {
+        await switchRole('host');
+      }
+    } catch {
+      toast.error('Failed to load Host Studio data. Please refresh.');
+    } finally {
+      setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [activeRole, router, switchRole, toast]);
+
+  useEffect(() => {
+    if (!isLoadingAuth && !isAuthenticated) {
+      router.replace('/login?next=/companion/dashboard');
+      return;
+    }
+    if (!isLoadingAuth && isAuthenticated) {
+      loadDashboard();
+    }
+  }, [isLoadingAuth, isAuthenticated, loadDashboard, router]);
 
   const handleToggleAvailability = async () => {
-    const nextState = !isAvailableToday;
-    setIsAvailableToday(nextState);
-
+    if (togglingAvailability) return;
+    const nextState = !isAvailable;
+    setTogglingAvailability(true);
+    setIsAvailable(nextState);
     try {
       const res = await fetch('/api/companion/availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isFreeToday: nextState }),
       });
-      if (res.ok) {
-        toast.success(
-          nextState
-            ? 'Your profile is now marked Available Today for instant bookings!'
-            : 'You are now marked unavailable for today.',
-          'Availability Updated'
-        );
+      if (!res.ok) throw new Error('Failed to update availability');
+      toast.success(nextState ? 'You are now listed as Available for bookings.' : 'Status set to Busy / Offline.');
+    } catch {
+      setIsAvailable(!nextState);
+      toast.error('Could not update availability.');
+    } finally {
+      setTogglingAvailability(false);
+    }
+  };
+
+  const handleRespondBooking = async (bookingId: string, action: 'accept' | 'decline') => {
+    setRespondingBookingId(bookingId);
+    try {
+      const res = await fetch('/api/companion/bookings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, action }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Could not update booking.');
+        return;
       }
+      toast.success(
+        action === 'accept'
+          ? 'Booking accepted! Chat & Session Room are now open.'
+          : 'Booking declined. Member escrow has been marked for refund.'
+      );
+      await loadDashboard();
     } catch {
-      // Revert on failure
-      setIsAvailableToday(!nextState);
+      toast.error('Network error while updating booking.');
+    } finally {
+      setRespondingBookingId(null);
     }
   };
 
-  const handleAccept = async (id: string) => {
-    setPendingRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'confirmed' } : r))
-    );
-    try {
-      await fetch('/api/companion/bookings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: id, action: 'accept' }),
-      });
-    } catch {
-      // Handled silently
-    }
-    toast.success('Meetup request accepted! Member has been notified.', 'Request Accepted');
-  };
-
-  const handleDecline = async (id: string) => {
-    setPendingRequests((prev) => prev.filter((r) => r.id !== id));
-    try {
-      await fetch('/api/companion/bookings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: id, action: 'decline' }),
-      });
-    } catch {
-      // Handled silently
-    }
-    toast.info('The meetup request was declined and the member has been refunded.', 'Request Declined');
-  };
-
-  const handleVerifyCode = async (e: React.FormEvent) => {
+  const handleVerifyPin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (enteredCode.length !== 4) {
-      toast.error('Please enter the complete 4-digit code provided by your member at the venue.', '4-Digit Code Required');
+    const cleaned = verifyCode.trim();
+    if (!/^\d{4}$/.test(cleaned)) {
+      toast.error('Please enter the exact 4-digit Member Start PIN.');
       return;
     }
-
+    setIsVerifyingPin(true);
     try {
       const res = await fetch('/api/companion/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: enteredCode }),
+        body: JSON.stringify({ code: cleaned }),
       });
-
-      let json: any = {};
-      try {
-        json = await res.json();
-      } catch {
-        // Fallback
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data.error || 'Invalid PIN or no confirmed meetup matched.');
+        return;
       }
-
-      if (res.ok && json.success) {
-        setCodeVerified(true);
-        if (json.newWalletBalance !== undefined) {
-          setWalletBalance(json.newWalletBalance);
-        } else {
-          setWalletBalance((prev) => prev + (json.payoutAdded || 898));
-        }
-        await refreshSession();
-        toast.success(
-          'Start code verified! Your meetup is officially active and payment has been secured.',
-          'Meetup Verified'
-        );
+      toast.success(data.message || 'PIN verified! Opening live Session Room...');
+      setVerifyCode('');
+      if (data.bookingId) {
+        router.push(`/session/${data.bookingId}`);
       } else {
-        toast.error(
-          json.error || 'Invalid 4-digit code. Please verify the code with your member.',
-          'Verification Failed'
-        );
-      }
-    } catch (err) {
-      toast.error('Unable to verify code right now. Please try again.', 'Error');
-    }
-  };
-
-  const handleWithdraw = () => {
-    setWithdrawing(true);
-    setTimeout(() => {
-      const targetUpi = hostProfile?.upiId ? ` (${hostProfile.upiId})` : '';
-      toast.success(
-        `Withdrawal of ${formatRupees(walletBalance)} initiated to your UPI account${targetUpi}. Funds will reflect shortly!`,
-        'Transfer Initiated'
-      );
-      setWalletBalance(0);
-      setWithdrawing(false);
-    }, 1000);
-  };
-
-  const handleSimulateApproval = async () => {
-    setSimulatingApproval(true);
-    try {
-      const res = await fetch('/api/companion/upgrade', { method: 'POST' });
-      if (res.ok) {
-        await refreshSession();
-        toast.success('Desk approval simulated. Live Host Portal unlocked for testing!', 'Host Verified');
-      } else {
-        toast.error('Simulation failed. Please try again.', 'Error');
+        await loadDashboard();
       }
     } catch {
-      toast.error('Network error during approval simulation.', 'Error');
+      toast.error('Verification request failed.');
     } finally {
-      setSimulatingApproval(false);
+      setIsVerifyingPin(false);
     }
   };
 
-  const hostDisplayName = hostProfile?.displayName || user?.name || user?.phone || 'Verified Host';
-  const hostLocation = `${hostProfile?.area || 'City Area'}, ${hostProfile?.city || 'Bengaluru'}`;
+  const handleRequestPayout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amountNum = Number(payoutAmount);
+    if (!Number.isFinite(amountNum) || amountNum < 100) {
+      toast.error('Minimum withdrawal amount is INR 100.');
+      return;
+    }
+    if (amountNum > walletBalance) {
+      toast.error(`Insufficient balance. Available: INR ${walletBalance.toLocaleString('en-IN')}.`);
+      return;
+    }
+    if (!payoutUpi.trim() || !payoutUpi.includes('@')) {
+      toast.error('Please enter a valid UPI ID (e.g. name@oksbi).');
+      return;
+    }
+
+    setIsRequestingPayout(true);
+    try {
+      const res = await fetch('/api/wallet/payouts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amountNum, upiId: payoutUpi.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data.error || 'Cashout failed.');
+        return;
+      }
+      toast.success(data.message || 'UPI cashout initiated.');
+      setWalletBalance(data.newWalletBalance ?? Math.max(0, walletBalance - amountNum));
+      setPayoutAmount('');
+      setShowPayoutModal(false);
+      await Promise.all([loadDashboard(), refreshSession()]);
+    } catch {
+      toast.error('Network error while requesting payout.');
+    } finally {
+      setIsRequestingPayout(false);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const rate = Number(editHourlyRate);
+    if (!Number.isFinite(rate) || rate < 199 || rate > 10000) {
+      toast.error('Hourly rate must be between INR 199 and INR 10,000.');
+      return;
+    }
+    if (editDisplayName.trim().length < 2) {
+      toast.error('Display name must be at least 2 characters.');
+      return;
+    }
+    if (editBio.trim().length < 20) {
+      toast.error('Bio must be at least 20 characters.');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const res = await fetch('/api/companion/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: editDisplayName.trim(),
+          bio: editBio.trim(),
+          locality: editLocality.trim(),
+          hourlyRate: rate,
+          upiId: editUpiId.trim() || null,
+          spokenLanguages: editLanguages
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+          availabilitySlots: editAvailabilitySlots,
+          preferredVenues: editPreferredVenues,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data.error || 'Could not update profile.');
+        return;
+      }
+      toast.success('Host profile updated successfully.');
+      setShowSettingsModal(false);
+      await Promise.all([loadDashboard(), refreshSession()]);
+    } catch {
+      toast.error('Network error while saving profile.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const toggleSelection = (list: string[], value: string, setter: (v: string[]) => void) => {
+    if (list.includes(value)) {
+      setter(list.filter((item) => item !== value));
+    } else {
+      setter([...list, value]);
+    }
+  };
+
+  const pendingRequests = bookings.filter((b) => b.status === 'PENDING_ACCEPTANCE');
+  const activeMeetups = bookings.filter((b) => b.status === 'CONFIRMED' || b.status === 'IN_PROGRESS');
+  const pastMeetups = bookings.filter((b) => b.status === 'COMPLETED' || b.status === 'CANCELLED');
+  const totalEarned = pastMeetups
+    .filter((b) => b.status === 'COMPLETED')
+    .reduce((sum, b) => sum + b.companionFee, 0);
+
+  if (loading || isLoadingAuth) {
+    return (
+      <div className="min-h-screen flex flex-col bg-cream">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="rounded-3xl border-brutal bg-white p-8 shadow-brutal text-center max-w-sm w-full">
+            <Loader2 className="h-8 w-8 animate-spin text-ink mx-auto" />
+            <p className="mt-4 font-display font-black text-ink">Loading Host Studio...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!hasProfile || !profile) {
+    return (
+      <div className="min-h-screen flex flex-col bg-cream">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="rounded-3xl border-brutal bg-white p-8 shadow-brutal max-w-lg w-full text-center space-y-5">
+            <div className="mx-auto h-14 w-14 rounded-2xl border-brutal bg-lime flex items-center justify-center shadow-brutal-sm">
+              <Sparkles className="h-7 w-7 text-ink" />
+            </div>
+            <h1 className="font-display text-3xl font-black text-ink">Activate Your Host Studio</h1>
+            <p className="text-sm font-semibold text-ink/70 leading-relaxed">
+              Your verified account does not have an active Host profile yet. Complete the 3-step Host onboarding
+              and choose a Host Package to start earning a flat 70% payout on every meetup.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+              <Link
+                href="/become-a-companion/apply"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border-brutal bg-lime px-6 py-3 font-display text-sm font-black text-ink shadow-brutal-sm hover:translate-y-[-2px] transition-all"
+              >
+                Complete Host Application
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center rounded-xl border-brutal bg-cream px-5 py-3 font-display text-sm font-black text-ink hover:bg-white transition-all"
+              >
+                Go to Member Dashboard
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col bg-paper">
+    <div className="min-h-screen flex flex-col bg-cream text-ink">
       <Navbar />
 
-      <main className="flex-1 py-10 sm:py-14">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-8">
-          {/* APPLICANT REVIEW STAGE NOTICE (If Pending Review) */}
-          {!isApproved && (
-            <div className="border-3 border-ink bg-white p-6 sm:p-8 shadow-brutal space-y-5 animate-in fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-ink pb-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="border border-ink bg-sunny px-2.5 py-0.5 text-xs font-black uppercase tracking-wider text-ink">
-                      Application Under Review
-                    </span>
-                    <span className="border border-ink bg-paper px-2 py-0.5 text-xs font-mono font-bold text-ink">
-                      Ref: HST-2026-REG
-                    </span>
+      <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10 space-y-8">
+        {/* Top Studio Banner */}
+        <section className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex items-start gap-4">
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl border-brutal bg-cream overflow-hidden shrink-0 shadow-brutal-sm">
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.displayName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center font-display text-2xl font-black text-ink bg-sunny">
+                    {profile.displayName.charAt(0).toUpperCase()}
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black uppercase text-ink">
-                    Host Verification in Progress (Under 48 Hours)
-                  </h2>
-                  <p className="text-xs sm:text-sm font-bold text-ink/70 max-w-xl">
-                    Our trust and physical safety desk is reviewing your Aadhaar records and automated live video match. Meetup requests will be routed to your portal upon approval.
-                  </p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                  <button
-                    type="button"
-                    disabled={simulatingApproval}
-                    onClick={handleSimulateApproval}
-                    className="border-2 border-ink bg-lime text-ink px-4 py-2 text-xs font-black uppercase tracking-wider shadow-brutal-sm btn-press flex items-center gap-1.5"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <span>{simulatingApproval ? 'Simulating...' : 'Simulate Desk Approval (Instant Test)'}</span>
-                  </button>
-                </div>
+                )}
               </div>
 
-              {/* 3-Stage Progress Tracker */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-                <div className="border-2 border-ink bg-lime/20 p-4 space-y-1 shadow-brutal-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-ink">
-                      Stage 1
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-lg border-brutal-thin bg-lime px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-ink">
+                    Verified Host
+                  </span>
+                  {profile.hostPackTier && (
+                    <span className="rounded-lg border-brutal-thin bg-sunny px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-ink">
+                      {profile.hostPackTier} Pack (70% Payout)
                     </span>
-                    <span className="text-[10px] font-black uppercase bg-lime px-1.5 py-0.5 border border-ink text-ink flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      <span>Verified</span>
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-black uppercase text-ink">
-                    Aadhaar ID Proof
-                  </h4>
-                  <p className="text-[11px] font-bold text-ink/70">
-                    Front and back documents uploaded and encrypted under DPDP Act 2023.
-                  </p>
+                  )}
                 </div>
-
-                <div className="border-2 border-ink bg-lime/20 p-4 space-y-1 shadow-brutal-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-ink">
-                      Stage 2
-                    </span>
-                    <span className="text-[10px] font-black uppercase bg-lime px-1.5 py-0.5 border border-ink text-ink flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      <span>Passed</span>
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-black uppercase text-ink">
-                    Live Video Face Match
-                  </h4>
-                  <p className="text-[11px] font-bold text-ink/70">
-                    Live facial geometry matched against government documentation.
-                  </p>
-                </div>
-
-                <div className="border-2 border-ink bg-sunny/30 p-4 space-y-1 shadow-brutal-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-ink">
-                      Stage 3
-                    </span>
-                    <span className="text-[10px] font-black uppercase bg-sunny px-1.5 py-0.5 border border-ink text-ink flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>In Review</span>
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-black uppercase text-ink">
-                    Safety Welcome Call
-                  </h4>
-                  <p className="text-[11px] font-bold text-ink/70">
-                    Our safety officer will contact you on WhatsApp for a 5-minute onboarding check.
-                  </p>
-                </div>
+                <h1 className="font-display text-2xl sm:text-3xl font-black text-ink">
+                  {profile.displayName}
+                </h1>
+                <p className="text-xs sm:text-sm font-bold text-ink/65 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5 text-ink" />
+                    {profile.locality ? `${profile.locality}, ` : ''}
+                    {profile.city}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <IndianRupee className="h-3.5 w-3.5 text-ink" />
+                    INR {profile.hourlyRate}/hr (You receive INR {Math.round(profile.hourlyRate * 0.7)}/hr)
+                  </span>
+                </p>
               </div>
             </div>
-          )}
 
-          {/* Top Bar: Profile & Availability Toggle */}
-          <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <Badge variant={isApproved ? "lime" : "sunny"} size="sm">
-                  {isApproved ? "Verified Host" : "Verification Pending"}
-                </Badge>
-                <span className="border border-ink bg-[#D4F7A5] px-2 py-0.5 text-[11px] font-black uppercase text-ink">
-                  {hostProfile?.hostLevel === 'TOP' ? 'Top Host (95% Cut)' : hostProfile?.hostLevel === 'RISING' ? 'Rising Host (93% Cut)' : 'New Host (90% Cut)'}
-                </span>
-                <span className="text-xs font-bold text-ink-muted capitalize">
-                  {hostProfile?.locality ? `${hostProfile.locality}, ` : ''}{hostProfile?.city || 'Bengaluru'} &middot; Travel: {hostProfile?.travelRadiusKm || 10} km
-                </span>
-              </div>
-              <h1 className="font-display text-3xl font-black text-ink">
-                Host Portal · {hostDisplayName}
-              </h1>
-              <p className="font-body text-xs sm:text-sm text-ink-soft">
-                Manage your booking requests, verify meetup start codes, and withdraw your earnings safely.
-              </p>
-            </div>
-
-            {/* Instant Free Today Toggle */}
-            <div className="flex items-center gap-3 rounded-2xl border-brutal-sm bg-paper p-3">
-              <span className="font-display text-xs font-black text-ink">
-                Available Today?
-              </span>
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={handleToggleAvailability}
-                className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-brutal-sm transition-colors duration-200 ease-in-out ${
-                  isAvailableToday ? 'bg-lime' : 'bg-paper-deep'
+                disabled={togglingAvailability}
+                className={`inline-flex items-center gap-2 rounded-xl border-brutal px-4 py-2.5 font-display text-xs sm:text-sm font-black shadow-brutal-sm transition-all ${
+                  isAvailable
+                    ? 'bg-lime text-ink'
+                    : 'bg-cream text-ink/70'
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full border-brutal-sm bg-white shadow-brutal-sm transition duration-200 ease-in-out ${
-                    isAvailableToday ? 'translate-x-7 bg-ink' : 'translate-x-0'
+                  className={`h-2.5 w-2.5 rounded-full border border-ink ${
+                    isAvailable ? 'bg-emerald-600' : 'bg-ink/30'
                   }`}
                 />
+                {isAvailable ? 'Available Today' : 'Busy / Offline'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(true)}
+                className="inline-flex items-center gap-2 rounded-xl border-brutal bg-white px-4 py-2.5 font-display text-xs sm:text-sm font-black text-ink shadow-brutal-sm hover:bg-cream transition-all"
+              >
+                <Settings className="h-4 w-4" />
+                Edit Profile & Rate
+              </button>
+
+              <Link
+                href={`/companion/${profile.id}`}
+                className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-ink px-4 py-2.5 font-display text-xs sm:text-sm font-black text-white shadow-brutal-sm hover:bg-ink/90 transition-all"
+              >
+                Public Card
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Privacy & 70/30 Guarantee Bar */}
+          <div className="mt-6 rounded-2xl border-brutal-thin bg-cream/80 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <Shield className="h-5 w-5 text-emerald-700 shrink-0 mt-0.5 sm:mt-0" />
+              <p className="text-xs font-semibold text-ink/80">
+                <span className="font-black text-ink">Zero Aadhaar Storage & Fixed 70/30 Split:</span> Your phone number stays private. Every meetup holds funds safely in escrow and releases 70% directly to your Host Wallet upon 4-digit PIN verification.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Row */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="rounded-2xl border-brutal bg-white p-5 shadow-brutal-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-ink/60">
+              <span>Wallet Balance</span>
+              <Wallet className="h-4 w-4 text-emerald-700" />
+            </div>
+            <div className="mt-3 flex items-baseline justify-between gap-2">
+              <p className="font-display text-2xl sm:text-3xl font-black text-ink">
+                INR {walletBalance.toLocaleString('en-IN')}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowPayoutModal(true)}
+                className="rounded-lg border-brutal-thin bg-lime px-3 py-1 text-xs font-black text-ink hover:bg-lime/80 transition-colors"
+              >
+                Cash Out UPI
               </button>
             </div>
+            <p className="mt-1.5 text-[11px] font-semibold text-ink/60">
+              Total Earned: INR {totalEarned.toLocaleString('en-IN')}
+            </p>
           </div>
 
-          {/* Metrics Row: Wallet & Meetups Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {/* Wallet Balance Card */}
-            <div className="rounded-2xl border-brutal bg-sunny p-6 shadow-brutal space-y-3">
+          <div className="rounded-2xl border-brutal bg-white p-5 shadow-brutal-sm">
+            <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-ink/60">
+              <span>Completed Meetups</span>
+              <Users className="h-4 w-4 text-ink" />
+            </div>
+            <p className="mt-3 font-display text-2xl sm:text-3xl font-black text-ink">
+              {profile.completedMeetups}
+            </p>
+            <p className="mt-1.5 text-[11px] font-semibold text-ink/60">
+              {activeMeetups.length} active upcoming
+            </p>
+          </div>
+
+          <div className="rounded-2xl border-brutal bg-white p-5 shadow-brutal-sm">
+            <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-ink/60">
+              <span>Host Rating</span>
+              <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+            </div>
+            <p className="mt-3 font-display text-2xl sm:text-3xl font-black text-ink">
+              {profile.totalReviews > 0 ? `${profile.ratingAverage.toFixed(1)} / 5.0` : 'New Host'}
+            </p>
+            <p className="mt-1.5 text-[11px] font-semibold text-ink/60">
+              {profile.totalReviews} verified {profile.totalReviews === 1 ? 'review' : 'reviews'}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border-brutal bg-sunny p-5 shadow-brutal-sm">
+            <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-ink">
+              <span>Pending Requests</span>
+              <Clock className="h-4 w-4 text-ink" />
+            </div>
+            <p className="mt-3 font-display text-2xl sm:text-3xl font-black text-ink">
+              {pendingRequests.length}
+            </p>
+            <p className="mt-1.5 text-[11px] font-bold text-ink/75">
+              Respond promptly to lock escrow bookings
+            </p>
+          </div>
+        </section>
+
+        {/* Main Workspace Grid */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left 7 Cols: Requests & Active Meetups */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Pending Booking Requests */}
+            <div className="rounded-3xl border-brutal bg-white p-5 sm:p-6 shadow-brutal space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-ink">
-                  Available Earnings Wallet
-                </span>
-                <Wallet className="h-5 w-5 text-ink" />
-              </div>
-              <div className="font-display text-3xl sm:text-4xl font-black text-ink">
-                {formatRupees(walletBalance)}
-              </div>
-              <Button
-                variant="dark"
-                size="sm"
-                onClick={handleWithdraw}
-                disabled={walletBalance === 0 || withdrawing}
-              >
-                <span>{withdrawing ? 'Transferring...' : 'Withdraw to UPI →'}</span>
-              </Button>
-            </div>
-
-            {/* Completed Meetups */}
-            <div className="rounded-2xl border-brutal bg-white p-6 shadow-brutal space-y-2">
-              <span className="text-xs font-black uppercase tracking-wider text-ink-muted">
-                Completed Meetups
-              </span>
-              <div className="font-display text-3xl sm:text-4xl font-black text-ink">
-                0 Meetups
-              </div>
-              <p className="text-xs font-bold text-emerald-600">
-                100% mutual completion rate
-              </p>
-            </div>
-
-            {/* Member Star Rating */}
-            <div className="rounded-2xl border-brutal bg-white p-6 shadow-brutal space-y-2">
-              <span className="text-xs font-black uppercase tracking-wider text-ink-muted">
-                Community Rating
-              </span>
-              <div className="flex items-center gap-2 font-display text-3xl sm:text-4xl font-black text-ink">
-                <Star className="h-8 w-8 fill-sunny text-ink" />
-                <span>5.0 / 5.0</span>
-              </div>
-              <p className="text-xs font-bold text-ink-muted">
-                Verified Host Community
-              </p>
-            </div>
-          </div>
-
-          {/* Active In-Person Meetup & Start Code Entry */}
-          <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal space-y-6">
-            <div className="flex items-center gap-2 text-lavender font-display text-sm font-black uppercase">
-              <KeyRound className="h-5 w-5" />
-              <span>In-Person Code Verification</span>
-            </div>
-
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-1">
-                <h2 className="font-display text-2xl font-black text-ink">
-                  At the public venue with your member?
+                <h2 className="font-display text-xl font-black text-ink">
+                  New Booking Requests ({pendingRequests.length})
                 </h2>
-                <p className="font-body text-xs sm:text-sm text-ink-soft max-w-xl">
-                  Ask the member for their 4-digit start code and enter it below. This confirms mutual arrival and secures your payout once the meetup concludes.
-                </p>
+                <span className="rounded-full border-brutal-thin bg-cream px-3 py-1 text-[11px] font-black text-ink">
+                  Escrow Funded
+                </span>
               </div>
 
-              {!codeVerified ? (
-                <form onSubmit={handleVerifyCode} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    maxLength={4}
-                    placeholder="e.g. 4892"
-                    value={enteredCode}
-                    onChange={(e) => setEnteredCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    className="w-32 rounded-xl border-brutal bg-paper px-4 py-2.5 text-center font-mono text-lg font-black tracking-widest text-ink focus:outline-none"
-                  />
-                  <Button type="submit" variant="primary" size="md">
-                    Verify Code
-                  </Button>
-                </form>
+              {pendingRequests.length === 0 ? (
+                <div className="rounded-2xl border-brutal-thin border-dashed bg-cream/60 p-6 text-center space-y-2">
+                  <Calendar className="h-6 w-6 text-ink/40 mx-auto" />
+                  <p className="text-sm font-bold text-ink/70">No pending requests right now.</p>
+                  <p className="text-xs font-semibold text-ink/50">
+                    Keep your availability toggle green and your bio updated so local members can book you.
+                  </p>
+                </div>
               ) : (
-                <div className="flex items-center gap-2 rounded-xl border-brutal bg-lime px-4 py-2.5 text-ink font-display text-xs font-black uppercase shadow-brutal-sm">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>Session Code Verified</span>
+                <div className="space-y-4">
+                  {pendingRequests.map((req) => (
+                    <div
+                      key={req.id}
+                      className="rounded-2xl border-brutal bg-cream p-4 sm:p-5 space-y-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[11px] font-black uppercase tracking-wider text-ink/55">
+                            #{req.bookingNumber}
+                          </span>
+                          <h3 className="font-display text-lg font-black text-ink">
+                            {req.activityTitle} with {req.memberName}
+                          </h3>
+                        </div>
+                        <div className="text-right">
+                          <span className="inline-block rounded-lg border-brutal-thin bg-lime px-2.5 py-1 text-xs font-black text-ink">
+                            Your 70% Payout: INR {req.companionFee}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-semibold text-ink/75">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-ink" />
+                          <span>
+                            {new Date(req.date).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}{' '}
+                            at {req.startTime} ({req.durationHours}h)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-ink" />
+                          <span className="truncate">{req.venueName}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3 pt-1">
+                        <button
+                          type="button"
+                          disabled={respondingBookingId === req.id}
+                          onClick={() => handleRespondBooking(req.id, 'accept')}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border-brutal bg-lime px-4 py-2 text-xs font-black text-ink shadow-brutal-sm hover:translate-y-[-1px] transition-all disabled:opacity-50"
+                        >
+                          <Check className="h-4 w-4" />
+                          Accept Meetup
+                        </button>
+                        <button
+                          type="button"
+                          disabled={respondingBookingId === req.id}
+                          onClick={() => handleRespondBooking(req.id, 'decline')}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border-brutal bg-white px-4 py-2 text-xs font-black text-rose-700 hover:bg-rose-50 transition-all disabled:opacity-50"
+                        >
+                          <X className="h-4 w-4" />
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Active / Confirmed Meetups */}
+            <div className="rounded-3xl border-brutal bg-white p-5 sm:p-6 shadow-brutal space-y-4">
+              <h2 className="font-display text-xl font-black text-ink">
+                Confirmed & Live Meetups ({activeMeetups.length})
+              </h2>
+
+              {activeMeetups.length === 0 ? (
+                <div className="rounded-2xl border-brutal-thin border-dashed bg-cream/60 p-6 text-center">
+                  <p className="text-sm font-bold text-ink/70">No confirmed upcoming meetups yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {activeMeetups.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border-brutal bg-white p-4 sm:p-5 shadow-brutal-sm space-y-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <span className="inline-flex items-center gap-1 rounded-md border-brutal-thin bg-sunny px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-ink">
+                            {item.status === 'IN_PROGRESS' ? 'Session Live' : 'Confirmed — Meet in Person'}
+                          </span>
+                          <h3 className="mt-1 font-display text-base sm:text-lg font-black text-ink">
+                            {item.activityTitle} with {item.memberName}
+                          </h3>
+                        </div>
+                        <span className="font-display text-sm font-black text-emerald-700">
+                          +INR {item.companionFee}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold text-ink/75">
+                        <span>
+                          {new Date(item.date).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}{' '}
+                          • {item.startTime} ({item.durationHours}h)
+                        </span>
+                        <span>Public Venue: {item.venueName}</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2.5 pt-1">
+                        <Link
+                          href={`/session/${item.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-ink px-4 py-2 text-xs font-black text-white shadow-brutal-sm hover:bg-ink/90 transition-all"
+                        >
+                          <KeyRound className="h-3.5 w-3.5 text-lime" />
+                          Open Session & SOS Room
+                        </Link>
+                        <Link
+                          href={`/chat/${item.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-xl border-brutal bg-cream px-4 py-2 text-xs font-black text-ink hover:bg-sunny transition-all"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          Open Chat
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Booking Requests Manager */}
-          <div className="rounded-3xl border-brutal bg-white p-6 sm:p-8 shadow-brutal space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-display text-xl sm:text-2xl font-black text-ink">
-                  Meetup Requests ({pendingRequests.length})
-                </h2>
-                <p className="font-body text-xs text-ink-soft">
-                  Incoming reservation requests from verified members.
-                </p>
+          {/* Right 5 Cols: 4-Digit Start PIN & Payouts */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* 4-Digit Handshake PIN Form */}
+            <form
+              onSubmit={handleVerifyPin}
+              className="rounded-3xl border-brutal bg-sunny p-5 sm:p-6 shadow-brutal space-y-4"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="h-10 w-10 rounded-xl border-brutal bg-white flex items-center justify-center shrink-0">
+                  <KeyRound className="h-5 w-5 text-ink" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg font-black text-ink">In-Person 4-Digit Start PIN</h2>
+                  <p className="text-xs font-bold text-ink/75">Ask the member for their secret PIN at the cafe</p>
+                </div>
               </div>
 
-              <span className="text-xs font-black uppercase border border-ink bg-paper px-2.5 py-1">
-                Safe Escrow Guaranteed
-              </span>
+              <p className="text-xs font-semibold text-ink/80 leading-relaxed">
+                Entering the member&apos;s secret 4-digit PIN proves both of you arrived safely at the public venue,
+                starts the countdown timer, and protects your 70% escrow payout.
+              </p>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={verifyCode}
+                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="Enter 4-digit PIN"
+                  className="flex-1 rounded-xl border-brutal bg-white px-4 py-3 font-mono text-lg font-black tracking-[0.3em] text-center text-ink focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={isVerifyingPin || verifyCode.length !== 4}
+                  className="rounded-xl border-brutal bg-ink px-5 py-3 font-display text-xs sm:text-sm font-black text-white shadow-brutal-sm hover:bg-ink/90 disabled:opacity-50 transition-all"
+                >
+                  {isVerifyingPin ? 'Checking...' : 'Start Meetup'}
+                </button>
+              </div>
+            </form>
+
+            {/* UPI Cashouts & Transaction History */}
+            <div className="rounded-3xl border-brutal bg-white p-5 sm:p-6 shadow-brutal space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display text-lg font-black text-ink">Wallet & UPI Payouts</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowPayoutModal(true)}
+                  className="inline-flex items-center gap-1 rounded-lg border-brutal-thin bg-lime px-3 py-1.5 text-xs font-black text-ink hover:bg-lime/80"
+                >
+                  Withdraw
+                </button>
+              </div>
+
+              <div className="rounded-2xl border-brutal-thin bg-cream p-3.5 text-xs font-semibold text-ink/75 flex items-center justify-between gap-2">
+                <span>Linked UPI ID:</span>
+                <span className="font-mono font-black text-ink">
+                  {profile.upiId || 'Not configured yet'}
+                </span>
+              </div>
+
+              {payouts.length === 0 ? (
+                <p className="text-xs font-semibold text-ink/55 py-2">
+                  No payout transactions recorded yet. Completed meetups credit your wallet automatically.
+                </p>
+              ) : (
+                <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                  {payouts.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="rounded-xl border-brutal-thin bg-cream/60 p-3 flex items-center justify-between gap-2"
+                    >
+                      <div>
+                        <p className="text-xs font-black text-ink">
+                          {tx.type === 'HOST_PAYOUT' ? 'Meetup Payout (70%)' : 'UPI Cashout'}
+                        </p>
+                        <p className="text-[11px] font-semibold text-ink/60">
+                          {new Date(tx.dispatchedAt).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}{' '}
+                          • {tx.utr}
+                        </p>
+                      </div>
+                      <span
+                        className={`font-display text-sm font-black ${
+                          tx.type === 'HOST_PAYOUT' ? 'text-emerald-700' : 'text-ink'
+                        }`}
+                      >
+                        {tx.type === 'HOST_PAYOUT' ? '+' : '-'}INR {tx.amount}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {loadingBookings ? (
-              <div className="py-8 text-center text-xs font-black uppercase text-ink flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading requests...</span>
-              </div>
-            ) : pendingRequests.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-ink p-8 text-center text-xs font-bold text-ink-muted">
-                No active meetup requests right now. Keep your "Available Today" toggle active to receive instant requests.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="rounded-2xl border-brutal bg-paper p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-brutal-sm"
-                  >
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-display text-sm font-black text-ink">
-                          {req.memberName}
-                        </span>
-                        <Badge variant="sunny" size="sm">
-                          {req.activity}
-                        </Badge>
+            {/* Completed Meetups Summary */}
+            {pastMeetups.length > 0 && (
+              <div className="rounded-3xl border-brutal bg-white p-5 sm:p-6 shadow-brutal space-y-3">
+                <h2 className="font-display text-lg font-black text-ink">Recent Completed Meetups</h2>
+                <div className="space-y-2">
+                  {pastMeetups.slice(0, 5).map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border-brutal-thin bg-cream/60 p-3 flex items-center justify-between gap-2 text-xs"
+                    >
+                      <div>
+                        <p className="font-black text-ink">
+                          {item.activityTitle} ({item.memberName})
+                        </p>
+                        <p className="font-semibold text-ink/60">
+                          {item.status} • {item.durationHours}h
+                        </p>
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-ink-muted">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5 text-ink" />
-                          <span>{req.date} at {req.time}</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5 text-ink" />
-                          <span>{req.duration}</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5 text-ink" />
-                          <span>{req.venue}</span>
-                        </span>
-                      </div>
+                      <span className="font-black text-emerald-700">INR {item.companionFee}</span>
                     </div>
-
-                    <div className="flex items-center gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-ink/10 justify-between sm:justify-end">
-                      <div className="text-left sm:text-right">
-                        <span className="block text-[10px] font-black uppercase text-ink-muted">
-                          Your Escrow Payout
-                        </span>
-                        <span className="font-display text-base font-black text-ink">
-                          {formatRupees(req.payout)}
-                        </span>
-                      </div>
-
-                      {req.status === 'confirmed' ? (
-                        <span className="border-2 border-ink bg-lime px-3 py-1.5 text-xs font-black uppercase text-ink shadow-brutal-sm flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>Confirmed</span>
-                        </span>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleAccept(req.id)}
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDecline(req.id)}
-                          >
-                            Decline
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        </div>
+        </section>
       </main>
+
+      {/* UPI Payout Modal */}
+      {showPayoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-xs p-4">
+          <form
+            onSubmit={handleRequestPayout}
+            className="w-full max-w-md rounded-3xl border-brutal bg-white p-6 shadow-brutal space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-xl font-black text-ink">Withdraw Earnings via UPI</h3>
+              <button
+                type="button"
+                onClick={() => setShowPayoutModal(false)}
+                className="rounded-lg border-brutal-thin p-1.5 hover:bg-cream"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl border-brutal-thin bg-lime/30 p-3.5 flex items-center justify-between">
+              <span className="text-xs font-bold text-ink/80">Withdrawable Balance</span>
+              <span className="font-display text-lg font-black text-ink">
+                INR {walletBalance.toLocaleString('en-IN')}
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1.5">
+                Withdrawal Amount (INR)
+              </label>
+              <input
+                type="number"
+                min={100}
+                max={walletBalance}
+                value={payoutAmount}
+                onChange={(e) => setPayoutAmount(e.target.value)}
+                placeholder="Minimum 100"
+                className="w-full rounded-xl border-brutal bg-cream px-3.5 py-2.5 text-sm font-bold text-ink focus:outline-none"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1.5">
+                Destination UPI ID
+              </label>
+              <input
+                type="text"
+                value={payoutUpi}
+                onChange={(e) => setPayoutUpi(e.target.value)}
+                placeholder="yourname@oksbi"
+                className="w-full rounded-xl border-brutal bg-cream px-3.5 py-2.5 text-sm font-bold text-ink focus:outline-none"
+                required
+              />
+            </div>
+
+            <div className="flex items-start gap-2 rounded-xl border-brutal-thin bg-cream p-3 text-[11px] font-semibold text-ink/70">
+              <AlertCircle className="h-4 w-4 text-ink shrink-0 mt-0.5" />
+              <span>Funds are transferred to your UPI handle within 24 business hours.</span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isRequestingPayout}
+              className="w-full rounded-xl border-brutal bg-ink py-3 font-display text-sm font-black text-white shadow-brutal-sm hover:bg-ink/90 disabled:opacity-50"
+            >
+              {isRequestingPayout ? 'Processing Payout...' : 'Confirm UPI Withdrawal'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Profile Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-xs p-4 overflow-y-auto">
+          <form
+            onSubmit={handleSaveProfile}
+            className="w-full max-w-xl rounded-3xl border-brutal bg-white p-6 shadow-brutal space-y-4 my-8 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-xl font-black text-ink flex items-center gap-2">
+                <Edit3 className="h-5 w-5" />
+                Edit Host Profile & Settings
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+                className="rounded-lg border-brutal-thin p-1.5 hover:bg-cream"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  className="w-full rounded-xl border-brutal bg-cream px-3 py-2 text-sm font-bold text-ink"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1">
+                  Hourly Rate (INR)
+                </label>
+                <input
+                  type="number"
+                  min={199}
+                  max={10000}
+                  value={editHourlyRate}
+                  onChange={(e) => setEditHourlyRate(e.target.value)}
+                  className="w-full rounded-xl border-brutal bg-cream px-3 py-2 text-sm font-bold text-ink"
+                  required
+                />
+                <p className="mt-1 text-[11px] font-bold text-emerald-700">
+                  Your 70% share: INR {Math.round((Number(editHourlyRate) || 0) * 0.7)}/hr
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1">
+                  Locality / Neighborhood
+                </label>
+                <input
+                  type="text"
+                  value={editLocality}
+                  onChange={(e) => setEditLocality(e.target.value)}
+                  className="w-full rounded-xl border-brutal bg-cream px-3 py-2 text-sm font-bold text-ink"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1">
+                  Payout UPI ID
+                </label>
+                <input
+                  type="text"
+                  value={editUpiId}
+                  onChange={(e) => setEditUpiId(e.target.value)}
+                  placeholder="name@oksbi"
+                  className="w-full rounded-xl border-brutal bg-cream px-3 py-2 text-sm font-bold text-ink"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1">
+                Spoken Languages (comma separated)
+              </label>
+              <input
+                type="text"
+                value={editLanguages}
+                onChange={(e) => setEditLanguages(e.target.value)}
+                className="w-full rounded-xl border-brutal bg-cream px-3 py-2 text-sm font-bold text-ink"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1">
+                Public Bio
+              </label>
+              <textarea
+                rows={3}
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                className="w-full rounded-xl border-brutal bg-cream px-3 py-2 text-sm font-bold text-ink"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1.5">
+                Weekly Availability
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {AVAILABILITY_OPTIONS.map((slot) => {
+                  const active = editAvailabilitySlots.includes(slot);
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() =>
+                        toggleSelection(editAvailabilitySlots, slot, setEditAvailabilitySlots)
+                      }
+                      className={`rounded-xl border-brutal-thin px-3 py-2 text-left text-xs font-bold flex items-center justify-between ${
+                        active ? 'bg-lime text-ink' : 'bg-cream text-ink/75'
+                      }`}
+                    >
+                      <span>{slot}</span>
+                      {active && <CheckCircle2 className="h-3.5 w-3.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1.5">
+                Preferred Public Venues
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {VENUE_OPTIONS.map((venue) => {
+                  const active = editPreferredVenues.includes(venue);
+                  return (
+                    <button
+                      key={venue}
+                      type="button"
+                      onClick={() =>
+                        toggleSelection(editPreferredVenues, venue, setEditPreferredVenues)
+                      }
+                      className={`rounded-xl border-brutal-thin px-3 py-2 text-left text-xs font-bold flex items-center justify-between ${
+                        active ? 'bg-sunny text-ink' : 'bg-cream text-ink/75'
+                      }`}
+                    >
+                      <span>{venue}</span>
+                      {active && <CheckCircle2 className="h-3.5 w-3.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+                className="rounded-xl border-brutal bg-cream px-4 py-2.5 font-display text-xs font-black text-ink"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingProfile}
+                className="rounded-xl border-brutal bg-lime px-5 py-2.5 font-display text-xs font-black text-ink shadow-brutal-sm"
+              >
+                {isSavingProfile ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <Footer />
     </div>

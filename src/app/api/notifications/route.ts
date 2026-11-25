@@ -8,18 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
-    let userId = session?.userId;
-
-    if (!userId) {
-      // Dev fallback to latest active user
-      const latestUser = await prisma.user.findFirst({
-        orderBy: { createdAt: "desc" },
-        select: { id: true },
-      });
-      if (latestUser) {
-        userId = latestUser.id;
-      }
-    }
+    const userId = session?.userId;
 
     if (!userId) {
       return NextResponse.json({

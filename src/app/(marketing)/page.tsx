@@ -172,7 +172,7 @@ export default function HomePage() {
       id: 'faq-5',
       question: 'How are companions verified?',
       answer:
-        'Every single host submits a government ID (Aadhaar, Passport, or Voter ID) along with a real-time live selfie for facial comparison. Our human trust team reviews their background, phone number, and social profiles before approving their profile.',
+        'Every single host verifies their Indian mobile number via live SMS OTP, submits a clear public headshot photo, sets preferred public venues, and agrees to our strictly platonic Code of Conduct before going live. We never require Aadhaar cards or invasive biometric storage.',
     },
     {
       id: 'faq-6',
@@ -300,7 +300,7 @@ export default function HomePage() {
                 <div className="flex flex-wrap items-center gap-4 pt-1 text-xs font-extrabold text-ink">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span>Aadhaar ID Checked</span>
+                    <span>Mobile OTP Verified</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />

@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { respondToBooking } from "@/lib/bookings";
+import { getSession } from "@/lib/session";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session?.userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const action = String(body.action || "").toUpperCase();
 
@@ -16,7 +22,7 @@ export async function POST(
       );
     }
 
-    const result = await respondToBooking(params.id, action);
+    const result = await respondToBooking(params.id, action, session.userId);
 
     if (!result.success) {
       return NextResponse.json(
@@ -29,7 +35,7 @@ export async function POST(
       success: true,
       message:
         action === "ACCEPT"
-          ? "Booking accepted! Real-time chat channel is now unlocked for coordination."
+          ? "Booking accepted! Chat and Session Room are now active."
           : "Booking declined. Escrow payment has been automatically refunded to the member.",
       booking: result.booking,
     });

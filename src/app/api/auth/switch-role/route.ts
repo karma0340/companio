@@ -11,22 +11,38 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const targetRole = String(body?.role || "").toUpperCase();
-
     const newRole = targetRole === "COMPANION" ? "COMPANION" : "MEMBER";
 
-    // Update in database if exists
+    let avatarUrl = session.avatarUrl || null;
+
+    if (newRole === "COMPANION") {
+      const companion = await prisma.companion.findFirst({
+        where: { userId: session.userId },
+        select: { id: true, avatarUrl: true },
+      });
+      if (!companion) {
+        return NextResponse.json(
+          { error: "Please complete your Host profile before switching to Host mode." },
+          { status: 403 }
+        );
+      }
+      avatarUrl = companion.avatarUrl || avatarUrl;
+    }
+
     try {
       await prisma.user.update({
         where: { id: session.userId },
         data: { role: newRole as any },
       });
     } catch (e) {
-      // Continue with session update
+      console.warn("[SWITCH ROLE DB WARN]:", e);
     }
 
     await setSessionCookie({
       ...session,
       role: newRole as any,
+      activeRole: newRole === "COMPANION" ? "host" : "member",
+      avatarUrl,
     });
 
     return NextResponse.json({
