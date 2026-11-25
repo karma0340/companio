@@ -124,15 +124,15 @@ function CompanionApplyForm() {
     return () => clearTimeout(t);
   }, [resendCooldown]);
 
+  const sessionPhoneDigits = (user?.phone || "").replace(/\D/g, "").slice(-10);
+  const hasSessionPhone = sessionPhoneDigits.length === 10;
+
   // Pre-fill verified phone and existing profile values from authenticated session
   useEffect(() => {
-    const sessionPhone = user?.phone || "";
-    if (sessionPhone) {
-      const cleanDigits = sessionPhone.replace(/\D/g, "").slice(-10);
-      setFormData((prev) => ({
-        ...prev,
-        phone: cleanDigits,
-      }));
+    if (hasSessionPhone) {
+      setFormData((prev) =>
+        prev.phone === sessionPhoneDigits ? prev : { ...prev, phone: sessionPhoneDigits }
+      );
     }
 
     if (user?.name && user.name.toLowerCase() !== "member") {
@@ -147,7 +147,7 @@ function CompanionApplyForm() {
       setAvatarBase64(hostProfile.avatarUrl);
       setAvatarFileName("current-avatar.jpg");
     }
-  }, [user, hostProfile, avatarBase64]);
+  }, [user, hostProfile, avatarBase64, hasSessionPhone, sessionPhoneDigits]);
 
   const handleSendAuthOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,6 +290,7 @@ function CompanionApplyForm() {
   };
 
   const phoneDigits = formData.phone.replace(/\D/g, "");
+  const phoneValidation = validateIndianMobileNumber(formData.phone);
   const ageNum = parseInt(formData.age, 10);
   const hourlyNum = Math.min(1299, Math.max(399, parseInt(formData.hourlyRate, 10) || 499));
   const selectedPack = {
@@ -306,7 +307,7 @@ function CompanionApplyForm() {
 
   const isStep1Valid = Boolean(
     formData.fullName.trim().length >= 2 &&
-      phoneDigits.length === 10 &&
+      (hasSessionPhone ? phoneDigits.length === 10 : phoneValidation.isValid) &&
       formData.gender &&
       formData.city &&
       formData.age &&
@@ -341,11 +342,11 @@ function CompanionApplyForm() {
 
     if (step === 1) {
       if (!isStep1Valid) {
-        setErrorMessage("Please enter your full legal name and valid age (18+).");
+        setErrorMessage("Please enter your full legal name, valid 10-digit Indian mobile number, and age (18+).");
         return;
       }
       setStep(2);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo(0, 0);
       return;
     }
 
@@ -355,7 +356,7 @@ function CompanionApplyForm() {
         return;
       }
       setStep(3);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo(0, 0);
       return;
     }
 
@@ -710,11 +711,17 @@ function CompanionApplyForm() {
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <label className="block text-xs font-black uppercase text-ink">
-                            Verified Mobile Number
+                            {hasSessionPhone ? "Verified Mobile Number" : "Mobile Number (+91)"}
                           </label>
-                          <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded">
-                            OTP Verified
-                          </span>
+                          {hasSessionPhone ? (
+                            <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded">
+                              OTP Verified
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-black uppercase text-ink bg-sunny/60 border border-ink px-1.5 py-0.5 rounded">
+                              Required
+                            </span>
+                          )}
                         </div>
                         <div className="relative">
                           <span className="absolute left-3 top-2.5 font-mono text-xs font-bold text-ink-muted">
@@ -722,11 +729,33 @@ function CompanionApplyForm() {
                           </span>
                           <input
                             type="tel"
-                            readOnly
+                            inputMode="numeric"
+                            maxLength={10}
+                            required
+                            readOnly={hasSessionPhone}
+                            placeholder={hasSessionPhone ? undefined : "Enter 10-digit mobile number"}
                             value={formData.phone}
-                            className="w-full border-2 border-ink bg-paper-deep/50 pl-12 pr-3.5 py-2.5 text-xs font-mono font-bold text-ink cursor-not-allowed"
+                            onChange={
+                              hasSessionPhone
+                                ? undefined
+                                : (e) =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                                    }))
+                            }
+                            className={`w-full border-2 border-ink pl-12 pr-3.5 py-2.5 text-xs font-mono font-bold text-ink placeholder:text-ink/40 focus:outline-none ${
+                              hasSessionPhone
+                                ? "bg-paper-deep/50 cursor-not-allowed"
+                                : "bg-paper focus:bg-white"
+                            }`}
                           />
                         </div>
+                        {!hasSessionPhone && phoneDigits.length > 0 && !phoneValidation.isValid && (
+                          <p className="mt-1 text-[11px] font-bold text-danger">
+                            {phoneValidation.error}
+                          </p>
+                        )}
                       </div>
                     </div>
 

@@ -144,11 +144,22 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         ? existingUser.name
         : input.fullName.trim();
 
+    let phoneToAssignToUser: string | null = null;
+    if (!existingUser.phone && resolvedPhone) {
+      const phoneOwner = await prisma.user.findUnique({
+        where: { phone: resolvedPhone },
+        select: { id: true },
+      });
+      if (!phoneOwner || phoneOwner.id === existingUser.id) {
+        phoneToAssignToUser = resolvedPhone;
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: existingUser.id },
       data: {
         name: preservedMemberName,
-        ...(!existingUser.phone && resolvedPhone ? { phone: resolvedPhone } : {}),
+        ...(phoneToAssignToUser ? { phone: phoneToAssignToUser } : {}),
         role: 'COMPANION',
         isKycVerified: true,
         onboardingCompleted: true,
