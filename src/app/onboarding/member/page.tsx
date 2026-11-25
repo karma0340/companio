@@ -44,19 +44,26 @@ export default function MemberOnboardingPage() {
     cityName: string;
     area: string;
   } | null>(null);
-  const [selectedGender, setSelectedGender] = useState<GenderType>('female');
+  const [selectedGender, setSelectedGender] = useState<GenderType | null>(null);
 
   const { register, handleSubmit, setValue, watch } = useForm<OnboardingFormValues>({
     defaultValues: {
       fullName: '',
-      gender: 'female',
-      city: 'chandigarh',
+      gender: 'male',
+      city: 'bengaluru',
       area: '',
       bio: '',
       emergencyContact: '',
       referralCode: '',
     },
   });
+
+  // Pre-fill name from Google or existing auth profile
+  React.useEffect(() => {
+    if (user?.name && user.name !== 'Member') {
+      setValue('fullName', user.name);
+    }
+  }, [user, setValue]);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -72,7 +79,8 @@ export default function MemberOnboardingPage() {
   const emergencyContact = watch('emergencyContact');
   const isNameValid = Boolean(fullName && fullName.trim().length >= 2);
   const isEmergencyValid = !emergencyContact || emergencyContact.trim().length === 0 || emergencyContact.replace(/\D/g, '').length === 10;
-  const canSubmit = isNameValid && isEmergencyValid;
+  const isGenderValid = selectedGender !== null;
+  const canSubmit = isNameValid && isEmergencyValid && isGenderValid;
 
   const handleGenderSelect = (gender: 'female' | 'male') => {
     setSelectedGender(gender);
@@ -146,6 +154,11 @@ export default function MemberOnboardingPage() {
 
   const onSubmit = async (data: OnboardingFormValues) => {
     if (submitting) return;
+
+    if (!selectedGender) {
+      toast.error('Please select your gender (Male or Female).', 'Gender Required');
+      return;
+    }
 
     const trimmedName = data.fullName.trim();
     if (!trimmedName || trimmedName.length < 2) {
@@ -437,12 +450,10 @@ export default function MemberOnboardingPage() {
             </div>
 
             {!canSubmit && (
-              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-900 animate-in fade-in">
-                {!isNameValid ? (
-                  <span>Please enter your full name (at least 2 characters) to enable completion.</span>
-                ) : (
-                  <span>Emergency contact number must be exactly 10 digits.</span>
-                )}
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-900 animate-in fade-in space-y-1">
+                {!isGenderValid && <div>• Please select your gender (Male or Female).</div>}
+                {!isNameValid && <div>• Please enter your full name (at least 2 characters).</div>}
+                {!isEmergencyValid && <div>• Emergency contact number must be exactly 10 digits.</div>}
               </div>
             )}
 

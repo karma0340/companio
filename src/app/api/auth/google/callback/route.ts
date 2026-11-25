@@ -235,9 +235,16 @@ export async function GET(req: NextRequest) {
     await setSessionCookie(tokenPayload, "7d");
 
     // 7. Determine final redirect destination
-    let destination = stateData.next || (dbUser.role === "COMPANION" ? "/onboarding" : "/explore");
-    if (!destination.startsWith("/")) {
-      destination = "/explore";
+    const isMember = dbUser.role === "MEMBER";
+    const needsOnboarding = isMember && (!dbUser.onboardingCompleted || !dbUser.gender);
+
+    let destination: string;
+    if (needsOnboarding) {
+      destination = "/onboarding/member";
+    } else if (stateData.next && stateData.next.startsWith("/") && stateData.next !== "/login") {
+      destination = stateData.next;
+    } else {
+      destination = dbUser.role === "COMPANION" ? "/companion/dashboard" : "/explore";
     }
 
     const response = NextResponse.redirect(new URL(destination, req.url));

@@ -31,7 +31,8 @@ export async function GET() {
       id: session.userId,
       fullName: session.name || "Member",
       city: "bengaluru",
-      onboardingCompleted: Boolean(session.name && session.name !== "Member"),
+      gender: null,
+      onboardingCompleted: false,
     };
 
     try {
@@ -95,15 +96,12 @@ export async function GET() {
           };
         }
 
-        const isMemberCompleted = Boolean(
-          dbUser.onboardingCompleted ||
-          (dbUser.name && dbUser.name !== "Member" && dbUser.name.trim().length > 1)
-        );
+        const isMemberCompleted = Boolean(dbUser.onboardingCompleted && dbUser.gender);
 
         memberProfile = {
           id: dbUser.id,
           fullName: dbUser.name || "Member",
-          gender: dbUser.gender || "female",
+          gender: dbUser.gender || null,
           city: dbUser.city || dbUser.companion?.city?.slug || "bengaluru",
           area: dbUser.area || "",
           bio: dbUser.bio || "",

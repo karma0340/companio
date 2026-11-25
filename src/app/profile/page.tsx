@@ -56,6 +56,13 @@ export default function ProfilePage() {
     : (user?.phone || '');
 
   const gender: GenderType = (memberProfile?.gender as GenderType) === 'male' ? 'male' : 'female';
+  const [editGender, setEditGender] = useState<GenderType>(gender);
+
+  useEffect(() => {
+    if (memberProfile?.gender) {
+      setEditGender(memberProfile.gender === 'male' ? 'male' : 'female');
+    }
+  }, [memberProfile]);
 
   useEffect(() => {
     async function fetchPass() {
@@ -143,7 +150,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           ...data,
           fullName: trimmedName,
-          gender: gender, // Preserve chosen gender
+          gender: editGender,
         }),
       });
 
@@ -341,6 +348,46 @@ export default function ProfilePage() {
               </div>
 
               <form onSubmit={handleSubmit(onSaveProfile)} className="space-y-5">
+                {/* Gender Selection */}
+                <div className="space-y-1.5">
+                  <label className="block font-display text-xs font-black uppercase text-ink">
+                    Gender
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEditGender('male')}
+                      className={`flex items-center justify-between rounded-xl border-brutal p-3 transition-all cursor-pointer ${
+                        editGender === 'male'
+                          ? 'bg-sky text-ink shadow-brutal-sm'
+                          : 'bg-white text-ink hover:bg-paper-deep'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <AvatarVector gender="male" size="sm" bgVariant="sky" />
+                        <span className="font-display text-xs font-black">Male Member</span>
+                      </div>
+                      {editGender === 'male' && <Check className="h-4 w-4 text-ink" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditGender('female')}
+                      className={`flex items-center justify-between rounded-xl border-brutal p-3 transition-all cursor-pointer ${
+                        editGender === 'female'
+                          ? 'bg-pink text-ink shadow-brutal-sm'
+                          : 'bg-white text-ink hover:bg-paper-deep'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <AvatarVector gender="female" size="sm" bgVariant="pink" />
+                        <span className="font-display text-xs font-black">Female Member</span>
+                      </div>
+                      {editGender === 'female' && <Check className="h-4 w-4 text-ink" />}
+                    </button>
+                  </div>
+                </div>
+
                 {/* Full Name */}
                 <div className="space-y-1.5">
                   <label className="block font-display text-xs font-black uppercase text-ink">

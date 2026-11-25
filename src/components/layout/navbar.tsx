@@ -79,7 +79,7 @@ export function Navbar() {
     }
   }, [pathname]);
 
-  const { isAuthenticated, user, memberProfile, hostProfile, activeRole, logout, switchRole } =
+  const { isAuthenticated, isLoading, user, memberProfile, hostProfile, activeRole, logout, switchRole } =
     useAuth();
 
   const fetchNotifications = () => {
@@ -235,7 +235,12 @@ export function Navbar() {
             )}
 
             {/* Dynamic Authentication Area */}
-            {isAuthenticated ? (
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-24 rounded-xl border-2 border-ink/20 bg-paper-deep/60 animate-pulse" />
+                <div className="h-8 w-8 rounded-xl border-2 border-ink/20 bg-paper-deep/60 animate-pulse" />
+              </div>
+            ) : isAuthenticated ? (
               <div className="flex items-center gap-2">
                 {/* Coin Balance Pill */}
                 <Link
