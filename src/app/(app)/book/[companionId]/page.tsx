@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { ActivityIcon } from '@/components/ui/activity-icon';
 import { ACTIVITIES } from '@/lib/data/activities';
+import { getQuickVenuesForCityAndActivity, getCityDisplayLabel } from '@/lib/data/venues';
 import { calculatePrice, formatRupees } from '@/lib/utils';
 import { Companion, ActivityCategory } from '@/lib/types';
 import { createBookingAction } from '@/app/actions/booking';
@@ -39,44 +40,6 @@ import { triggerCelebration } from '@/components/ui/celebration';
 interface BookPageProps {
   params: { companionId: string };
 }
-
-// Quick venue recommendations mapped by city slug
-const CITY_QUICK_VENUES: Record<string, string[]> = {
-  chandigarh: [
-    'Third Wave Coffee, Sector 35',
-    'Sector 17 Plaza Fountain',
-    'Blue Tokai Coffee, Sector 8',
-    'Elante Mall Central Courtyard',
-    'Sukhna Lake Waterfront Promenade',
-  ],
-  bengaluru: [
-    'Third Wave Coffee, 12th Main Indiranagar',
-    'Blue Tokai, 5th Block Koramangala',
-    'Starbucks, Church Street',
-    'UB City Piazza Promenade',
-    'Cubbon Park Metro Cafe Plaza',
-  ],
-  mumbai: [
-    'Third Wave Coffee, Khar West',
-    'Blue Tokai, Bandra Pali Hill',
-    'Subko Coffee, Bandra',
-    'Marine Drive Promenade, Churchgate',
-    'Phoenix Palladium Courtyard, Lower Parel',
-  ],
-  delhi: [
-    'Blue Tokai, Khan Market',
-    'Starbucks, Connaught Place Inner Circle',
-    'Third Wave Coffee, GK2 M-Block',
-    'Sunder Nursery Promenade',
-    'Cyber Hub Courtyard, Gurgaon',
-  ],
-  default: [
-    'Third Wave Coffee Roasters',
-    'Blue Tokai Coffee Roasters',
-    'City Centre Mall Open Promenade',
-    'Main Market Artisan Cafe',
-  ],
-};
 
 export default function BookPage({ params }: BookPageProps) {
   const companionId = params.companionId;
@@ -138,14 +101,17 @@ export default function BookPage({ params }: BookPageProps) {
       .then((data) => {
         if (data.success && data.companion) {
           setCompanion(data.companion);
-          if (data.companion.activities && data.companion.activities.length > 0) {
+          const paramAct = searchParams.get('activity') as ActivityCategory | null;
+          if (paramAct && ACTIVITIES.some((a) => a.slug === paramAct)) {
+            setSelectedActivity(paramAct);
+          } else if (data.companion.activities && data.companion.activities.length > 0) {
             setSelectedActivity(data.companion.activities[0]);
           }
         }
       })
       .catch((err) => console.error('Failed to load companion details:', err))
       .finally(() => setLoadingCompanion(false));
-  }, [companionId]);
+  }, [companionId, searchParams]);
 
   useEffect(() => {
     if (user || memberProfile) {
@@ -161,8 +127,12 @@ export default function BookPage({ params }: BookPageProps) {
     }
   }, [user, memberProfile]);
 
-  const activeCityKey = companion?.city?.toLowerCase() || 'default';
-  const quickVenues = CITY_QUICK_VENUES[activeCityKey] || CITY_QUICK_VENUES.default;
+  const cityDisplayName = getCityDisplayLabel(companion?.city);
+  const selectedActivityMeta = ACTIVITIES.find((a) => a.slug === selectedActivity) || ACTIVITIES[3];
+  const quickVenues = useMemo(
+    () => getQuickVenuesForCityAndActivity(companion?.city, selectedActivity),
+    [companion?.city, selectedActivity]
+  );
 
   // Selected date object
   const activeDateObj = availableDates.find((d) => d.iso === selectedDateIso) || availableDates[0];
@@ -523,7 +493,12 @@ export default function BookPage({ params }: BookPageProps) {
                 return (
                   <div
                     key={act.slug}
-                    onClick={() => setSelectedActivity(act.slug)}
+                    onClick={() => {
+                      if (selectedActivity !== act.slug) {
+                        setSelectedActivity(act.slug);
+                        setMeetingPlace('');
+                      }
+                    }}
                     className={`p-4 rounded-2xl border-2 border-ink cursor-pointer transition-all flex items-center justify-between ${
                       isSelected
                         ? 'bg-ink text-white shadow-brutal'
@@ -737,7 +712,7 @@ export default function BookPage({ params }: BookPageProps) {
             {/* Quick Picks */}
             <div className="space-y-2">
               <label className="block text-xs font-black uppercase tracking-wider text-ink">
-                Quick picks in {companion.city || 'your city'}
+                Quick picks for {selectedActivityMeta.name} in {cityDisplayName}
               </label>
 
               <div className="flex flex-wrap gap-2">
@@ -764,7 +739,7 @@ export default function BookPage({ params }: BookPageProps) {
             {/* Custom Public Place Input */}
             <div className="space-y-1.5 pt-2">
               <label className="block text-xs font-black uppercase tracking-wider text-ink">
-                Name a public place in {companion.city || 'your city'}
+                Name a {selectedActivityMeta.name.toLowerCase()} spot or public place in {cityDisplayName}
               </label>
               <div className="relative">
                 <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
@@ -772,7 +747,7 @@ export default function BookPage({ params }: BookPageProps) {
                   type="text"
                   value={meetingPlace}
                   onChange={(e) => setMeetingPlace(e.target.value)}
-                  placeholder="e.g., Third Wave Coffee, MG Road"
+                  placeholder={`e.g., ${quickVenues[0] || `Public venue in ${cityDisplayName}`}`}
                   className="w-full rounded-xl border-2 border-ink bg-white pl-10 pr-4 py-3 font-display text-sm font-bold text-ink focus:outline-none focus:shadow-brutal"
                 />
               </div>
