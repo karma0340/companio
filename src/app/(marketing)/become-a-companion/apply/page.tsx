@@ -24,10 +24,12 @@ import { Footer } from "@/components/layout/footer";
 import { submitHostApplicationAction } from "@/app/actions/host-application";
 import { useAuth } from "@/context/auth-context";
 import { CITIES } from "@/lib/data/cities";
-import { HOST_PACK_OPTIONS } from "@/lib/data";
+import { HOST_REGISTRATION_FEE } from "@/lib/data";
 import { HostPackTier } from "@/types";
 import { openRazorpayCheckout } from "@/lib/payments/razorpay";
 import { useToast } from "@/components/ui/toast";
+import { useWebOtp } from "@/hooks/use-web-otp";
+import { triggerCelebration } from "@/components/ui/celebration";
 
 function compressImage(file: File, maxDim: number = 1280, quality: number = 0.8): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -178,10 +180,9 @@ function CompanionApplyForm() {
     }
   };
 
-  const handleVerifyAuthOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const verifyOtpValue = async (cleanCode: string) => {
     setAuthError(null);
-    if (otpCode.trim().length !== 6) {
+    if (cleanCode.length !== 6) {
       setAuthError("Please enter the 6-digit SMS code.");
       return;
     }
@@ -199,7 +200,7 @@ function CompanionApplyForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           identifier: validation.e164,
-          code: otpCode.trim(),
+          code: cleanCode,
           intent: "host",
         }),
       });
@@ -209,12 +210,26 @@ function CompanionApplyForm() {
         return;
       }
       await refreshSession();
+      triggerCelebration("Mobile Verified! +100 Bonus Coins");
       toast.success("Mobile number verified! Continue with your Host Profile.", "Verified");
     } catch {
       setAuthError("Verification error. Please retry.");
     } finally {
       setIsVerifyingOtp(false);
     }
+  };
+
+  useWebOtp({
+    enabled: !isAuthenticated && otpSent && !isVerifyingOtp,
+    onCode: (autoCode) => {
+      setOtpCode(autoCode);
+      verifyOtpValue(autoCode);
+    },
+  });
+
+  const handleVerifyAuthOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await verifyOtpValue(otpCode.trim());
   };
 
   const handleActivityToggle = (act: string) => {
@@ -277,7 +292,15 @@ function CompanionApplyForm() {
   const phoneDigits = formData.phone.replace(/\D/g, "");
   const ageNum = parseInt(formData.age, 10);
   const hourlyNum = Math.min(1299, Math.max(399, parseInt(formData.hourlyRate, 10) || 499));
-  const selectedPack = HOST_PACK_OPTIONS.find((p) => p.tier === formData.packTier) || HOST_PACK_OPTIONS[1];
+  const selectedPack = {
+    tier: HOST_REGISTRATION_FEE.tier,
+    name: HOST_REGISTRATION_FEE.name,
+    basePrice: HOST_REGISTRATION_FEE.basePrice,
+    taxesAndCharges: HOST_REGISTRATION_FEE.taxesAndCharges,
+    price: HOST_REGISTRATION_FEE.totalPrice,
+    durationLabel: HOST_REGISTRATION_FEE.durationLabel,
+    promoCoins: HOST_REGISTRATION_FEE.promoCoins,
+  };
   const hostHourlyNet70 = Math.round(hourlyNum * 0.70);
   const platformFee30 = Math.round(hourlyNum * 0.30);
 
@@ -401,6 +424,7 @@ function CompanionApplyForm() {
                 setConfirmedPackName(res.packName || selectedPack.name);
                 setIsSubmitted(true);
                 window.scrollTo({ top: 0, behavior: "smooth" });
+                triggerCelebration("Host Profile Live on Meetzy Club!");
                 await refreshSession();
                 toast.success(`${selectedPack.name} activated!`, "Host Profile Live");
               } else {
@@ -541,6 +565,7 @@ function CompanionApplyForm() {
                     <input
                       type="text"
                       inputMode="numeric"
+                      autoComplete="one-time-code"
                       maxLength={6}
                       required
                       placeholder="6-digit code"
@@ -548,6 +573,9 @@ function CompanionApplyForm() {
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                       className="w-full border-2 border-ink bg-paper py-3 text-center text-xl font-mono font-black tracking-widest text-ink focus:bg-white focus:outline-none"
                     />
+                    <p className="mt-1.5 text-[11px] font-semibold text-ink-muted">
+                      On mobile, incoming SMS OTP auto-detects when received; on laptops, enter the 6-digit SMS code manually.
+                    </p>
                   </div>
 
                   <button
@@ -959,51 +987,37 @@ function CompanionApplyForm() {
                       </p>
                     </div>
 
-                    {/* Host Package Selection + 70-30 Live Summary */}
-                    <div className="space-y-2.5">
+                    {/* Transparent INR 113 Host Registration Checkout Summary */}
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <label className="block text-xs font-black uppercase text-ink">
-                          Select Host Package (All Include Fixed 70% Payout)
+                          Host Registration Fee (Includes All Taxes)
                         </label>
                         <span className="text-[10px] font-black uppercase bg-[#D4F7A5] border border-ink px-2 py-0.5">
-                          70-30 Guaranteed
+                          70-30 Payout Guaranteed
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                        {HOST_PACK_OPTIONS.map((pack) => {
-                          const isSelected = formData.packTier === pack.tier;
-                          return (
-                            <button
-                              key={pack.tier}
-                              type="button"
-                              onClick={() => setFormData({ ...formData, packTier: pack.tier })}
-                              className={`border-2 border-ink p-3 text-left transition cursor-pointer flex flex-col justify-between space-y-2 ${
-                                isSelected ? "bg-ink text-white shadow-brutal-sm" : "bg-paper text-ink hover:bg-white"
-                              }`}
-                            >
-                              <div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-black uppercase opacity-80">
-                                    {pack.durationLabel}
-                                  </span>
-                                  {pack.isPopular && (
-                                    <span className="rounded bg-lime text-ink px-1.5 py-0.5 text-[9px] font-black uppercase">
-                                      Popular
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="font-display text-sm font-black mt-0.5">{pack.name}</div>
-                              </div>
-                              <div>
-                                <div className="font-display text-xl font-black">INR {pack.price}</div>
-                                <div className="text-[10px] font-bold text-lime">
-                                  +{pack.promoCoins} Promo Coins
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
+                      <div className="border-2 border-ink bg-white p-4 space-y-2 shadow-brutal-sm text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-ink-soft">Host Registration Charges</span>
+                          <span className="font-mono font-bold text-ink">
+                            INR {selectedPack.basePrice.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-ink-soft">All Due Taxes &amp; Gateway Fees</span>
+                          <span className="font-mono font-bold text-ink">
+                            INR {selectedPack.taxesAndCharges.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="border-t-2 border-ink/15 pt-2 flex items-center justify-between font-display text-base font-black text-ink">
+                          <span>Total Payable Today</span>
+                          <span className="font-mono">INR {selectedPack.price}.00</span>
+                        </div>
+                        <div className="pt-1 text-[11px] font-bold text-emerald-700">
+                          Includes 1-Year Active Directory Listing + {selectedPack.promoCoins} Bonus Chat Coins
+                        </div>
                       </div>
 
                       {/* Live Earnings Breakdown for User's Chosen Hourly Rate */}

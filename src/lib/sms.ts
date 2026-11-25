@@ -55,6 +55,10 @@ export async function sendSmsOtp(
     const dltSenderId = (process.env.FAST2SMS_SENDER_ID || "").trim();
     const dltMessageId = (process.env.FAST2SMS_MESSAGE_ID || "").trim();
     const configuredRoute = (process.env.FAST2SMS_ROUTE || "").trim().toLowerCase();
+    const webOtpDomain = (process.env.NEXT_PUBLIC_APP_DOMAIN || "meetzy.club")
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "")
+      .trim();
 
     // Use cost-effective DLT route ('dlt') automatically when DLT Sender & Message ID are configured
     const useDltRoute =
@@ -74,7 +78,7 @@ export async function sendSmsOtp(
           ...(configuredRoute === "otp"
             ? { variables_values: otpCode }
             : {
-                message: `Your Meetzy Club verification code is ${otpCode}. Valid for 5 minutes. Do not share this code with anyone.`,
+                message: `Your Meetzy Club verification code is ${otpCode}. Valid for 5 minutes. @${webOtpDomain} #${otpCode}`,
                 language: "english",
               }),
           flash: 0,

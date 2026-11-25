@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getChatMessagesForBooking, addChatMessage } from "@/lib/chat-store";
 import { getBookingById, sanitizeBookingForViewer } from "@/lib/bookings";
+import { debitCoins, ensureUserWallet } from "@/lib/wallet";
 import { prisma } from "@/lib/prisma";
+import { CoinTransactionType } from "@prisma/client";
+
+const COINS_PER_MESSAGE = 10;
+const CHAT_ALLOWED_STATUSES = new Set(["CONFIRMED", "IN_PROGRESS", "COMPLETED"]);
 
 export async function GET(
   req: NextRequest,
@@ -10,13 +15,24 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
+    if (!session?.userId) {
+      return NextResponse.json(
+        { success: false, error: "Please sign in to access this chat." },
+        { status: 401 }
+      );
+    }
+
     const bookingId = params.bookingId;
-    const messages = await getChatMessagesForBooking(bookingId);
     const booking = await getBookingById(bookingId);
 
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, error: "Booking conversation not found." },
+        { status: 404 }
+      );
+    }
+
     if (
-      booking &&
-      session?.userId &&
       booking.memberId !== session.userId &&
       booking.companionUserId !== session.userId
     ) {
@@ -26,48 +42,16 @@ export async function GET(
       );
     }
 
-    let unlockInfo = null;
-    if (booking) {
-      try {
-        const unlock = await prisma.chatUnlock.findFirst({
-          where: {
-            companionId: booking.companionId,
-            memberId: booking.memberId,
-            status: { in: ["ACTIVE", "HOST_RESPONDED"] },
-          },
-          orderBy: { createdAt: "desc" },
-        });
-
-        if (unlock) {
-          const now = new Date();
-          const isExpired =
-            unlock.tier === "TWENTY_FOUR_HOURS" &&
-            unlock.expiresAt &&
-            new Date(unlock.expiresAt) < now;
-
-          unlockInfo = {
-            id: unlock.id,
-            tier: unlock.tier,
-            status: unlock.status,
-            coinsDeducted: unlock.coinsDeducted,
-            expiresAt: unlock.expiresAt?.toISOString() || null,
-            refundDeadline: unlock.refundDeadline?.toISOString() || null,
-            firstHostReplyAt: unlock.firstHostReplyAt?.toISOString() || null,
-            isExpired: Boolean(isExpired),
-          };
-        }
-      } catch (err) {
-        console.warn("[GET CHAT UNLOCK ERROR]:", err);
-      }
-    }
+    const messages = await getChatMessagesForBooking(bookingId);
 
     return NextResponse.json({
       success: true,
       bookingId,
       count: messages.length,
       messages,
-      booking: booking ? sanitizeBookingForViewer(booking, session?.userId) : null,
-      unlock: unlockInfo,
+      booking: sanitizeBookingForViewer(booking, session.userId),
+      chatUnlocked: CHAT_ALLOWED_STATUSES.has(booking.status),
+      coinsPerMessage: COINS_PER_MESSAGE,
     });
   } catch (error) {
     console.error("[GET CHAT MESSAGES ERROR]:", error);
@@ -84,6 +68,13 @@ export async function POST(
 ) {
   try {
     const session = await getSession();
+    if (!session?.userId) {
+      return NextResponse.json(
+        { success: false, error: "Please verify your mobile number to send messages." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const content = String(body.content || "").trim();
 
@@ -97,53 +88,96 @@ export async function POST(
     const bookingId = params.bookingId;
     const booking = await getBookingById(bookingId);
 
-    const senderId = session?.userId || body.senderId || "usr_member";
-    const senderName = body.senderName || (senderId === booking?.companionId ? booking?.companionName : "Member");
-    const senderRole = (body.senderRole || (senderId === booking?.companionId ? "COMPANION" : "MEMBER")) as "MEMBER" | "COMPANION" | "SYSTEM";
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, error: "Meetup booking not found." },
+        { status: 404 }
+      );
+    }
 
-    // Enforce 24-hour pass expiry for member
-    if (senderRole === "MEMBER" && booking) {
-      try {
-        const unlock = await prisma.chatUnlock.findFirst({
-          where: {
-            companionId: booking.companionId,
-            memberId: booking.memberId,
-            status: { in: ["ACTIVE", "HOST_RESPONDED"] },
+    const isMember = booking.memberId === session.userId;
+    const isHost = booking.companionUserId === session.userId;
+
+    if (!isMember && !isHost) {
+      return NextResponse.json(
+        { success: false, error: "You are not authorized to message in this booking." },
+        { status: 403 }
+      );
+    }
+
+    // Strict Accept-First Gate: chat unlocks only after the Host accepts the meetup request
+    if (booking.status === "PENDING_ACCEPTANCE") {
+      return NextResponse.json(
+        {
+          success: false,
+          requiresAcceptance: true,
+          error:
+            "Messaging unlocks only after the Host accepts your meetup request.",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (!CHAT_ALLOWED_STATUSES.has(booking.status)) {
+      return NextResponse.json(
+        {
+          success: false,
+          isCancelled: true,
+          error: "Messaging is closed because this booking is no longer active.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const senderRole: "MEMBER" | "COMPANION" = isHost ? "COMPANION" : "MEMBER";
+    const senderName = isHost ? booking.companionName : booking.memberName || "Member";
+
+    let remainingCoins: number | undefined;
+
+    // Charge 10 coins per sent message for Members (uses 100 registration bonus coins first)
+    if (senderRole === "MEMBER") {
+      await ensureUserWallet(session.userId);
+      const userRecord = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { coinBalance: true },
+      });
+
+      const currentCoins = userRecord?.coinBalance ?? 0;
+      if (currentCoins < COINS_PER_MESSAGE) {
+        return NextResponse.json(
+          {
+            success: false,
+            insufficientCoins: true,
+            requiredCoins: COINS_PER_MESSAGE,
+            coinBalance: currentCoins,
+            error: `Insufficient chat coins (${currentCoins} left, 10 coins required per message). Recharge via Razorpay to continue chatting.`,
           },
-          orderBy: { createdAt: "desc" },
-        });
-
-        if (unlock && unlock.tier === "TWENTY_FOUR_HOURS" && unlock.expiresAt) {
-          const now = new Date();
-          if (new Date(unlock.expiresAt) < now) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: "Your 24-hour chat pass with this companion has expired. Please renew your pass (69 coins) to send messages.",
-                isExpired: true,
-                companionId: booking.companionId,
-              },
-              { status: 403 }
-            );
-          }
-        }
-      } catch (checkErr) {
-        console.warn("[PASS EXPIRY CHECK ERROR]:", checkErr);
+          { status: 402 }
+        );
       }
+
+      const debitResult = await debitCoins({
+        userId: session.userId,
+        amount: COINS_PER_MESSAGE,
+        type: CoinTransactionType.CHAT_UNLOCK_24H,
+        description: `Chat message sent (-10 Coins) · #${booking.bookingNumber}`,
+        referenceId: bookingId,
+      });
+
+      remainingCoins = debitResult.newBalance;
     }
 
     const message = await addChatMessage({
       bookingId,
-      senderId,
+      senderId: session.userId,
       senderName,
       senderRole,
       content,
     });
 
-    // Mark ChatUnlock as responded if host sent a message, satisfying the 48h SLA
-    if (senderRole === "COMPANION" && booking) {
-      try {
-        await prisma.chatUnlock.updateMany({
+    if (senderRole === "COMPANION") {
+      await prisma.chatUnlock
+        .updateMany({
           where: {
             companionId: booking.companionId,
             memberId: booking.memberId,
@@ -153,15 +187,15 @@ export async function POST(
             firstHostReplyAt: new Date(),
             status: "HOST_RESPONDED",
           },
-        });
-      } catch (slaErr) {
-        console.warn("[HOST REPLY SLA UPDATE ERROR]:", slaErr);
-      }
+        })
+        .catch(() => {});
     }
 
     return NextResponse.json({
       success: true,
       message,
+      coinsCharged: senderRole === "MEMBER" ? COINS_PER_MESSAGE : 0,
+      remainingCoins,
     });
   } catch (error) {
     console.error("[POST CHAT MESSAGE ERROR]:", error);

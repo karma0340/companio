@@ -17,7 +17,7 @@ import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
-import { HOST_PACK_OPTIONS } from '@/lib/data';
+import { HOST_REGISTRATION_FEE, HOST_PACK_OPTIONS } from '@/lib/data';
 import { HostEarningsCalculator } from '@/components/landing/host-earnings-calculator';
 
 export default function BecomeACompanionPage() {
@@ -25,7 +25,7 @@ export default function BecomeACompanionPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const destinationHref = !isAuthenticated
-    ? '/login?intent=host&next=/become-a-companion/apply'
+    ? '/become-a-companion/apply'
     : activeRole === 'host' && hostProfile?.verificationStatus === 'approved'
     ? '/companion/dashboard'
     : '/become-a-companion/apply';
@@ -45,8 +45,8 @@ export default function BecomeACompanionPage() {
       a: 'Every Host Package (Starter, Pro, and Elite) guarantees the exact same 70-30 split: you take home 70% of your meetup fee directly into your Host Earnings Wallet upon session completion, while 30% covers statutory GST, Razorpay processing charges, 24/7 SOS & escrow infrastructure, and platform revenue.',
     },
     {
-      q: 'Why is there a Host Registration Package?',
-      a: 'Host Packs (starting at INR 199 for 1 Month) keep our community genuine by filtering out spam applicants, activate your verified directory listing, and grant promotional Chat Coins to engage on the platform.',
+      q: 'Why is there a INR 113 Host Registration fee?',
+      a: 'We charge a single transparent INR 113 total onboarding fee (INR 99.50 host registration charges + INR 13.50 all due taxes & gateway processing) to keep the directory spam-free, activate your Verified Host listing for a full year, and credit +100 Bonus Chat Coins.',
     },
     {
       q: 'How and when do I get paid?',
@@ -126,102 +126,98 @@ export default function BecomeACompanionPage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl border-brutal bg-pink text-ink font-display text-lg font-black shadow-brutal-sm">
                   3
                 </div>
-                <h3 className="font-display text-lg font-black text-ink">Pick Host Pack &amp; earn 70%</h3>
+                <h3 className="font-display text-lg font-black text-ink">Complete INR 113 registration &amp; earn 70%</h3>
                 <p className="font-body text-xs text-ink-soft leading-relaxed">
-                  Choose Starter, Pro, or Elite Host Pack, pledge 100% platonic public-venue meetups, and take home 70% of every completed booking to UPI.
+                  Pay one-time INR 99.50 + INR 13.50 due taxes (INR 113 total), pledge 100% platonic public-venue meetups, and take home 70% of every completed booking to UPI.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Host Registration Packages (70-30 Across All Packs) */}
+          {/* Transparent INR 113 Host Registration Card */}
           <div className="space-y-8">
             <div className="text-center space-y-2 max-w-2xl mx-auto">
               <Badge variant="lavender" size="sm">
-                Host Packages
+                Host Registration &middot; 70% Payout Fixed
               </Badge>
               <h2 className="font-display text-3xl sm:text-4xl font-black text-ink">
-                Choose Your Host Package
+                One Simple Host Registration
               </h2>
               <p className="font-body text-sm text-ink-soft">
-                Every pack guarantees a <strong>fixed 70% Host Payout</strong> (30% covers GST, Razorpay gateway fees, escrow &amp; safety infrastructure, and platform revenue).
+                Flat <strong>INR {HOST_REGISTRATION_FEE.basePrice.toFixed(2)}</strong> registration charge +{' '}
+                <strong>INR {HOST_REGISTRATION_FEE.taxesAndCharges.toFixed(2)}</strong> due taxes &amp; gateway fees ={' '}
+                <strong>INR {HOST_REGISTRATION_FEE.totalPrice} total</strong>. You take home a fixed{' '}
+                <strong>70% Host Payout</strong> on every meetup.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="mx-auto max-w-2xl">
               {HOST_PACK_OPTIONS.map((pack) => (
                 <div
                   key={pack.tier}
-                  className={`rounded-3xl border-3 border-ink p-6 sm:p-8 shadow-brutal flex flex-col justify-between space-y-6 ${
-                    pack.isPopular ? 'bg-ink text-white' : 'bg-white text-ink'
-                  }`}
+                  className="rounded-3xl border-3 border-ink bg-white p-6 sm:p-8 shadow-brutal flex flex-col justify-between space-y-6 text-ink"
                 >
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`rounded-lg border-2 px-2.5 py-0.5 text-[10px] font-black uppercase ${
-                          pack.isPopular
-                            ? 'border-white bg-lime text-ink'
-                            : 'border-ink bg-sunny text-ink'
-                        }`}
-                      >
-                        {pack.durationLabel}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="rounded-lg border-2 border-ink bg-sunny px-3 py-0.5 text-[11px] font-black uppercase text-ink">
+                        Verified Host Plan
                       </span>
-                      <span
-                        className={`rounded-lg border px-2 py-0.5 text-[10px] font-black uppercase ${
-                          pack.isPopular
-                            ? 'border-lime/40 bg-white/10 text-lime'
-                            : 'border-ink/20 bg-emerald-50 text-emerald-800'
-                        }`}
-                      >
-                        70% Payout Fixed
+                      <span className="rounded-lg border-2 border-ink bg-[#D4F7A5] px-3 py-0.5 text-[11px] font-black uppercase text-ink">
+                        70% Host Payout Fixed
                       </span>
                     </div>
 
-                    <div>
-                      <h3 className="font-display text-xl font-black">{pack.name}</h3>
-                      <div className="mt-2 flex items-baseline gap-1">
-                        <span className="font-display text-4xl font-black">INR {pack.price}</span>
-                        <span className={`text-xs font-bold ${pack.isPopular ? 'text-white/70' : 'text-ink-muted'}`}>
-                          / {pack.durationLabel}
+                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b-2 border-ink/10 pb-4">
+                      <div>
+                        <h3 className="font-display text-2xl font-black">{pack.name}</h3>
+                        <p className="mt-1 text-xs font-medium text-ink-soft">
+                          {pack.tagline}
+                        </p>
+                      </div>
+                      <div className="text-left sm:text-right shrink-0">
+                        <span className="font-display text-4xl font-black text-ink">
+                          INR {HOST_REGISTRATION_FEE.totalPrice}
+                        </span>
+                        <span className="block text-[11px] font-bold text-ink-muted">
+                          All Taxes Included
                         </span>
                       </div>
-                      <p className={`mt-1 text-xs font-medium ${pack.isPopular ? 'text-white/80' : 'text-ink-soft'}`}>
-                        {pack.tagline}
-                      </p>
                     </div>
 
-                    <ul className="space-y-2.5 pt-3 border-t border-current/15 text-xs font-bold">
+                    {/* Transparent INR 99.50 + 13.50 = 113 Breakdown */}
+                    <div className="rounded-2xl border-2 border-ink bg-paper p-4 space-y-1.5 text-xs">
+                      <div className="flex justify-between font-bold text-ink-soft">
+                        <span>Host Registration Charges</span>
+                        <span className="font-mono text-ink">INR {HOST_REGISTRATION_FEE.basePrice.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-ink-soft">
+                        <span>All Due Taxes &amp; Gateway Processing</span>
+                        <span className="font-mono text-ink">INR {HOST_REGISTRATION_FEE.taxesAndCharges.toFixed(2)}</span>
+                      </div>
+                      <div className="border-t border-ink/20 pt-1.5 flex justify-between font-display text-sm font-black text-ink">
+                        <span>Total Payable Today</span>
+                        <span className="font-mono">INR {HOST_REGISTRATION_FEE.totalPrice}.00</span>
+                      </div>
+                    </div>
+
+                    <ul className="space-y-2.5 pt-1 text-xs font-bold">
                       {pack.features.map((feat, i) => (
                         <li key={i} className="flex items-start gap-2">
-                          <CheckCircle2
-                            className={`h-4 w-4 shrink-0 mt-0.5 ${
-                              pack.isPopular ? 'text-lime' : 'text-emerald-600'
-                            }`}
-                          />
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                           <span>{feat}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  <Link
-                    href={
-                      isAuthenticated
-                        ? `/become-a-companion/apply?pack=${pack.tier}`
-                        : `/login?intent=host&next=${encodeURIComponent(`/become-a-companion/apply?pack=${pack.tier}`)}`
-                    }
-                    className="block"
-                  >
+                  <Link href={destinationHref} className="block">
                     <button
                       type="button"
-                      className={`w-full rounded-2xl border-2 py-3 px-4 font-display text-xs font-black uppercase tracking-wider shadow-brutal-sm transition cursor-pointer ${
-                        pack.isPopular
-                          ? 'border-white bg-lime text-ink hover:bg-sunny'
-                          : 'border-ink bg-ink text-white hover:bg-black'
-                      }`}
+                      className="w-full rounded-2xl border-2 border-ink bg-ink text-white py-3.5 px-6 font-display text-sm font-black uppercase tracking-wider shadow-brutal-sm hover:bg-black transition cursor-pointer"
                     >
-                      Select {pack.name} &rarr;
+                      {isAuthenticated
+                        ? 'Apply with Your Verified Number (INR 113 Total) ->'
+                        : 'Verify Mobile Once & Become a Host (INR 113 Total) ->'}
                     </button>
                   </Link>
                 </div>

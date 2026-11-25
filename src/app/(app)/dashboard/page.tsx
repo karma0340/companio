@@ -1004,7 +1004,7 @@ function DashboardContent() {
                   Want to host meetups too?
                 </h3>
                 <p className="text-xs font-bold text-ink-soft">
-                  Register as a Verified Host with your existing phone number, pick a Starter/Pro/Elite Host Pack, and earn 70% fixed on every booking.
+                  Register as a Verified Host with your existing phone number (INR 99.50 fee + INR 13.50 taxes = INR 113 total), and earn 70% fixed on every booking.
                 </p>
                 <div>
                   <Link

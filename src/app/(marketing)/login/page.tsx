@@ -12,6 +12,8 @@ import { Logo } from '@/components/ui/logo';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
 import { validateIndianMobileNumber } from '@/lib/phone';
+import { useWebOtp } from '@/hooks/use-web-otp';
+import { triggerCelebration } from '@/components/ui/celebration';
 
 interface ProfileCheckResult {
   exists: boolean;
@@ -224,6 +226,7 @@ function LoginContent() {
       }
 
       await refreshSession();
+      triggerCelebration('Signed In! Wallet & Profile Ready');
       toast.success('Welcome back to Meetzy Club! Redirecting...', 'Verified');
       // Directly and automatically redirect into app without manual clicks
       routePostAuth(data.hostProfile, data.memberProfile);
@@ -234,6 +237,23 @@ function LoginContent() {
       setLoading(false);
     }
   };
+
+  useWebOtp({
+    enabled: step === 'code' && !loading,
+    onCode: (autoCode) => {
+      const digits = autoCode.split('');
+      setOtpDigits([
+        digits[0] || '',
+        digits[1] || '',
+        digits[2] || '',
+        digits[3] || '',
+        digits[4] || '',
+        digits[5] || '',
+      ]);
+      setCode(autoCode);
+      executeVerify(autoCode);
+    },
+  });
 
   const handleDigitChange = (index: number, val: string) => {
     const clean = val.replace(/\D/g, '');
@@ -637,7 +657,7 @@ function LoginContent() {
               </div>
 
               <div className="rounded-xl border border-ink/20 bg-paper/60 px-3 py-2 text-[11px] font-bold text-ink-soft">
-                Enter the 6-digit OTP sent via SMS to your mobile number. Valid for 5 minutes.
+                Enter the 6-digit OTP sent via SMS to your mobile number (auto-detects on supported mobile browsers; type manually on laptop). Valid for 5 minutes.
               </div>
 
               <div className="space-y-2">
@@ -658,6 +678,7 @@ function LoginContent() {
                       ref={inputRefs[idx]}
                       type="text"
                       inputMode="numeric"
+                      autoComplete={idx === 0 ? 'one-time-code' : 'off'}
                       pattern="[0-9]*"
                       maxLength={1}
                       value={digit}

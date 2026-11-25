@@ -29,6 +29,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { triggerCelebration } from '@/components/ui/celebration';
 
 interface HostProfileData {
   id: string;
@@ -319,6 +320,7 @@ export default function CompanionDashboardPage() {
         return;
       }
       toast.success(data.message || 'UPI cashout initiated.');
+      triggerCelebration(`INR ${amountNum} UPI Cashout Initiated!`);
       setWalletBalance(data.newWalletBalance ?? Math.max(0, walletBalance - amountNum));
       setPayoutAmount('');
       setShowPayoutModal(false);
@@ -420,9 +422,9 @@ export default function CompanionDashboardPage() {
               <Sparkles className="h-7 w-7 text-ink" />
             </div>
             <h1 className="font-display text-3xl font-black text-ink">Activate Your Host Studio</h1>
-            <p className="text-sm font-semibold text-ink/70 leading-relaxed">
+            <p className="text-xs sm:text-sm font-semibold text-ink/70 leading-relaxed">
               Your verified account does not have an active Host profile yet. Complete the 3-step Host onboarding
-              and choose a Host Package to start earning a flat 70% payout on every meetup.
+              (INR 99.50 + INR 13.50 due taxes = INR 113 total) to start earning a flat 70% payout on every meetup.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Link

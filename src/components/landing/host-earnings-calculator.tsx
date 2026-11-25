@@ -5,21 +5,21 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Wallet, ShieldCheck, Zap, Check } from 'lucide-react';
 import { formatRupees } from '@/lib/utils';
-import { HOST_PACK_OPTIONS } from '@/lib/data';
-import { HostPackTier } from '@/types';
+import { HOST_REGISTRATION_FEE } from '@/lib/data';
 
 export function HostEarningsCalculator() {
   const [hoursPerWeek, setHoursPerWeek] = useState(10);
   const [hourlyRate, setHourlyRate] = useState(599);
-  const [selectedPack, setSelectedPack] = useState<HostPackTier>('PRO');
 
   const grossMonthly = hoursPerWeek * hourlyRate * 4;
   const hostTakeHomeMonthly = Math.round(grossMonthly * 0.70);
   const platformShareMonthly = Math.round(grossMonthly * 0.30);
   const hostTakeHomePerHour = Math.round(hourlyRate * 0.70);
 
-  const activePack = HOST_PACK_OPTIONS.find((p) => p.tier === selectedPack) || HOST_PACK_OPTIONS[1];
-  const breakEvenHours = Math.max(1, Math.ceil(activePack.price / Math.max(1, hostTakeHomePerHour)));
+  const breakEvenHours = Math.max(
+    1,
+    Math.ceil(HOST_REGISTRATION_FEE.totalPrice / Math.max(1, hostTakeHomePerHour))
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center rounded-3xl border-brutal-lg bg-sunny p-6 sm:p-10 lg:p-12 shadow-brutal-lg relative overflow-hidden">
@@ -30,7 +30,7 @@ export function HostEarningsCalculator() {
         70 / 30
       </span>
 
-      {/* Left Column: Value Prop & Host Pack Highlights */}
+      {/* Left Column: Value Prop & Host Fee Summary */}
       <div className="lg:col-span-6 space-y-4">
         <div className="inline-flex items-center gap-2 rounded-full border-brutal-sm bg-white px-3 py-1 font-display text-xs font-black uppercase text-ink shadow-brutal-xs">
           <Sparkles className="h-3.5 w-3.5 text-lavender" />
@@ -45,40 +45,30 @@ export function HostEarningsCalculator() {
         </h2>
 
         <p className="font-body text-sm sm:text-base text-ink-soft leading-relaxed max-w-lg">
-          Across every Host Package (Starter, Pro &amp; Elite), you keep a guaranteed <strong>70% fixed share</strong> on every completed meetup. The remaining 30% covers statutory taxes (GST), Razorpay fees, 24/7 SOS &amp; escrow safety, and platform operations.
+          Register once for <strong>INR {HOST_REGISTRATION_FEE.totalPrice}</strong> (INR{' '}
+          {HOST_REGISTRATION_FEE.basePrice.toFixed(2)} fee + INR{' '}
+          {HOST_REGISTRATION_FEE.taxesAndCharges.toFixed(2)} due taxes) and keep a guaranteed{' '}
+          <strong>70% fixed share</strong> on every completed meetup. The remaining 30% covers
+          statutory taxes (GST), Razorpay fees, 24/7 SOS &amp; escrow safety, and platform operations.
         </p>
 
-        {/* Pack Selector Pills */}
-        <div className="space-y-2 pt-1">
-          <span className="block text-[11px] font-black uppercase tracking-wider text-ink">
-            Select Host Package to Preview:
-          </span>
-          <div className="grid grid-cols-3 gap-2">
-            {HOST_PACK_OPTIONS.map((pack) => {
-              const isSelected = selectedPack === pack.tier;
-              return (
-                <button
-                  key={pack.tier}
-                  type="button"
-                  onClick={() => setSelectedPack(pack.tier)}
-                  className={`rounded-xl border-2 border-ink p-2.5 text-left transition cursor-pointer ${
-                    isSelected
-                      ? 'bg-ink text-white shadow-brutal-sm'
-                      : 'bg-white text-ink hover:bg-paper'
-                  }`}
-                >
-                  <div className="text-[10px] font-black uppercase opacity-80">
-                    {pack.durationLabel}
-                  </div>
-                  <div className="font-display text-sm font-black">
-                    INR {pack.price}
-                  </div>
-                  <div className="text-[10px] font-bold text-lime">
-                    70% Share
-                  </div>
-                </button>
-              );
-            })}
+        {/* Transparent Fee Pill Summary */}
+        <div className="rounded-2xl border-2 border-ink bg-white p-4 shadow-brutal-sm space-y-1.5 text-xs">
+          <div className="flex justify-between font-bold text-ink-soft">
+            <span>One-Time Host Registration Charges</span>
+            <span className="font-mono text-ink">
+              INR {HOST_REGISTRATION_FEE.basePrice.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex justify-between font-bold text-ink-soft">
+            <span>All Due Taxes &amp; Gateway Processing</span>
+            <span className="font-mono text-ink">
+              INR {HOST_REGISTRATION_FEE.taxesAndCharges.toFixed(2)}
+            </span>
+          </div>
+          <div className="border-t border-ink/15 pt-1.5 flex justify-between font-display text-sm font-black text-ink">
+            <span>Total Host Onboarding Fee</span>
+            <span className="font-mono">INR {HOST_REGISTRATION_FEE.totalPrice}.00</span>
           </div>
         </div>
 
@@ -185,17 +175,17 @@ export function HostEarningsCalculator() {
             <div className="pt-1.5 border-t border-ink/15 flex items-center gap-1.5 text-[11px] font-black text-ink">
               <Check className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
               <span>
-                {activePack.name} (INR {activePack.price}) pays for itself in ~{breakEvenHours} hr{breakEvenHours > 1 ? 's' : ''} of hosting!
+                INR {HOST_REGISTRATION_FEE.totalPrice} registration fee pays for itself in ~{breakEvenHours} hr{breakEvenHours > 1 ? 's' : ''} of hosting!
               </span>
             </div>
           </div>
 
-          <Link href={`/become-a-companion/apply?pack=${selectedPack}`} className="block">
+          <Link href="/become-a-companion/apply" className="block">
             <button
               type="button"
               className="w-full flex items-center justify-center gap-2 rounded-2xl border-brutal bg-ink text-white py-3.5 px-6 font-display text-sm font-black shadow-brutal hover:bg-black transition btn-press cursor-pointer"
             >
-              <span>Apply With {activePack.name} (INR {activePack.price})</span>
+              <span>Become a Verified Host (INR {HOST_REGISTRATION_FEE.totalPrice} Total)</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </Link>

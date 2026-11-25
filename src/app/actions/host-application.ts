@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { uploadHostAvatar } from '@/lib/cloudinary';
 import { getSession, setSessionCookie } from '@/lib/session';
-import { HOST_PACK_OPTIONS } from '@/lib/data';
+import { HOST_REGISTRATION_FEE } from '@/lib/data';
 import { HostPackTier } from '@/types';
 import { verifyRazorpaySignature } from '@/lib/razorpay';
 import { creditCoins } from '@/lib/wallet';
@@ -51,9 +51,16 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
       return { success: false, error: 'Hosts must be between 18 and 70 years old.' };
     }
 
-    const packTier: HostPackTier =
-      input.packTier === 'STARTER' || input.packTier === 'ELITE' ? input.packTier : 'PRO';
-    const packOption = HOST_PACK_OPTIONS.find((p) => p.tier === packTier) || HOST_PACK_OPTIONS[1];
+    const packTier: HostPackTier = HOST_REGISTRATION_FEE.tier;
+    const packOption = {
+      tier: HOST_REGISTRATION_FEE.tier,
+      name: HOST_REGISTRATION_FEE.name,
+      basePrice: HOST_REGISTRATION_FEE.basePrice,
+      taxesAndCharges: HOST_REGISTRATION_FEE.taxesAndCharges,
+      price: HOST_REGISTRATION_FEE.totalPrice,
+      durationDays: HOST_REGISTRATION_FEE.durationDays,
+      promoCoins: HOST_REGISTRATION_FEE.promoCoins,
+    };
 
     // Verify Razorpay signature for host package checkout
     const orderId = String(input.razorpayOrderId || '');
@@ -184,8 +191,8 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         razorpayOrderId: orderId || null,
         razorpayPaymentId: paymentId,
         selfieVideoUrl: avatarUrl,
-        registrationFee: packOption.price,
-        gstAmount: 0,
+        registrationFee: packOption.basePrice,
+        gstAmount: packOption.taxesAndCharges,
         totalAmountPaid: packOption.price,
         applicationFeePaid: true,
         paymentId,
@@ -246,14 +253,14 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
       },
     });
 
-    // Record financial transaction & promo coins for this host pack
+    // Record financial transaction & promo coins for Host Registration (99.50 + 13.50 taxes = 113 INR)
     await prisma.transaction.create({
       data: {
         userId: existingUser.id,
         type: 'HOST_REGISTRATION',
         amount: packOption.price,
-        feeAmount: 0,
-        netAmount: packOption.price,
+        feeAmount: packOption.taxesAndCharges,
+        netAmount: packOption.basePrice,
         gateway: 'RAZORPAY',
         gatewayTransactionId: paymentId,
         status: 'SUCCESS',

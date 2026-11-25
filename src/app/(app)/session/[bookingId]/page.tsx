@@ -21,6 +21,7 @@ import { Footer } from "@/components/layout/footer";
 import { BookingRecord, PayoutRecord } from "@/lib/bookings";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/components/ui/toast";
+import { triggerCelebration } from "@/components/ui/celebration";
 
 export default function SessionLivePage() {
   const params = useParams();
@@ -161,6 +162,7 @@ export default function SessionLivePage() {
       setTimerActive(false);
       setSecondsRemaining(0);
       await refreshSession();
+      triggerCelebration("Meetup Completed! 70% Host Payout Released");
       toast.success("Session completed! 70% Host payout credited.", "Escrow Released");
     } catch (err) {
       toast.error((err as Error).message, "Completion Error");

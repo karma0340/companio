@@ -120,7 +120,7 @@ export function PriceSummary({ companion }: PriceSummaryProps) {
             </button>
           </Link>
 
-          {/* Secondary Action: Message Host with coins */}
+          {/* Secondary Action: Message Host after Meetup Acceptance */}
           <button
             type="button"
             onClick={() => setIsChatModalOpen(true)}
@@ -132,11 +132,11 @@ export function PriceSummary({ companion }: PriceSummaryProps) {
                 <span>Message {companion.name}</span>
               </span>
               <span className="text-xs font-black bg-[#D4F7A5] px-2 py-0.5 rounded-md border-brutal-xs text-ink">
-                From 69 coins
+                10 Coins / msg
               </span>
             </div>
             <div className="text-[11px] font-medium text-ink-muted pl-6">
-              Refunded if host doesn&apos;t reply in 48h
+              Opens once your meetup request is accepted
             </div>
           </button>
 

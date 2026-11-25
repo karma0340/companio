@@ -1,61 +1,45 @@
-import { CompanionSummary, CitySummary, ActivitySummary, PassTierOption, HostPackOption } from "@/types";
+import {
+  CompanionSummary,
+  CitySummary,
+  ActivitySummary,
+  PassTierOption,
+  HostPackOption,
+  HostPackTier,
+} from "@/types";
 import { ActivityCategory } from "./types";
 import { prisma } from "./prisma";
+
+export const HOST_REGISTRATION_FEE = {
+  tier: "STARTER" as HostPackTier,
+  name: "Verified Host Registration",
+  basePrice: 99.5,
+  taxesAndCharges: 13.5,
+  totalPrice: 113,
+  durationDays: 365,
+  durationLabel: "1 Year Active Listing",
+  hostSharePercent: 70 as const,
+  platformSharePercent: 30 as const,
+  promoCoins: 100,
+};
 
 export const HOST_PACK_OPTIONS: HostPackOption[] = [
   {
     tier: "STARTER",
-    name: "Starter Host Pack",
-    price: 199,
-    durationDays: 30,
-    durationLabel: "1 Month",
-    tagline: "30 days active listing · Fixed 70% meetup earnings",
+    name: "Verified Host Registration",
+    price: 113,
+    durationDays: 365,
+    durationLabel: "INR 99.50 + INR 13.50 Taxes",
+    tagline: "INR 99.50 registration charge + INR 13.50 due taxes & gateway fees = INR 113 total",
     hostSharePercent: 70,
     platformSharePercent: 30,
-    promoCoins: 50,
-    maxMonthlyBookings: 5,
-    features: [
-      "Listed in /explore directory for 30 days",
-      "Fixed 70% payout on every completed meetup (30% covers GST, Razorpay & safety ops)",
-      "Up to 5 verified meetup bookings per month",
-      "+50 Bonus Chat Coins included",
-    ],
-  },
-  {
-    tier: "PRO",
-    name: "Pro Host Pack",
-    price: 499,
-    durationDays: 90,
-    durationLabel: "3 Months",
-    tagline: "Most Popular · 90 days + Priority boost · Fixed 70% earnings",
-    hostSharePercent: 70,
-    platformSharePercent: 30,
-    promoCoins: 150,
+    promoCoins: 100,
     maxMonthlyBookings: null,
     isPopular: true,
     features: [
-      "90 days active listing with Verified Host badge",
+      "Full 1-year active Verified Host directory listing on /explore",
       "Fixed 70% payout on every completed meetup (30% covers GST, Razorpay & safety ops)",
-      "Unlimited meetup bookings & priority city search placement",
-      "+150 Bonus Chat Coins included",
-    ],
-  },
-  {
-    tier: "ELITE",
-    name: "Elite Host Pack",
-    price: 999,
-    durationDays: 365,
-    durationLabel: "12 Months",
-    tagline: "Best Value · 365 days spotlight · Fixed 70% earnings",
-    hostSharePercent: 70,
-    platformSharePercent: 30,
-    promoCoins: 400,
-    maxMonthlyBookings: null,
-    features: [
-      "Full 1-year active listing with Top Featured spotlight",
-      "Fixed 70% payout on every completed meetup (30% covers GST, Razorpay & safety ops)",
-      "Unlimited meetup bookings & instant UPI cashouts",
-      "+400 Bonus Chat Coins included",
+      "Same mobile number connects Member and Host dashboards cleanly",
+      "+100 Bonus Chat Coins included with your registration",
     ],
   },
 ];
