@@ -42,7 +42,6 @@ import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
 import { CITIES } from '@/lib/data/cities';
 import { AvatarVector, GenderType } from '@/components/ui/avatar-vector';
-import { UnlockProfileModal } from '@/components/pass/unlock-profile-modal';
 import { CoinTopupModal } from '@/components/chat/coin-topup-modal';
 import { fetchLiveBookings, BookingDisplayItem } from '@/app/actions/getBookings';
 
@@ -79,7 +78,6 @@ function DashboardContent() {
   };
 
   // Modals state
-  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
   const [isCoinTopupOpen, setIsCoinTopupOpen] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
 
@@ -252,7 +250,7 @@ function DashboardContent() {
               </p>
             </div>
 
-            {/* Pass Status Pill */}
+            {/* Directory Status Pill */}
             {passData || user?.isUnlocked ? (
               <div className="inline-flex items-center gap-2 rounded-2xl border-2 border-ink bg-[#D4F7A5] px-4 py-2 font-display text-xs font-black shadow-brutal-xs">
                 <ShieldCheck className="h-4 w-4 text-emerald-800" />
@@ -261,14 +259,13 @@ function DashboardContent() {
                 </span>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => setIsUnlockModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-2xl border-2 border-ink bg-sunny px-4 py-2 font-display text-xs font-black shadow-brutal-xs hover:bg-sunny-soft transition cursor-pointer"
+              <Link
+                href="/explore"
+                className="inline-flex items-center gap-2 rounded-2xl border-2 border-ink bg-lime px-4 py-2 font-display text-xs font-black shadow-brutal-xs hover:bg-sunny transition cursor-pointer"
               >
-                <Lock className="h-4 w-4 text-ink" />
-                <span>Passes from ₹199 · Unlock Profiles</span>
-              </button>
+                <Sparkles className="h-4 w-4 text-ink" />
+                <span>All Profiles Open · Explore Companions</span>
+              </Link>
             )}
           </div>
 
@@ -390,26 +387,21 @@ function DashboardContent() {
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Quick Metrics Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Pass Status */}
+              {/* Open Directory Status */}
               <div className="rounded-2xl border-2 border-ink bg-white p-5 shadow-brutal space-y-2">
-                <span className="text-[10px] font-black uppercase text-ink-muted">Access Pass</span>
+                <span className="text-[10px] font-black uppercase text-ink-muted">Explore Access</span>
                 <div className="font-display text-lg font-black text-ink">
-                  {user?.isUnlocked ? 'Active Full Pass' : 'Not Active'}
+                  Open Directory
                 </div>
                 <p className="text-xs text-ink-soft">
-                  {user?.isUnlocked
-                    ? 'All companion profiles & meetups unlocked.'
-                    : 'Get a pass to view full profiles and send requests.'}
+                  All companion profiles, photos, and comparison views are open for free exploration.
                 </p>
-                {!user?.isUnlocked && (
-                  <button
-                    type="button"
-                    onClick={() => setIsUnlockModalOpen(true)}
-                    className="text-xs font-black text-ink underline pt-1 block"
-                  >
-                    Unlock Profiles →
-                  </button>
-                )}
+                <Link
+                  href="/explore"
+                  className="text-xs font-black text-ink underline pt-1 block"
+                >
+                  Browse Companions &rarr;
+                </Link>
               </div>
 
               {/* Chat Coin Balance */}
@@ -1112,13 +1104,6 @@ function DashboardContent() {
           </div>
         )}
       </main>
-
-      {/* Unlock Pass Modal */}
-      <UnlockProfileModal
-        isOpen={isUnlockModalOpen}
-        onClose={() => setIsUnlockModalOpen(false)}
-        onSuccess={() => refreshSession()}
-      />
 
       {/* Coin Topup Modal */}
       <CoinTopupModal
