@@ -27,9 +27,12 @@ import {
   X,
   ExternalLink,
   AlertCircle,
+  Upload,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { triggerCelebration } from '@/components/ui/celebration';
+import { processAvatarUploadFile } from '@/lib/image-upload';
 
 interface HostProfileData {
   id: string;
@@ -143,6 +146,9 @@ export default function CompanionDashboardPage() {
   const [editLanguages, setEditLanguages] = useState('');
   const [editAvailabilitySlots, setEditAvailabilitySlots] = useState<string[]>([]);
   const [editPreferredVenues, setEditPreferredVenues] = useState<string[]>([]);
+  const [editAvatarPreview, setEditAvatarPreview] = useState<string>('');
+  const [editAvatarFileName, setEditAvatarFileName] = useState<string>('');
+  const [isAvatarProcessing, setIsAvatarProcessing] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Host -> Member Feedback Modal State
@@ -188,6 +194,8 @@ export default function CompanionDashboardPage() {
       setEditLanguages((p.spokenLanguages || []).join(', '));
       setEditAvailabilitySlots(p.availabilitySlots || []);
       setEditPreferredVenues(p.preferredVenues || []);
+      setEditAvatarPreview(p.avatarUrl || '');
+      setEditAvatarFileName(p.avatarUrl ? 'current-avatar.jpg' : '');
 
       if (bookingsRes.ok) {
         const bookingsData = await bookingsRes.json();
@@ -375,9 +383,18 @@ export default function CompanionDashboardPage() {
       toast.error('Bio must be at least 20 characters.');
       return;
     }
+    if (!editAvatarPreview) {
+      toast.error('Please upload a profile photo before saving.');
+      return;
+    }
 
     setIsSavingProfile(true);
     try {
+      const avatarChanged =
+        editAvatarPreview &&
+        profile?.avatarUrl !== editAvatarPreview &&
+        (editAvatarPreview.startsWith('data:') || editAvatarPreview.startsWith('http'));
+
       const res = await fetch('/api/companion/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -393,6 +410,7 @@ export default function CompanionDashboardPage() {
             .filter(Boolean),
           availabilitySlots: editAvailabilitySlots,
           preferredVenues: editPreferredVenues,
+          ...(avatarChanged ? { avatarImage: editAvatarPreview } : {}),
         }),
       });
       const data = await res.json();
@@ -415,6 +433,23 @@ export default function CompanionDashboardPage() {
       setter(list.filter((item) => item !== value));
     } else {
       setter([...list, value]);
+    }
+  };
+
+  const handleDashboardAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsAvatarProcessing(true);
+    try {
+      const processed = await processAvatarUploadFile(file, 800, 0.85);
+      setEditAvatarPreview(processed.dataUrl);
+      setEditAvatarFileName(processed.fileName);
+      toast.success('Photo ready. Click Save Changes to update your public card.');
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Could not load image file.');
+    } finally {
+      setIsAvatarProcessing(false);
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -1145,10 +1180,86 @@ export default function CompanionDashboardPage() {
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}
-                className="rounded-lg border-brutal-thin p-1.5 hover:bg-cream"
+                className="rounded-lg border-brutal-thin p-1.5 hover:bg-cream cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
+            </div>
+
+            {/* Host Profile Photo Replace / Delete */}
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-ink/70 mb-1.5">
+                Profile Avatar Photo
+              </label>
+              {editAvatarPreview ? (
+                <div className="rounded-2xl border-brutal bg-cream p-3 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={editAvatarPreview}
+                      alt="Host Avatar Preview"
+                      className="h-12 w-12 rounded-full border-2 border-ink object-cover shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-ink truncate max-w-[160px]">
+                        {isAvatarProcessing ? 'Processing...' : editAvatarFileName || 'current-avatar.jpg'}
+                      </p>
+                      <p className="text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+                        <Check className="h-3 w-3" /> Ready
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <label
+                      htmlFor="host-dashboard-avatar-input"
+                      className="inline-flex items-center justify-center rounded-lg border-2 border-ink bg-white px-2.5 py-1 text-[10px] font-black uppercase text-ink hover:bg-sunny cursor-pointer select-none"
+                    >
+                      {isAvatarProcessing ? 'Wait...' : 'Replace'}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditAvatarPreview('');
+                        setEditAvatarFileName('');
+                      }}
+                      aria-label="Remove profile photo"
+                      className="inline-flex items-center justify-center rounded-lg border border-rose-300 bg-white p-1.5 text-rose-600 hover:bg-rose-50 cursor-pointer"
+                      title="Remove photo"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="host-dashboard-avatar-input"
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink bg-cream p-3.5 text-xs font-black text-ink hover:bg-sunny/30 cursor-pointer select-none"
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span>{isAvatarProcessing ? 'Processing photo...' : 'Upload New Profile Photo'}</span>
+                  </label>
+                  {profile?.avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditAvatarPreview(profile.avatarUrl || '');
+                        setEditAvatarFileName('current-avatar.jpg');
+                      }}
+                      className="text-[11px] font-black text-ink underline hover:text-ink/70 cursor-pointer"
+                    >
+                      Restore saved photo
+                    </button>
+                  )}
+                </div>
+              )}
+              <input
+                id="host-dashboard-avatar-input"
+                type="file"
+                accept="image/*"
+                onChange={handleDashboardAvatarFile}
+                className="sr-only"
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

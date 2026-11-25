@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { uploadHostAvatar } from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
 
@@ -127,19 +128,37 @@ export async function PATCH(req: NextRequest) {
       updates.isAvailable = body.isAvailable;
     }
 
+    if (typeof body.avatarImage === "string" && body.avatarImage.trim().length > 0) {
+      const rawAvatar = body.avatarImage.trim();
+      if (rawAvatar.startsWith("data:")) {
+        try {
+          const uploaded = await uploadHostAvatar(rawAvatar);
+          updates.avatarUrl = uploaded.avatarUrl;
+          updates.blurredAvatarUrl = uploaded.blurredAvatarUrl;
+        } catch {
+          updates.avatarUrl = rawAvatar;
+          updates.blurredAvatarUrl = rawAvatar;
+        }
+      } else if (rawAvatar.startsWith("http")) {
+        updates.avatarUrl = rawAvatar;
+        updates.blurredAvatarUrl = rawAvatar;
+      }
+    }
+
     const updated = await prisma.companion.update({
       where: { id: companion.id },
       data: updates as any,
     });
 
     // Keep core User record synced with Host Studio profile changes
-    if (updates.locality !== undefined || updates.bio !== undefined) {
+    if (updates.locality !== undefined || updates.bio !== undefined || updates.avatarUrl !== undefined) {
       await prisma.user
         .update({
           where: { id: session.userId },
           data: {
             ...(updates.locality !== undefined ? { area: (updates.locality as string | null) } : {}),
             ...(updates.bio !== undefined ? { bio: updates.bio as string } : {}),
+            ...(updates.avatarUrl !== undefined ? { avatarUrl: updates.avatarUrl as string } : {}),
           },
         })
         .catch(() => {});
@@ -150,6 +169,7 @@ export async function PATCH(req: NextRequest) {
       message: "Host profile settings saved!",
       profile: {
         displayName: updated.displayName,
+        avatarUrl: updated.avatarUrl,
         hourlyRate: Number(updated.hourlyRate),
         locality: updated.locality || "",
         bio: updated.bio,

@@ -170,7 +170,7 @@ export async function submitHostApplicationAction(input: SubmitHostApplicationIn
         city: cityRecord.slug || existingUser.city || 'bengaluru',
         area: input.locality?.trim() || existingUser.area || null,
         bio: existingUser.bio || input.bio.trim() || null,
-        avatarUrl: existingUser.avatarUrl || avatarUrl,
+        avatarUrl: input.avatarImage?.startsWith('data:') ? avatarUrl : existingUser.avatarUrl || avatarUrl,
       },
     });
 

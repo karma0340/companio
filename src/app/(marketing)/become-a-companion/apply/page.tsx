@@ -30,41 +30,7 @@ import { openRazorpayCheckout } from "@/lib/payments/razorpay";
 import { useToast } from "@/components/ui/toast";
 import { useWebOtp } from "@/hooks/use-web-otp";
 import { triggerCelebration } from "@/components/ui/celebration";
-
-function compressImage(file: File, maxDim: number = 1280, quality: number = 0.8): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          resolve(e.target?.result as string);
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
+import { processAvatarUploadFile } from "@/lib/image-upload";
 
 function CompanionApplyForm() {
   const searchParams = useSearchParams();
@@ -128,7 +94,8 @@ function CompanionApplyForm() {
   const sessionPhoneDigits = (user?.phone || memberProfile?.phone || "").replace(/\D/g, "").slice(-10);
   const hasSessionPhone = sessionPhoneDigits.length === 10;
   const isPhoneOtpVerified = Boolean(user?.phoneVerified && hasSessionPhone);
-  const prefilledDbRef = useRef({ member: false, host: false });
+  const savedExistingAvatar = hostProfile?.avatarUrl || user?.avatarUrl || "";
+  const prefilledDbRef = useRef({ member: false, host: false, avatar: false });
 
   // Pre-fill all known profile and host details from DB via session snapshot
   useEffect(() => {
@@ -220,14 +187,15 @@ function CompanionApplyForm() {
       return next;
     });
 
-    if (!avatarBase64) {
+    if (!prefilledDbRef.current.avatar) {
       const existingAvatar = hostProfile?.avatarUrl || user?.avatarUrl || "";
       if (existingAvatar) {
         setAvatarBase64(existingAvatar);
         setAvatarFileName("current-avatar.jpg");
+        prefilledDbRef.current.avatar = true;
       }
     }
-  }, [user, memberProfile, hostProfile, avatarBase64, hasSessionPhone, sessionPhoneDigits]);
+  }, [user, memberProfile, hostProfile, hasSessionPhone, sessionPhoneDigits]);
 
   const handleSendAuthOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,24 +295,29 @@ function CompanionApplyForm() {
     if (!file) return;
 
     setIsAvatarProcessing(true);
-    setAvatarFileName(file.name);
     try {
-      const compressed = await compressImage(file, 800, 0.85);
-      setAvatarBase64(compressed);
+      const processed = await processAvatarUploadFile(file, 800, 0.85);
+      setAvatarBase64(processed.dataUrl);
+      setAvatarFileName(processed.fileName);
       setErrorMessage(null);
-    } catch {
-      const reader = new FileReader();
-      reader.onload = (readEvt) => {
-        if (readEvt.target?.result) {
-          setAvatarBase64(readEvt.target.result as string);
-          setErrorMessage(null);
-        }
-      };
-      reader.readAsDataURL(file);
+      toast.success("Profile photo updated.", "Photo Ready");
+    } catch (err) {
+      const msg = (err as Error)?.message || "Could not process selected photo. Please try a JPG or PNG image.";
+      setErrorMessage(msg);
+      toast.error(msg, "Upload Failed");
     } finally {
       setIsAvatarProcessing(false);
       if (e.target) e.target.value = "";
     }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarBase64("");
+    setAvatarFileName("");
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = "";
+    }
+    toast.success("Profile photo removed. Upload a clear headshot to continue.", "Photo Removed");
   };
 
   const handleAvailabilityToggle = (item: string) => {
@@ -792,15 +765,44 @@ function CompanionApplyForm() {
                 </p>
 
                 <div className="mt-6 grid grid-cols-3 gap-2 text-center text-[11px] sm:text-xs">
-                  <div className={`border-2 border-ink p-2 font-black uppercase transition ${step >= 1 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMessage(null);
+                      setStep(1);
+                    }}
+                    className={`border-2 border-ink p-2 font-black uppercase transition cursor-pointer ${step >= 1 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"}`}
+                  >
                     1. Verified Info
-                  </div>
-                  <div className={`border-2 border-ink p-2 font-black uppercase transition ${step >= 2 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"}`}>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isStep1Valid) {
+                        setErrorMessage(null);
+                        setStep(2);
+                      } else {
+                        setErrorMessage("Complete Step 1 (Name, 10-digit mobile number & age 18+) first.");
+                      }
+                    }}
+                    className={`border-2 border-ink p-2 font-black uppercase transition cursor-pointer ${step >= 2 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/60 hover:bg-paper-deep"}`}
+                  >
                     2. Persona &amp; Photo
-                  </div>
-                  <div className={`border-2 border-ink p-2 font-black uppercase transition ${step >= 3 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/40"}`}>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isStep1Valid && isStep2Valid) {
+                        setErrorMessage(null);
+                        setStep(3);
+                      } else {
+                        setErrorMessage("Complete Steps 1 and 2 before moving to Pack & Safety.");
+                      }
+                    }}
+                    className={`border-2 border-ink p-2 font-black uppercase transition cursor-pointer ${step >= 3 ? "bg-lime text-ink shadow-brutal-sm" : "bg-paper text-ink/60 hover:bg-paper-deep"}`}
+                  >
                     3. Pack &amp; Safety
-                  </div>
+                  </button>
                 </div>
               </div>
 
@@ -986,38 +988,36 @@ function CompanionApplyForm() {
                         </label>
 
                         {avatarBase64 ? (
-                          <div className="border-2 border-ink bg-paper p-2.5 flex items-center justify-between shadow-brutal-sm">
-                            <div className="flex items-center gap-3">
+                          <div className="border-2 border-ink bg-paper p-2.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shadow-brutal-sm">
+                            <div className="flex items-center gap-3 min-w-0">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={avatarBase64}
                                 alt="Profile Avatar Preview"
-                                className="w-12 h-12 rounded-full border-2 border-ink object-cover"
+                                className="w-12 h-12 rounded-full border-2 border-ink object-cover shrink-0"
                               />
-                              <div>
+                              <div className="min-w-0">
                                 <span className="text-xs font-black text-ink block truncate max-w-[140px]">
-                                  {avatarFileName || "profile-photo.jpg"}
+                                  {isAvatarProcessing ? "Updating photo..." : avatarFileName || "profile-photo.jpg"}
                                 </span>
                                 <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
                                   <Check className="h-3 w-3" /> Ready
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => avatarInputRef.current?.click()}
-                                className="border border-ink bg-white px-2 py-1 text-[10px] font-black uppercase hover:bg-paper-deep cursor-pointer"
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <label
+                                htmlFor="avatar-upload-input"
+                                className="inline-flex items-center justify-center border-2 border-ink bg-white px-2.5 py-1 text-[10px] font-black uppercase text-ink hover:bg-sunny transition cursor-pointer select-none"
                               >
-                                Replace
-                              </button>
+                                {isAvatarProcessing ? "Wait..." : "Replace"}
+                              </label>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setAvatarBase64("");
-                                  setAvatarFileName("");
-                                }}
-                                className="p-1 text-danger hover:bg-danger/10 rounded cursor-pointer"
+                                onClick={handleRemoveAvatar}
+                                disabled={isAvatarProcessing}
+                                aria-label="Remove profile photo"
+                                className="inline-flex items-center justify-center border border-danger/40 bg-white p-1.5 text-danger hover:bg-danger/10 rounded cursor-pointer transition disabled:opacity-50"
                                 title="Remove photo"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1025,16 +1025,29 @@ function CompanionApplyForm() {
                             </div>
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => avatarInputRef.current?.click()}
-                            className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-ink bg-paper p-3.5 hover:bg-paper-deep transition text-center cursor-pointer"
-                          >
-                            <Upload className="h-4 w-4 text-ink" />
-                            <span className="text-xs font-black text-ink">
-                              {isAvatarProcessing ? "Compressing photo..." : "Upload Profile Photo"}
-                            </span>
-                          </button>
+                          <div className="space-y-1.5">
+                            <label
+                              htmlFor="avatar-upload-input"
+                              className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-ink bg-paper p-3.5 hover:bg-paper-deep transition text-center cursor-pointer select-none"
+                            >
+                              <Upload className="h-4 w-4 text-ink" />
+                              <span className="text-xs font-black text-ink">
+                                {isAvatarProcessing ? "Compressing photo..." : "Upload Profile Photo"}
+                              </span>
+                            </label>
+                            {savedExistingAvatar && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAvatarBase64(savedExistingAvatar);
+                                  setAvatarFileName("current-avatar.jpg");
+                                }}
+                                className="text-[11px] font-black text-ink underline hover:text-lavender cursor-pointer"
+                              >
+                                Use saved profile photo instead
+                              </button>
+                            )}
+                          </div>
                         )}
 
                         <input
@@ -1043,7 +1056,7 @@ function CompanionApplyForm() {
                           type="file"
                           accept="image/*"
                           onChange={handleAvatarFile}
-                          className="hidden"
+                          className="sr-only"
                         />
                       </div>
                     </div>
@@ -1344,6 +1357,19 @@ function CompanionApplyForm() {
 
                 {/* Navigation Controls */}
                 <div className="space-y-2.5 pt-4 border-t-2 border-ink">
+                  {!canProceed && (
+                    <p className="text-[11px] font-bold text-amber-800 bg-sunny/30 border border-ink/20 px-3 py-1.5 rounded-lg">
+                      {step === 1
+                        ? "Complete your Full Legal Name, 10-digit Mobile Number, and Age (18+) to continue."
+                        : step === 2
+                        ? !avatarBase64
+                          ? "Please upload a clear Profile Avatar Photo to continue."
+                          : formData.bio.trim().length < 15
+                          ? "Write a short bio (at least 15 characters) to continue."
+                          : "Complete Display Name, Photo, Spoken Languages, Activities, and Bio to continue."
+                        : "Enter a valid Payout UPI ID, availability, preferred venues, and accept all 4 commitments."}
+                    </p>
+                  )}
                   <div className="flex items-center justify-between gap-2">
                     {step > 1 ? (
                       <button
