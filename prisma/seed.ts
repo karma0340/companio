@@ -538,59 +538,8 @@ async function main() {
         isAvailable: true,
       },
     });
-
-    // Seed an authentic completed booking and review for each companion
-    const reviewerPhone = `+91999900${c.phone.slice(-4)}`;
-    const reviewerUser = await prisma.user.upsert({
-      where: { phone: reviewerPhone },
-      update: {},
-      create: {
-        phone: reviewerPhone,
-        name: "Verified Member",
-        role: "MEMBER",
-      },
-    });
-
-    const bookingRecord = await prisma.booking.upsert({
-      where: { bookingNumber: `CMP-SEED-${c.id}` },
-      update: {},
-      create: {
-        id: `seed-bk-${c.id}`,
-        bookingNumber: `CMP-SEED-${c.id}`,
-        memberId: reviewerUser.id,
-        companionId: companionRecord.id,
-        cityId: seededCities[c.citySlug] || seededCities["bengaluru"],
-        activityId: seededActivities["coffee-chat"] || Object.values(seededActivities)[0],
-        scheduledDate: new Date(Date.now() - 3 * 86400000),
-        durationHours: 2,
-        venueName: "Artisan Roastery Cafe",
-        venueAddress: "Public High Street",
-        totalAmount: 1200.00,
-        companionFee: 1000.00,
-        platformFee: 169.49,
-        gstAmount: 30.51,
-        verificationPin: "8421",
-        pinVerifiedAt: new Date(Date.now() - 3 * 86400000),
-        status: "COMPLETED",
-        escrowStatus: "RELEASED_TO_HOST",
-        hostAcceptanceDeadline: new Date(Date.now() - 2 * 86400000),
-      },
-    });
-
-    await prisma.reviewRating.upsert({
-      where: { bookingId: bookingRecord.id },
-      update: {},
-      create: {
-        id: `rev-${c.id}-1`,
-        bookingId: bookingRecord.id,
-        memberId: reviewerUser.id,
-        companionId: companionRecord.id,
-        score: 5,
-        comment: `Had such a refreshing time with ${c.displayName}! We hung out in a public cafe and felt completely at ease from the first minute. Zero awkwardness!`,
-      },
-    });
   }
-  console.log(`[Seed] Seeded ${companionsData.length} verified companions with reviews.`);
+  console.log(`[Seed] Seeded ${companionsData.length} verified companions.`);
 
   // 4. Seed Demo Members
   await prisma.user.upsert({

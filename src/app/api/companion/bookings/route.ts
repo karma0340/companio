@@ -23,7 +23,10 @@ export async function GET() {
     }
 
     const bookings = await prisma.booking.findMany({
-      where: { companionId: host.id },
+      where: {
+        companionId: host.id,
+        bookingNumber: { not: { startsWith: "CMP-SEED-" } },
+      },
       include: {
         member: { select: { name: true } },
         activity: { select: { title: true } },
