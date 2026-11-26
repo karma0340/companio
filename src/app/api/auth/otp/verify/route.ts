@@ -193,7 +193,7 @@ export async function POST(req: NextRequest) {
     };
 
     const requestedIntent = String(body.intent || '').toLowerCase();
-    const effectiveRole = requestedIntent === 'host' && (hasCompanion || hostProfile) ? 'COMPANION' : 'MEMBER';
+    const effectiveRole = (requestedIntent === 'host' || hasCompanion) && (hasCompanion || hostProfile) ? 'COMPANION' : 'MEMBER';
 
     const resolvedPhone = isEmail ? dbUser?.phone || "" : identifier;
     const isPhoneVerified = !isEmail;

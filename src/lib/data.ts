@@ -278,6 +278,8 @@ export async function getCompanionsPaginated(
         })
         .filter((c) => (c._score || 0) > 0)
         .sort((a, b) => (b._score || 0) - (a._score || 0));
+    } else {
+      mapped = interleaveCompanions(mapped, Boolean(query.city && query.city !== 'all'));
     }
 
     const total = mapped.length;
@@ -306,6 +308,53 @@ export async function getCompanionsPaginated(
       cityCounts: {},
     };
   }
+}
+
+/**
+ * Organically interleaves companions across cities/localities to prevent unnatural sequential clumping
+ */
+function interleaveCompanions<T extends { citySlug?: string; locality?: string }>(items: T[], isCityFiltered: boolean): T[] {
+  if (items.length <= 2) return items;
+
+  if (isCityFiltered) {
+    // Single city: semi-deterministic skip rotation to distribute localities organically
+    const result: T[] = [];
+    const copy = [...items];
+    let i = 0;
+    while (copy.length > 0) {
+      const idx = (i * 3) % copy.length;
+      result.push(copy.splice(idx, 1)[0]);
+      i++;
+    }
+    return result;
+  }
+
+  // All cities: balanced round-robin interleave across cities
+  const cityBuckets: Record<string, T[]> = {};
+  for (const item of items) {
+    const key = (item.citySlug || 'other').toLowerCase();
+    if (!cityBuckets[key]) cityBuckets[key] = [];
+    cityBuckets[key].push(item);
+  }
+
+  const result: T[] = [];
+  const cityKeys = Object.keys(cityBuckets).sort((a, b) => cityBuckets[b].length - cityBuckets[a].length);
+  let remaining = items.length;
+
+  while (remaining > 0) {
+    let added = 0;
+    for (const city of cityKeys) {
+      const bucket = cityBuckets[city];
+      if (bucket && bucket.length > 0) {
+        result.push(bucket.shift()!);
+        remaining--;
+        added++;
+      }
+    }
+    if (added === 0) break;
+  }
+
+  return result;
 }
 
 export async function getCompanions(citySlug?: string, activitySlug?: string): Promise<CompanionSummary[]> {
@@ -366,7 +415,8 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
         });
       }
 
-      return mapped;
+      const isCityFiltered = Boolean(citySlug && citySlug !== 'all');
+      return interleaveCompanions(mapped, isCityFiltered);
     }
   } catch (err) {
     console.error('[GET COMPANIONS ERROR]:', err);
@@ -432,9 +482,9 @@ export async function getCompanionById(id: string) {
         availability: c.availabilitySlots && c.availabilitySlots.length > 0
           ? c.availabilitySlots.map((slot) => ({ days: slot, hours: 'Public Venues Only' }))
           : [
-              { days: 'Mon — Fri', hours: '18:00 – 21:00' },
-              { days: 'Sat — Sun', hours: '11:00 – 20:00' },
-            ],
+            { days: 'Mon — Fri', hours: '18:00 – 21:00' },
+            { days: 'Sat — Sun', hours: '11:00 – 20:00' },
+          ],
         reviews: c.reviewsReceived.map((r) => ({
           id: r.id,
           authorName: r.member?.name || 'Verified Member',

@@ -145,7 +145,7 @@ function LoginContent() {
     const activeHost = verifiedHostProfile || hostProfile;
     const activeMember = verifiedMemberProfile || memberProfile;
 
-    if (intent === 'host') {
+    if (intent === 'host' || (activeHost && activeHost.verificationStatus === 'approved')) {
       if (activeHost && activeHost.verificationStatus === 'approved') {
         router.push('/companion/dashboard');
       } else if (activeHost && activeHost.verificationStatus === 'pending') {
