@@ -487,6 +487,7 @@ async function main() {
         gender: c.gender,
         role: "COMPANION",
         isKycVerified: true,
+        isSeeded: true,
       },
       create: {
         phone: c.phone,
@@ -494,6 +495,7 @@ async function main() {
         gender: c.gender,
         role: "COMPANION",
         isKycVerified: true,
+        isSeeded: true,
       },
     });
 
@@ -544,7 +546,7 @@ async function main() {
   // 4. Seed Demo Members
   await prisma.user.upsert({
     where: { phone: "+919999999901" },
-    update: { isUnlocked: true, activePassTier: "ONE_MONTH" },
+    update: { isUnlocked: true, activePassTier: "ONE_MONTH", isSeeded: true },
     create: {
       phone: "+919999999901",
       name: "Aditya Mehta",
@@ -553,18 +555,20 @@ async function main() {
       activePassTier: "ONE_MONTH",
       passExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       walletBalance: 1500.00,
+      isSeeded: true,
     },
   });
 
   await prisma.user.upsert({
     where: { phone: "+919999999902" },
-    update: {},
+    update: { isSeeded: true },
     create: {
       phone: "+919999999902",
       name: "Saurabh Verma",
       role: "MEMBER",
       isUnlocked: false,
       walletBalance: 0.00,
+      isSeeded: true,
     },
   });
 

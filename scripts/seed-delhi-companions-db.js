@@ -173,6 +173,7 @@ async function seed() {
         city: 'delhi',
         area: c.locality,
         isKycVerified: true,
+        isSeeded: true,
       },
       create: {
         phone: c.phone,
@@ -182,6 +183,7 @@ async function seed() {
         city: 'delhi',
         area: c.locality,
         isKycVerified: true,
+        isSeeded: true,
         walletBalance: 0,
         coinBalance: 100,
         creditBalance: 100,
