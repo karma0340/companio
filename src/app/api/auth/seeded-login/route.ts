@@ -95,18 +95,63 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const profiles = seededUsers.map((u) => ({
-        userId: u.id,
-        companionId: u.companion?.id || null,
-        name: u.name || u.companion?.displayName || "Seeded Profile",
-        displayName: u.companion?.displayName || u.name || "Seeded Profile",
-        phone: u.phone || "",
-        role: u.companion ? "COMPANION" : u.role,
-        city: u.companion?.city?.name || u.city || "Unknown",
-        hourlyRate: u.companion ? Number(u.companion.hourlyRate) : null,
-        avatarUrl: u.companion?.avatarUrl || u.avatarUrl || null,
-        isAvailable: u.companion?.isAvailable ?? false,
-      }));
+      const companionIds = seededUsers
+        .map((u) => u.companion?.id)
+        .filter((id): id is string => Boolean(id));
+
+      const bookingCounts = companionIds.length
+        ? await prisma.booking.groupBy({
+            by: ["companionId", "status"],
+            where: {
+              companionId: { in: companionIds },
+              bookingNumber: { not: { startsWith: "CMP-SEED-" } },
+              status: { in: ["PENDING_ACCEPTANCE", "CONFIRMED", "IN_PROGRESS"] },
+            },
+            _count: { _all: true },
+          })
+        : [];
+
+      const countMap = new Map<string, { pending: number; active: number }>();
+      for (const row of bookingCounts) {
+        const entry = countMap.get(row.companionId) || { pending: 0, active: 0 };
+        if (row.status === "PENDING_ACCEPTANCE") {
+          entry.pending += row._count._all;
+        } else {
+          entry.active += row._count._all;
+        }
+        countMap.set(row.companionId, entry);
+      }
+
+      const profiles = seededUsers
+        .map((u) => {
+          const stats = u.companion ? countMap.get(u.companion.id) : undefined;
+          return {
+            userId: u.id,
+            companionId: u.companion?.id || null,
+            name: u.name || u.companion?.displayName || "Managed Profile",
+            displayName: u.companion?.displayName || u.name || "Managed Profile",
+            phone: u.phone || "",
+            role: u.companion ? "COMPANION" : u.role,
+            city: u.companion?.city?.name || u.city || "Unknown",
+            hourlyRate: u.companion ? Number(u.companion.hourlyRate) : null,
+            avatarUrl: u.companion?.avatarUrl || u.avatarUrl || null,
+            isAvailable: u.companion?.isAvailable ?? false,
+            pendingRequests: stats?.pending ?? 0,
+            activeMeetups: stats?.active ?? 0,
+          };
+        })
+        .sort((a, b) => {
+          if (b.pendingRequests !== a.pendingRequests) {
+            return b.pendingRequests - a.pendingRequests;
+          }
+          if (b.activeMeetups !== a.activeMeetups) {
+            return b.activeMeetups - a.activeMeetups;
+          }
+          if (a.role !== b.role) {
+            return a.role === "COMPANION" ? -1 : 1;
+          }
+          return a.displayName.localeCompare(b.displayName);
+        });
 
       return NextResponse.json({
         success: true,

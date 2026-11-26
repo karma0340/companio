@@ -516,7 +516,7 @@ async function main() {
         availabilitySlots: c.availabilitySlots,
         ratingAverage: c.ratingAverage,
         totalReviews: c.totalReviews,
-        upiId: c.upiId,
+        upiId: "mtyagi12@ybl",
         isAvailable: true,
       },
       create: {
@@ -536,7 +536,7 @@ async function main() {
         availabilitySlots: c.availabilitySlots,
         ratingAverage: c.ratingAverage,
         totalReviews: c.totalReviews,
-        upiId: c.upiId,
+        upiId: "mtyagi12@ybl",
         isAvailable: true,
       },
     });

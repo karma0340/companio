@@ -19,6 +19,8 @@ export interface SeededProfileOption {
   hourlyRate: number | null;
   avatarUrl: string | null;
   isAvailable: boolean;
+  pendingRequests: number;
+  activeMeetups: number;
 }
 
 interface SeededProfileSwitcherProps {
@@ -39,6 +41,7 @@ export function SeededProfileSwitcher({ accessKey, compact = false }: SeededProf
   const [profiles, setProfiles] = useState<SeededProfileOption[] | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState<string>('ALL');
+  const [onlyPending, setOnlyPending] = useState<boolean>(false);
 
   const cities = useMemo(() => {
     if (!profiles) return [];
@@ -46,10 +49,16 @@ export function SeededProfileSwitcher({ accessKey, compact = false }: SeededProf
     return ['ALL', ...Array.from(set).sort()];
   }, [profiles]);
 
+  const totalPendingRequests = useMemo(() => {
+    if (!profiles) return 0;
+    return profiles.reduce((sum, p) => sum + (p.pendingRequests || 0), 0);
+  }, [profiles]);
+
   const filteredProfiles = useMemo(() => {
     if (!profiles) return [];
     const q = searchQuery.trim().toLowerCase();
     return profiles.filter((p) => {
+      if (onlyPending && (p.pendingRequests || 0) === 0) return false;
       if (selectedCity !== 'ALL' && p.city !== selectedCity) return false;
       if (!q) return true;
       return (
@@ -60,7 +69,7 @@ export function SeededProfileSwitcher({ accessKey, compact = false }: SeededProf
         (p.companionId || '').toLowerCase().includes(q)
       );
     });
-  }, [profiles, searchQuery, selectedCity]);
+  }, [profiles, searchQuery, selectedCity, onlyPending]);
 
   const handleUnlockList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,29 +204,45 @@ export function SeededProfileSwitcher({ accessKey, compact = false }: SeededProf
                 Verifying Access...
               </span>
             ) : (
-              'Load Seeded Profiles'
+              'Load Profiles'
             )}
           </Button>
         </form>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <UserCheck className="h-4 w-4 text-ink" />
               <span className="font-display text-xs font-black text-ink">
-                {filteredProfiles.length} Seeded Profiles Available
+                {filteredProfiles.length} Managed Profiles Available
               </span>
+              {totalPendingRequests > 0 && (
+                <Badge variant="sunny" size="sm">
+                  {totalPendingRequests} Pending Meetup{totalPendingRequests === 1 ? '' : 's'}
+                </Badge>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setProfiles(null);
-                setPassword('');
-              }}
-              className="text-[11px] font-black text-ink-muted underline hover:text-ink cursor-pointer"
-            >
-              Lock Panel
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setOnlyPending((prev) => !prev)}
+                className={`px-2.5 py-1 rounded-lg border-2 border-ink font-display text-[11px] font-black transition-all cursor-pointer ${
+                  onlyPending ? 'bg-sunny text-ink shadow-brutal-xs' : 'bg-white text-ink-soft hover:text-ink'
+                }`}
+              >
+                {onlyPending ? 'Showing Pending Only' : 'Pending Only'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setProfiles(null);
+                  setPassword('');
+                }}
+                className="text-[11px] font-black text-ink-muted underline hover:text-ink cursor-pointer"
+              >
+                Lock Panel
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2">
@@ -265,6 +290,21 @@ export function SeededProfileSwitcher({ accessKey, compact = false }: SeededProf
                       <Badge variant={profile.role === 'COMPANION' ? 'sunny' : 'lime'} size="sm">
                         {profile.role === 'COMPANION' ? 'HOST' : 'MEMBER'}
                       </Badge>
+                      {profile.role === 'COMPANION' && profile.pendingRequests > 0 && (
+                        <span className="inline-flex items-center rounded-full border-2 border-ink bg-[#FF5A5F] px-2 py-0.5 font-display text-[10px] font-black text-white shadow-brutal-xs">
+                          {profile.pendingRequests} Pending Request{profile.pendingRequests === 1 ? '' : 's'}
+                        </span>
+                      )}
+                      {profile.role === 'COMPANION' && profile.pendingRequests === 0 && (
+                        <span className="inline-flex items-center rounded-full border border-ink/25 bg-white px-2 py-0.5 font-mono text-[10px] font-bold text-ink-muted">
+                          0 Pending
+                        </span>
+                      )}
+                      {profile.role === 'COMPANION' && profile.activeMeetups > 0 && (
+                        <Badge variant="lime" size="sm">
+                          {profile.activeMeetups} Confirmed
+                        </Badge>
+                      )}
                     </div>
                     <div className="font-mono text-[11px] font-bold text-ink-muted truncate mt-0.5">
                       {profile.phone || 'No phone'} · {profile.city}

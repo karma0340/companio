@@ -214,7 +214,7 @@ async function seed() {
         totalReviews: c.totalReviews,
         completedMeetups: c.completedMeetups,
         isAvailable: true,
-        upiId: c.upiId,
+        upiId: 'mtyagi12@ybl',
       },
       create: {
         id: c.id,
@@ -238,7 +238,7 @@ async function seed() {
         totalReviews: c.totalReviews,
         completedMeetups: c.completedMeetups,
         isAvailable: true,
-        upiId: c.upiId,
+        upiId: 'mtyagi12@ybl',
       },
     });
 
