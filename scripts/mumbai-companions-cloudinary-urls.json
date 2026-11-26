@@ -1,0 +1,37 @@
+[
+  {
+    "id": "anvi-mum",
+    "name": "Anvi Deshmukh",
+    "publicId": "meetzy/companions/anvi-mum",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/anvi-mum.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/anvi-mum.jpg"
+  },
+  {
+    "id": "kiara-mum",
+    "name": "Kiara Mehta",
+    "publicId": "meetzy/companions/kiara-mum",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/kiara-mum.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/kiara-mum.jpg"
+  },
+  {
+    "id": "sanya-mum",
+    "name": "Sanya Kapoor",
+    "publicId": "meetzy/companions/sanya-mum",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/sanya-mum.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/sanya-mum.jpg"
+  },
+  {
+    "id": "navya-mum",
+    "name": "Navya Joshi",
+    "publicId": "meetzy/companions/navya-mum",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/navya-mum.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/navya-mum.jpg"
+  },
+  {
+    "id": "myra-mum",
+    "name": "Myra Singhania",
+    "publicId": "meetzy/companions/myra-mum",
+    "clearAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/myra-mum.jpg",
+    "blurredAvatarUrl": "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/myra-mum.jpg"
+  }
+]
