@@ -279,7 +279,149 @@ export const MOCK_COMPANIONS: CompanionSummary[] = [
     shortBio: "Khan Market coffee roasteries & art lover.",
     isAvailable: true,
   },
+  {
+    id: "tara-del",
+    name: "Tara Sengupta",
+    displayName: "Tara",
+    maskedName: "Tara S***",
+    city: "Delhi NCR",
+    citySlug: "delhi",
+    locality: "Hauz Khas Village",
+    hourlyRate: 599,
+    ratingAverage: 4.93,
+    totalReviews: 31,
+    spokenLanguages: ["English", "Hindi", "Bengali"],
+    acceptedActivities: ["Coffee & Conversations", "Book Cafes & Reading", "Museums & Art Galleries", "Sunset & Park Strolls"],
+    avatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/tara-del.jpg",
+    blurredAvatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/tara-del.jpg",
+    bio: "Architecture graduate and avid sketcher based around Hauz Khas. I love finding quiet reading nooks in South Delhi, discovering single-origin espresso roasteries, and exploring historical stepwells and art pop-ups.",
+    shortBio: "Architecture grad in Hauz Khas. Specialty brews & indie books.",
+    isAvailable: true,
+  },
+  {
+    id: "ishita-del",
+    name: "Ishita Malhotra",
+    displayName: "Ishita",
+    maskedName: "Ishita M***",
+    city: "Delhi NCR",
+    citySlug: "delhi",
+    locality: "Connaught Place",
+    hourlyRate: 649,
+    ratingAverage: 4.97,
+    totalReviews: 44,
+    spokenLanguages: ["English", "Hindi", "Punjabi"],
+    acceptedActivities: ["Coffee & Conversations", "Food Crawl & Street Eats", "Photo Walk & Candid Shots", "Comedy & Live Shows"],
+    avatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/ishita-del.jpg",
+    blurredAvatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/ishita-del.jpg",
+    bio: "Digital media strategist living in Central Delhi. High-energy, easygoing plus-one for weekend brunch crawls in CP, vintage vinyl shopping, aesthetic photo walks, and spontaneous indie standup comedy shows.",
+    shortBio: "Content strategist in CP. Brunch connoisseur & photo walks.",
+    isAvailable: true,
+  },
+  {
+    id: "zoya-del",
+    name: "Zoya Qureshi",
+    displayName: "Zoya",
+    maskedName: "Zoya Q***",
+    city: "Delhi NCR",
+    citySlug: "delhi",
+    locality: "Greater Kailash 1",
+    hourlyRate: 699,
+    ratingAverage: 4.91,
+    totalReviews: 28,
+    spokenLanguages: ["English", "Hindi", "Urdu"],
+    acceptedActivities: ["Shopping & Styling Buddy", "Comedy & Live Shows", "Flea Markets & Thrifting", "Coffee & Conversations"],
+    avatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/zoya-del.jpg",
+    blurredAvatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/zoya-del.jpg",
+    bio: "Fashion merchandising consultant in GK-1. Great eye for aesthetics, honest shopping advice, and wardrobe styling. Enjoy rooftop music sessions, live jazz gigs, and relaxed conversations over artisanal tea.",
+    shortBio: "Fashion stylist in GK-1. Shopping runs & gig nights.",
+    isAvailable: true,
+  },
+  {
+    id: "avani-del",
+    name: "Avani Sharma",
+    displayName: "Avani",
+    maskedName: "Avani S***",
+    city: "Delhi NCR",
+    citySlug: "delhi",
+    locality: "Mandi House",
+    hourlyRate: 549,
+    ratingAverage: 4.88,
+    totalReviews: 19,
+    spokenLanguages: ["English", "Hindi"],
+    acceptedActivities: ["Museums & Art Galleries", "Indie Cinema & Film Clubs", "City Walk & Exploration", "Coffee & Conversations"],
+    avatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/avani-del.jpg",
+    blurredAvatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/avani-del.jpg",
+    bio: "Performing arts student and gallery volunteer. Passionate about Hindi theater at Kamani & Shri Ram Centre, mural photography across Lodhi Art District, and candid conversations over roadside kulhad chai.",
+    shortBio: "Theater & arts curator at Mandi House. Lodhi murals & plays.",
+    isAvailable: true,
+  },
+  {
+    id: "riddhi-del",
+    name: "Riddhi Kapoor",
+    displayName: "Riddhi",
+    maskedName: "Riddhi K***",
+    city: "Delhi NCR",
+    citySlug: "delhi",
+    locality: "Aerocity",
+    hourlyRate: 749,
+    ratingAverage: 4.95,
+    totalReviews: 36,
+    spokenLanguages: ["English", "Hindi"],
+    acceptedActivities: ["Coffee & Conversations", "Co-Working Focus Partner", "Food Crawl & Street Eats", "City Walk & Exploration"],
+    avatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face/meetzy/companions/riddhi-del.jpg",
+    blurredAvatarUrl: "https://res.cloudinary.com/da9c3vejh/image/upload/f_auto,q_auto,c_fill,w_800,h_1000,g_face,e_blur:1000/meetzy/companions/riddhi-del.jpg",
+    bio: "Corporate brand strategist based in Aerocity. Professional, articulate, and well-traveled. Perfect companion for business lounge chats, design summits, luxury retail window shopping, and fine cafe dining.",
+    shortBio: "Brand consultant in Aerocity. Chic lounge cafes & design chats.",
+    isAvailable: true,
+  },
 ];
+
+/**
+ * Organically interleaves companions across cities/localities to prevent unnatural sequential clumping
+ */
+function interleaveCompanions<T extends { citySlug?: string; locality?: string }>(items: T[], isCityFiltered: boolean): T[] {
+  if (items.length <= 2) return items;
+
+  if (isCityFiltered) {
+    // Single city: semi-deterministic skip rotation to distribute localities organically
+    const result: T[] = [];
+    const copy = [...items];
+    let i = 0;
+    while (copy.length > 0) {
+      const idx = (i * 3) % copy.length;
+      result.push(copy.splice(idx, 1)[0]);
+      i++;
+    }
+    return result;
+  }
+
+  // All cities: balanced round-robin interleave across cities
+  const cityBuckets: Record<string, T[]> = {};
+  for (const item of items) {
+    const key = (item.citySlug || 'other').toLowerCase();
+    if (!cityBuckets[key]) cityBuckets[key] = [];
+    cityBuckets[key].push(item);
+  }
+
+  const result: T[] = [];
+  const cityKeys = Object.keys(cityBuckets).sort((a, b) => cityBuckets[b].length - cityBuckets[a].length);
+  let remaining = items.length;
+
+  while (remaining > 0) {
+    let added = 0;
+    for (const city of cityKeys) {
+      const bucket = cityBuckets[city];
+      if (bucket && bucket.length > 0) {
+        result.push(bucket.shift()!);
+        remaining--;
+        added++;
+      }
+    }
+    if (added === 0) break;
+  }
+
+  return result;
+}
 
 export async function getCompanions(citySlug?: string, activitySlug?: string): Promise<CompanionSummary[]> {
   try {
@@ -333,7 +475,8 @@ export async function getCompanions(citySlug?: string, activitySlug?: string): P
         );
       }
 
-      return mapped;
+      const isCityFiltered = Boolean(citySlug && citySlug !== 'all');
+      return interleaveCompanions(mapped, isCityFiltered);
     }
   } catch (err) {
     console.error('[GET COMPANIONS ERROR]:', err);
@@ -455,11 +598,11 @@ export async function getCompanionById(id: string) {
         acceptsWomenOnly: false,
         memberSince: new Date(c.createdAt).getFullYear().toString() || '2026',
         availability: c.availabilitySlots && c.availabilitySlots.length > 0
-          ? c.availabilitySlots.map((slot: string) => ({ days: slot, hours: 'Public Venues Only' }))
+          ? c.availabilitySlots.map((slot) => ({ days: slot, hours: 'Public Venues Only' }))
           : [
-              { days: 'Mon — Fri', hours: '18:00 – 21:00' },
-              { days: 'Sat — Sun', hours: '11:00 – 20:00' },
-            ],
+            { days: 'Mon — Fri', hours: '18:00 – 21:00' },
+            { days: 'Sat — Sun', hours: '11:00 – 20:00' },
+          ],
         reviews: c.reviewsReceived.map((r) => ({
           id: r.id,
           authorName: r.member?.name || 'Verified Member',
